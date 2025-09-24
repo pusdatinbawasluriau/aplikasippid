@@ -103,11 +103,16 @@
 <body class="antialiased">
 
     <!-- Halaman Login -->
-    <div id="login-page" class="relative flex items-center justify-center min-h-screen bg-cover bg-center" style="background-image: url('https://www.ruangpolitik.com/wp-content/uploads/2022/05/Bawaslu.jpg')">
+    <div id="login-page" class="relative flex items-center justify-center min-h-screen overflow-hidden">
+         <!-- Latar Belakang Video -->
+        <video autoplay loop muted class="absolute z-0 w-auto min-w-full min-h-full max-w-none object-cover">
+            <source src="https://drive.google.com/uc?export=view&id=1JstvHSZRslB0HLSSlymCD2-DuRtgB3f1" type="video/mp4">
+            Browser Anda tidak mendukung tag video.
+        </video>
         <!-- Overlay Gelap -->
         <div class="absolute inset-0 bg-black/60 z-10"></div>
 
-        <div class="relative w-full max-w-md p-8 space-y-6 card z-20 bg-white/95 backdrop-blur-sm border border-gray-200/50">
+        <div class="relative w-full max-w-md p-8 space-y-6 card z-20 bg-white/90 backdrop-blur-sm border border-gray-200/50">
             <div class="text-center">
                 <img src="https://bawaslukabsemarang.wordpress.com/wp-content/uploads/2017/11/cropped-cropped-bawaslu-logo.png?w=200" alt="Logo Bawaslu" class="mx-auto mb-4 h-20 w-auto">
                 <h1 class="text-3xl font-extrabold text-bawaslu-primary">PPID Bawaslu Riau</h1>
@@ -1005,6 +1010,7 @@
     </script>
 </body>
 </html>
+
 
 
 
