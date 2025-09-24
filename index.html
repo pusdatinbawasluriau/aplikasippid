@@ -103,8 +103,20 @@
 <body class="antialiased">
 
     <!-- Halaman Login -->
-    <div id="login-page" class="flex items-center justify-center min-h-screen bg-cover bg-center" style="background-image: url('https://placehold.co/1920x1080/F7F9FC/EBF0F6?text=.')">
-        <div class="w-full max-w-md p-8 space-y-6 card">
+    <div id="login-page" class="relative flex items-center justify-center min-h-screen overflow-hidden">
+        <!-- Latar Belakang Video -->
+        <video autoplay loop muted class="absolute z-0 w-auto min-w-full min-h-full max-w-none object-cover">
+             <!-- 
+                PENTING: Ganti URL di bawah ini dengan URL video Anda.
+                Video perlu di-hosting secara online terlebih dahulu.
+            -->
+            <source src="https://drive.google.com/file/d/1JstvHSZRslB0HLSSlymCD2-DuRtgB3f1/view?usp=drive_link">
+            Browser Anda tidak mendukung tag video.
+        </video>
+        <!-- Overlay Gelap -->
+        <div class="absolute inset-0 bg-black/60 z-10"></div>
+
+        <div class="relative w-full max-w-md p-8 space-y-6 card z-20 bg-white/90 backdrop-blur-sm border border-gray-200/50">
             <div class="text-center">
                 <img src="https://bawaslukabsemarang.wordpress.com/wp-content/uploads/2017/11/cropped-cropped-bawaslu-logo.png?w=200" alt="Logo Bawaslu" class="mx-auto mb-4 h-20 w-auto">
                 <h1 class="text-3xl font-extrabold text-bawaslu-primary">PPID Bawaslu Riau</h1>
@@ -877,9 +889,127 @@
             printFormBtn.addEventListener('click', () => generatePDF('form'));
             printReceiptBtn.addEventListener('click', () => generatePDF('receipt'));
 
-            function generatePDF(type) { if (!lastFormData) { showCustomModal('Perhatian', 'Tidak ada data untuk dicetak.'); return; } const { jsPDF } = window.jspdf; const doc = new jsPDF(); const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }); doc.setFontSize(16); doc.setFont('helvetica', 'bold'); doc.text('PPID BAWASLU PROVINSI RIAU', doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' }); doc.setFontSize(12); doc.setFont('helvetica', 'normal'); doc.text('Jalan Jenderal Sudirman No. 201, Pekanbaru', doc.internal.pageSize.getWidth() / 2, 28, { align: 'center' }); doc.setLineWidth(1); doc.line(15, 35, 195, 35); if (type === 'form') { generateFormPDF(doc, today); } else { generateReceiptPDF(doc, today); } }
-            function generateFormPDF(doc, today) { doc.setFontSize(14); doc.setFont('helvetica', 'bold'); doc.text('FORMULIR PERMOHONAN INFORMASI', doc.internal.pageSize.getWidth() / 2, 48, { align: 'center' }); doc.setFontSize(11); doc.setFont('helvetica', 'normal'); doc.text(`No. Registrasi: ${lastFormData.no_registrasi || 'N/A'}`, 20, 60); const pekerjaan = lastFormData.pekerjaan === 'Lainnya' ? lastFormData.pekerjaan_lainnya : lastFormData.pekerjaan; const body = [ { content: 'Nama', styles: { fontStyle: 'bold', cellWidth: 60 } }, { content: `: ${lastFormData.nama_pemohon}` }, { content: 'Alamat', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.alamat}` }, { content: 'Pekerjaan', styles: { fontStyle: 'bold' } }, { content: `: ${pekerjaan}` }, { content: 'Nomor Telepon', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.no_telp}` }, { content: 'Email', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.email}` }, { content: 'Rincian Informasi', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.rincian_informasi}` }, { content: 'Tujuan Penggunaan', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.tujuan_informasi}` }, { content: 'Cara Memperoleh', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.cara_memperoleh}` }, { content: 'Cara Mendapatkan Salinan', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.cara_mendapat_salinan}` }, { content: 'Bentuk Salinan', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.salinan_informasi}` }, ]; let rowData = []; let tableBody = []; body.forEach((cell, index) => { rowData.push(cell); if ((index + 1) % 2 === 0) { tableBody.push(rowData); rowData = []; } }); doc.autoTable({ startY: 65, body: tableBody, theme: 'plain', styles: { fontSize: 11, cellPadding: 2.5, cellWidth: 'wrap' }, columnStyles: { 1: { cellWidth: 'auto' } } }); let finalY = doc.autoTable.previous.finalY; finalY = Math.max(finalY, 180); doc.text(`Pekanbaru, ${today}`, 130, finalY); finalY += 8; doc.text('Petugas Pelayanan Informasi', 20, finalY); doc.text('Pemohon Informasi', 130, finalY); doc.text('(Penerima Permohonan)', 20, finalY + 5); finalY += 25; doc.text(`( ${lastFormData.petugas_pelayanan} )`, 20, finalY); doc.text(`( ${lastFormData.nama_pemohon} )`, 130, finalY); doc.addPage(); doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.text('DOKUMEN IDENTITAS PEMOHON', doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' }); if (lastFormData.identitas_pemohon_img) { try { const imgProps = doc.getImageProperties(lastFormData.identitas_pemohon_img); const pdfWidth = doc.internal.pageSize.getWidth(); const imgWidth = pdfWidth * 0.8; const imgHeight = (imgProps.height * imgWidth) / imgProps.width; doc.addImage(lastFormData.identitas_pemohon_img, 'JPEG', (pdfWidth - imgWidth) / 2, 30, imgWidth, imgHeight); } catch (e) { doc.text('Gagal memuat gambar.', 20, 30); } } else { doc.text('Tidak ada dokumen identitas.', 20, 30); } doc.save(`Formulir_Permohonan_${lastFormData.nama_pemohon}.pdf`); }
-            function generateReceiptPDF(doc, today) { doc.setFontSize(14); doc.setFont('helvetica', 'bold'); doc.text('TANDA TERIMA PERMOHONAN INFORMASI', doc.internal.pageSize.getWidth() / 2, 48, { align: 'center' }); doc.setFontSize(11); doc.setFont('helvetica', 'normal'); doc.text(`No. Registrasi: ${lastFormData.no_registrasi || 'N/A'}`, 20, 60); doc.text('Telah diterima permohonan informasi dari:', 20, 70); const body = [ ['Nama', `: ${lastFormData.nama_pemohon}`], ['No. Telepon', `: ${lastFormData.no_telp}`], ['Email', `: ${lastFormData.email}`], ['Rincian Informasi', `: ${lastFormData.rincian_informasi}`], ]; doc.autoTable({ startY: 75, body: body, theme: 'plain', styles: { cellPadding: 2, fontSize: 11 }, columnStyles: { 0: { cellWidth: 50, fontStyle: 'bold' } } }); const finalY = doc.autoTable.previous.finalY; doc.text('Permohonan akan diproses sesuai peraturan.', 20, finalY + 15, { maxWidth: 170 }); doc.text(`Pekanbaru, ${today}`, 130, finalY + 35); doc.text('Petugas Pelayanan,', 130, finalY + 43); doc.text(`( ${lastFormData.petugas_pelayanan} )`, 130, finalY + 65); doc.save(`Tanda_Terima_${lastFormData.nama_pemohon}.pdf`); }
+            const BAWASLU_KOP_BASE64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABAAAAAIAAQMAAADoB64OAAAABlBMVEUAAAD///+l2Z/dAAACpklEQVR4nO3WMW4CMQwA0M9iCBx/Qd/N1Yv0BgwlJqFDLhAhFxD+2SAgYyL2+MhPWu13O7so1gXg2+75/zB3cT6Hyx94ADyAL4CjG3sACCCAAAIiiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCC-AMhdwAAAABJRU5ErkJggg==';
+
+            function addHeader(doc) {
+                try {
+                    const imgWidth = 180;
+                    const imgHeight = 30;
+                    const x = (doc.internal.pageSize.getWidth() - imgWidth) / 2;
+                    const y = 10;
+                    doc.addImage(BAWASLU_KOP_BASE64, 'PNG', x, y, imgWidth, imgHeight);
+                } catch (e) {
+                    console.error("Error adding header image:", e);
+                    // Fallback text if image fails
+                    doc.setFontSize(14);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('BADAN PENGAWAS PEMILIHAN UMUM', doc.internal.pageSize.getWidth() / 2, 15, { align: 'center' });
+                    doc.setFontSize(12);
+                    doc.text('PROVINSI RIAU', doc.internal.pageSize.getWidth() / 2, 22, { align: 'center' });
+                }
+            }
+
+            function generatePDF(type) {
+                if (!lastFormData) {
+                    showCustomModal('Perhatian', 'Tidak ada data untuk dicetak.');
+                    return;
+                }
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+                addHeader(doc); // Add the letterhead to every page
+
+                if (type === 'form') {
+                    generateFormPDF(doc, today);
+                } else {
+                    generateReceiptPDF(doc, today);
+                }
+            }
+            function generateFormPDF(doc, today) {
+                const contentStartY = 50;
+                doc.setFontSize(14);
+                doc.setFont('helvetica', 'bold');
+                doc.text('FORMULIR PERMOHONAN INFORMASI', doc.internal.pageSize.getWidth() / 2, contentStartY, { align: 'center' });
+                doc.setFontSize(11);
+                doc.setFont('helvetica', 'normal');
+                doc.text(`No. Registrasi: ${lastFormData.no_registrasi || 'N/A'}`, 20, contentStartY + 10);
+                const pekerjaan = lastFormData.pekerjaan === 'Lainnya' ? lastFormData.pekerjaan_lainnya : lastFormData.pekerjaan;
+                const body = [
+                    { content: 'Nama', styles: { fontStyle: 'bold', cellWidth: 60 } }, { content: `: ${lastFormData.nama_pemohon}` },
+                    { content: 'Alamat', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.alamat}` },
+                    { content: 'Pekerjaan', styles: { fontStyle: 'bold' } }, { content: `: ${pekerjaan}` },
+                    { content: 'Nomor Telepon', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.no_telp}` },
+                    { content: 'Email', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.email}` },
+                    { content: 'Rincian Informasi', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.rincian_informasi}` },
+                    { content: 'Tujuan Penggunaan', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.tujuan_informasi}` },
+                    { content: 'Cara Memperoleh', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.cara_memperoleh}` },
+                    { content: 'Cara Mendapatkan Salinan', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.cara_mendapat_salinan}` },
+                    { content: 'Bentuk Salinan', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.salinan_informasi}` },
+                ];
+                let rowData = [];
+                let tableBody = [];
+                body.forEach((cell, index) => {
+                    rowData.push(cell);
+                    if ((index + 1) % 2 === 0) {
+                        tableBody.push(rowData);
+                        rowData = [];
+                    }
+                });
+                doc.autoTable({ startY: contentStartY + 15, body: tableBody, theme: 'plain', styles: { fontSize: 11, cellPadding: 2.5, cellWidth: 'wrap' }, columnStyles: { 1: { cellWidth: 'auto' } } });
+                let finalY = doc.autoTable.previous.finalY;
+                finalY = Math.max(finalY, 180);
+                doc.text(`Pekanbaru, ${today}`, 130, finalY);
+                finalY += 8;
+                doc.text('Petugas Pelayanan Informasi', 20, finalY);
+                doc.text('Pemohon Informasi', 130, finalY);
+                doc.text('(Penerima Permohonan)', 20, finalY + 5);
+                finalY += 25;
+                doc.text(`( ${lastFormData.petugas_pelayanan} )`, 20, finalY);
+                doc.text(`( ${lastFormData.nama_pemohon} )`, 130, finalY);
+                doc.addPage();
+                addHeader(doc); // Add header to the new page as well
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'bold');
+                doc.text('DOKUMEN IDENTITAS PEMOHON', doc.internal.pageSize.getWidth() / 2, contentStartY, { align: 'center' });
+                if (lastFormData.identitas_pemohon_img) {
+                    try {
+                        const imgProps = doc.getImageProperties(lastFormData.identitas_pemohon_img);
+                        const pdfWidth = doc.internal.pageSize.getWidth();
+                        const imgWidth = pdfWidth * 0.8;
+                        const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
+                        doc.addImage(lastFormData.identitas_pemohon_img, 'JPEG', (pdfWidth - imgWidth) / 2, contentStartY + 10, imgWidth, imgHeight);
+                    } catch (e) {
+                        doc.text('Gagal memuat gambar.', 20, contentStartY + 10);
+                    }
+                } else {
+                    doc.text('Tidak ada dokumen identitas.', 20, contentStartY + 10);
+                }
+                doc.save(`Formulir_Permohonan_${lastFormData.nama_pemohon}.pdf`);
+            }
+            function generateReceiptPDF(doc, today) {
+                const contentStartY = 50;
+                doc.setFontSize(14);
+                doc.setFont('helvetica', 'bold');
+                doc.text('TANDA TERIMA PERMOHONAN INFORMASI', doc.internal.pageSize.getWidth() / 2, contentStartY, { align: 'center' });
+                doc.setFontSize(11);
+                doc.setFont('helvetica', 'normal');
+                doc.text(`No. Registrasi: ${lastFormData.no_registrasi || 'N/A'}`, 20, contentStartY + 10);
+                doc.text('Telah diterima permohonan informasi dari:', 20, contentStartY + 20);
+                const body = [
+                    ['Nama', `: ${lastFormData.nama_pemohon}`],
+                    ['No. Telepon', `: ${lastFormData.no_telp}`],
+                    ['Email', `: ${lastFormData.email}`],
+                    ['Rincian Informasi', `: ${lastFormData.rincian_informasi}`],
+                ];
+                doc.autoTable({ startY: contentStartY + 25, body: body, theme: 'plain', styles: { cellPadding: 2, fontSize: 11 }, columnStyles: { 0: { cellWidth: 50, fontStyle: 'bold' } } });
+                const finalY = doc.autoTable.previous.finalY;
+                doc.text('Permohonan akan diproses sesuai peraturan.', 20, finalY + 15, { maxWidth: 170 });
+                doc.text(`Pekanbaru, ${today}`, 130, finalY + 35);
+                doc.text('Petugas Pelayanan,', 130, finalY + 43);
+                doc.text(`( ${lastFormData.petugas_pelayanan} )`, 130, finalY + 65);
+                doc.save(`Tanda_Terima_${lastFormData.nama_pemohon}.pdf`);
+            }
         });
     </script>
 </body>
