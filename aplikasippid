@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Pelayanan Informasi Publik - PPID Bawaslu Riau</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bawaslu-primary: #1A3A5A;
+            --bawaslu-secondary: #2d639c;
+            --background-light: #F7F9FC;
+            --card-bg: #FFFFFF;
+            --text-primary: #1F2937;
+            --text-secondary: #6B7280;
+            --border-color: #E5E7EB;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background-light);
+            color: var(--text-primary);
+        }
+
+        .bg-bawaslu-primary { background-color: var(--bawaslu-primary); }
+        .text-bawaslu-primary { color: var(--bawaslu-primary); }
+
+        .btn-primary {
+            background-color: var(--bawaslu-primary);
+            color: white;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+        .btn-primary:hover {
+            background-color: var(--bawaslu-secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            background-color: #F9FAFB;
+            transition: all 0.3s ease;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: var(--bawaslu-primary);
+            box-shadow: 0 0 0 3px rgba(26, 58, 90, 0.2);
+            background-color: var(--card-bg);
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            padding: 2rem;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: all 0.2s ease-in-out;
+            position: relative;
+        }
+        .nav-link:hover {
+            background-color: var(--bawaslu-secondary);
+            color: white;
+        }
+        .nav-link.active {
+            background-color: var(--bawaslu-secondary);
+            color: white;
+            font-weight: 600;
+        }
+
+        .hidden { display: none; }
+        
+        .modal-overlay {
+            transition: opacity 0.3s ease;
+        }
+        .modal-content {
+            transition: transform 0.3s ease;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Halaman Login -->
+    <div id="login-page" class="flex items-center justify-center min-h-screen bg-cover bg-center" style="background-image: url('https://placehold.co/1920x1080/F7F9FC/EBF0F6?text=.')">
+        <div class="w-full max-w-md p-8 space-y-6 card">
+            <div class="text-center">
+                <img src="https://bawaslukabsemarang.wordpress.com/wp-content/uploads/2017/11/cropped-cropped-bawaslu-logo.png?w=200" alt="Logo Bawaslu" class="mx-auto mb-4 h-20 w-auto">
+                <h1 class="text-3xl font-extrabold text-bawaslu-primary">PPID Bawaslu Riau</h1>
+                <p class="text-gray-500 mt-2">Selamat datang, silakan masuk ke akun Anda</p>
+            </div>
+            <form id="login-form" class="space-y-6">
+                <div>
+                    <label for="username" class="form-label">Username</label>
+                    <div class="relative">
+                         <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+                            <i data-lucide="user" class="w-5 h-5 text-gray-400"></i>
+                        </span>
+                        <input id="username" name="username" type="text" required class="form-input pl-10" placeholder="admin">
+                    </div>
+                </div>
+                <div>
+                    <label for="password" class="form-label">Password</label>
+                     <div class="relative">
+                         <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+                            <i data-lucide="lock" class="w-5 h-5 text-gray-400"></i>
+                        </span>
+                        <input id="password" name="password" type="password" required class="form-input pl-10" placeholder="••••••••">
+                    </div>
+                </div>
+                <div id="login-error" class="text-red-500 text-sm text-center hidden">
+                    <i data-lucide="alert-circle" class="inline w-4 h-4 mr-1"></i> Username atau password salah.
+                </div>
+                <button type="submit" class="w-full px-4 py-3 font-semibold btn-primary rounded-lg flex items-center justify-center">
+                    <i data-lucide="log-in" class="w-5 h-5 mr-2"></i>
+                    <span>Masuk</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Halaman Aplikasi Utama (setelah login) -->
+    <div id="app-page" class="hidden">
+        <div class="flex h-screen bg-gray-50">
+            <!-- Sidebar Navigasi -->
+            <nav class="w-72 bg-bawaslu-primary shadow-lg p-4 flex flex-col">
+                <div class="flex items-center space-x-3 p-4 mb-6">
+                    <img src="https://bawaslukabsemarang.wordpress.com/wp-content/uploads/2017/11/cropped-cropped-bawaslu-logo.png?w=200" alt="Logo Bawaslu" class="h-12 w-auto">
+                    <div>
+                        <h2 class="text-lg font-bold text-white">PPID BAWASLU</h2>
+                        <p class="text-sm text-gray-300">Provinsi Riau</p>
+                    </div>
+                </div>
+                <ul class="space-y-2 flex-grow">
+                    <li><a href="#" class="nav-link text-gray-300" data-page="beranda"><i data-lucide="home" class="w-5 h-5 mr-3"></i>Beranda</a></li>
+                    <li><a href="#" class="nav-link text-gray-300" data-page="form-permohonan"><i data-lucide="file-plus-2" class="w-5 h-5 mr-3"></i>Formulir Permohonan</a></li>
+                    <li><a href="#" class="nav-link text-gray-300" data-page="daftar-permohonan"><i data-lucide="list-checks" class="w-5 h-5 mr-3"></i>Daftar Permohonan</a></li>
+                    <li><a href="#" class="nav-link text-gray-300" data-page="daftar-informasi-publik"><i data-lucide="library" class="w-5 h-5 mr-3"></i>Daftar Informasi Publik</a></li>
+                    <li><a href="#" class="nav-link text-gray-300" data-page="form-keberatan"><i data-lucide="shield-alert" class="w-5 h-5 mr-3"></i>Formulir Keberatan</a></li>
+                    <li><a href="#" class="nav-link text-gray-300" data-page="daftar-keberatan"><i data-lucide="list-x" class="w-5 h-5 mr-3"></i>Daftar Keberatan</a></li>
+                    <li><a href="#" class="nav-link text-gray-300" data-page="buat-surat"><i data-lucide="mail-plus" class="w-5 h-5 mr-3"></i>Buat Surat Pemberitahuan</a></li>
+                </ul>
+                <div class="mt-auto">
+                     <button id="signout-btn" class="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 hover:text-red-300 transition">
+                        <i data-lucide="log-out" class="w-5 h-5"></i>
+                        <span>Sign Out</span>
+                    </button>
+                </div>
+            </nav>
+
+            <!-- Konten Utama -->
+            <div class="flex-1 flex flex-col overflow-hidden">
+                <header class="bg-orange-500 shadow-sm text-white">
+                    <div class="container mx-auto px-8 py-4 flex justify-between items-center">
+                        <h1 class="text-xl font-semibold">Selamat Datang, <span class="font-bold">ADMIN</span></h1>
+                        <div class="flex items-center space-x-2">
+                            <img src="https://placehold.co/40x40/FFFFFF/F97316?text=A" alt="Avatar Admin" class="rounded-full">
+                            <span class="font-semibold">Admin</span>
+                        </div>
+                    </div>
+                </header>
+                <main class="flex-1 overflow-x-hidden overflow-y-auto bg-background-light p-8">
+                    <div id="beranda" class="page-content">
+                        <!-- Konten Beranda -->
+                        <div class="card bg-bawaslu-primary text-white p-8 mb-8">
+                            <h2 class="text-3xl font-bold">Selamat Datang di Dasbor PPID</h2>
+                            <p class="mt-2 text-gray-300">Kelola permohonan informasi dan keberatan dengan mudah di satu tempat.</p>
+                        </div>
+                        <div class="card">
+                            <div class="flex justify-between items-center border-b border-gray-200 pb-4 mb-6">
+                                <h2 class="text-2xl font-bold text-bawaslu-primary">Statistik Layanan Informasi</h2>
+                                <div class="flex items-center space-x-2">
+                                    <label for="tahun-statistik" class="text-sm font-medium">Tahun:</label>
+                                    <select id="tahun-statistik" name="tahun-statistik" class="form-input !w-auto !py-2 !px-3">
+                                        <option value="2025">2025</option>
+                                        <option value="2024">2024</option>
+                                        <option value="2023">2023</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="bg-blue-50 p-6 rounded-lg flex items-center">
+                                    <div class="bg-blue-500 p-4 rounded-full text-white">
+                                        <i data-lucide="inbox" class="w-8 h-8"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <p class="text-gray-500 text-sm font-medium">Jumlah Permohonan Informasi</p>
+                                        <p id="stat-permohonan" class="text-3xl font-bold text-gray-800">0</p>
+                                    </div>
+                                </div>
+                                <div class="bg-orange-50 p-6 rounded-lg flex items-center">
+                                    <div class="bg-orange-500 p-4 rounded-full text-white">
+                                        <i data-lucide="shield-alert" class="w-8 h-8"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <p class="text-gray-500 text-sm font-medium">Jumlah Keberatan Informasi</p>
+                                        <p id="stat-keberatan" class="text-3xl font-bold text-gray-800">0</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="form-permohonan" class="page-content hidden">
+                        <!-- Konten Formulir Permohonan -->
+                        <div class="card">
+                            <div class="border-b border-gray-200 pb-4 mb-6">
+                                <h2 class="text-2xl font-bold text-bawaslu-primary">Formulir Permohonan Informasi Publik</h2>
+                                <p class="text-gray-500 mt-1">Isi data pemohon dengan lengkap dan benar.</p>
+                            </div>
+                            <div id="success-notification" class="hidden bg-green-50 border-l-4 border-green-400 text-green-700 p-4 rounded-lg mb-6" role="alert">
+                                <div class="flex">
+                                    <div class="py-1"><i data-lucide="check-circle" class="w-6 h-6 mr-3"></i></div>
+                                    <div>
+                                        <p class="font-bold">Sukses!</p>
+                                        <p id="success-message"></p>
+                                <div id="print-buttons" class="mt-4">
+                                    <button id="print-form-btn" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm font-semibold">Cetak Formulir</button>
+                                            <button id="print-receipt-btn" class="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 ml-2 text-sm font-semibold">Cetak Tanda Terima</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <form id="info-request-form" class="space-y-6">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label for="nama_pemohon" class="form-label">Nama Pemohon</label>
+                                        <input type="text" id="nama_pemohon" name="nama_pemohon" class="form-input" required>
+                                    </div>
+                                    <div>
+                                        <label for="no_telp" class="form-label">No. Telepon / HP</label>
+                                        <input type="tel" id="no_telp" name="no_telp" class="form-input" required>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="alamat" class="form-label">Alamat</label>
+                                    <textarea id="alamat" name="alamat" rows="3" class="form-input" required></textarea>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                                    <div>
+                                        <label for="pekerjaan" class="form-label">Pekerjaan</label>
+                                        <select id="pekerjaan" name="pekerjaan" class="form-input" required>
+                                            <option value="">Pilih Pekerjaan</option>
+                                            <option value="Mahasiswa">Mahasiswa</option>
+                                            <option value="LSM">LSM</option>
+                                            <option value="Instansi Pemerintah">Instansi Pemerintah</option>
+                                            <option value="Masyarakat">Masyarakat</option>
+                                            <option value="Lainnya">Lainnya</option>
+                                        </select>
+                                    </div>
+                                    <div id="pekerjaan_lainnya_wrapper" class="hidden">
+                                        <label for="pekerjaan_lainnya" class="form-label">Sebutkan Pekerjaan Lainnya</label>
+                                        <input type="text" id="pekerjaan_lainnya" name="pekerjaan_lainnya" class="form-input">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="email" class="form-label">Email</label>
+                                    <input type="email" id="email" name="email" class="form-input" required>
+                                </div>
+                                <div>
+                                    <label for="rincian_informasi" class="form-label">Rincian Informasi yang Dibutuhkan</label>
+                                    <textarea id="rincian_informasi" name="rincian_informasi" rows="4" class="form-input" required></textarea>
+                                </div>
+                                <div>
+                                    <label for="tujuan_informasi" class="form-label">Tujuan Penggunaan Informasi</label>
+                                    <textarea id="tujuan_informasi" name="tujuan_informasi" rows="4" class="form-input" required></textarea>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label for="cara_memperoleh" class="form-label">Cara Memperoleh Informasi</label>
+                                        <select id="cara_memperoleh" name="cara_memperoleh" class="form-input" required>
+                                            <option value="Melihat">Melihat</option>
+                                            <option value="Membaca">Membaca</option>
+                                            <option value="Mencatat">Mencatat</option>
+                                            <option value="Mendengarkan">Mendengarkan</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="form-label">Salinan Informasi Berupa</label>
+                                        <div class="flex items-center space-x-6 mt-3">
+                                            <label class="flex items-center cursor-pointer"><input type="radio" name="salinan_informasi" value="Hardcopy" class="mr-2 h-4 w-4 text-bawaslu-primary focus:ring-bawaslu-secondary"> Hardcopy</label>
+                                            <label class="flex items-center cursor-pointer"><input type="radio" name="salinan_informasi" value="Softcopy" class="mr-2 h-4 w-4 text-bawaslu-primary focus:ring-bawaslu-secondary" checked> Softcopy</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label for="cara_mendapat_salinan" class="form-label">Cara Mendapatkan Salinan Informasi</label>
+                                        <select id="cara_mendapat_salinan" name="cara_mendapat_salinan" class="form-input" required>
+                                            <option value="Mengambil Langsung">Mengambil Langsung</option>
+                                            <option value="Kurir">Kurir</option>
+                                            <option value="Pos">Pos</option>
+                                            <option value="Email">Email</option>
+                                            <option value="Whatsapp">Whatsapp</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="upload_identitas" class="form-label">Upload Identitas (KTP/SIM/Lainnya)</label>
+                                        <input type="file" id="upload_identitas" name="upload_identitas" accept="image/*" class="form-input file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="petugas_pelayanan" class="form-label">Petugas Pelayanan</label>
+                                    <select id="petugas_pelayanan" name="petugas_pelayanan" class="form-input" required>
+                                        <option value="">Pilih Petugas</option>
+                                        <option value="Rachmatul Azmi">Rachmatul Azmi</option>
+                                        <option value="Nur Asiah">Nur Asiah</option>
+                                        <option value="Dandi">Dandi</option>
+                                    </select>
+                                </div>
+                                <div class="flex justify-end pt-6 border-t mt-8">
+                                    <button type="submit" class="btn-primary px-6 py-3 rounded-lg font-semibold flex items-center">
+                                        <i data-lucide="save" class="w-5 h-5 mr-2"></i>
+                                        Submit Permohonan
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    <div id="daftar-permohonan" class="page-content hidden">
+                        <!-- Konten Daftar Permohonan -->
+                        <div class="card">
+                            <div class="flex justify-between items-center border-b border-gray-200 pb-4 mb-6">
+                                <h2 class="text-2xl font-bold text-bawaslu-primary">Daftar Permohonan Informasi</h2>
+                                <button id="refresh-data-btn" class="text-sm btn-primary py-2 px-4 rounded-lg flex items-center">
+                                    <i data-lucide="refresh-cw" class="w-4 h-4 mr-2"></i>
+                                    <span>Refresh Data</span>
+                                </button>
+                            </div>
+                            <div id="loading-spinner" class="text-center p-12 hidden">
+                                <svg class="animate-spin h-8 w-8 text-bawaslu-primary mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                <p class="mt-4 text-gray-500">Memuat data...</p>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table id="permohonan-table" class="min-w-full divide-y divide-gray-200 hidden">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No. Registrasi</th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Pemohon</th>
+                                            <th scope="col" class="relative px-6 py-3"><span class="sr-only">Aksi</span></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="permohonan-table-body" class="bg-white divide-y divide-gray-200"></tbody>
+                                </table>
+                            </div>
+                             <p id="no-data-message" class="text-center py-12 text-gray-500 hidden">Belum ada data permohonan.</p>
+                        </div>
+                    </div>
+                    <div id="daftar-informasi-publik" class="page-content hidden">
+                        <!-- Konten Daftar Informasi Publik -->
+                        <div class="card">
+                            <div class="flex flex-col md:flex-row justify-between md:items-center gap-4 border-b border-gray-200 pb-4 mb-6">
+                                <h2 class="text-2xl font-bold text-bawaslu-primary">Daftar Informasi Publik</h2>
+                                <div class="flex items-center gap-4 w-full md:w-auto">
+                                    <div class="relative flex-grow">
+                                        <input type="text" id="search-info-publik" placeholder="Cari berdasarkan judul..." class="form-input pl-10 w-full">
+                                        <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+                                            <i data-lucide="search" class="w-5 h-5 text-gray-400"></i>
+                                        </span>
+                                    </div>
+                                    <button id="show-add-info-form-btn" class="text-sm btn-primary py-2 px-4 rounded-lg flex items-center flex-shrink-0">
+                                        <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+                                        <span>Tambah Informasi</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="add-info-publik-form-container" class="hidden mb-8">
+                                <hr class="my-6">
+                                <h3 class="text-xl font-bold text-bawaslu-primary mb-4">Formulir Tambah Informasi Publik</h3>
+                                <div id="info-publik-success-notification" class="hidden bg-green-50 border-l-4 border-green-400 text-green-700 p-4 rounded-lg mb-6" role="alert">
+                                    <p id="info-publik-success-message"></p>
+                                </div>
+                                <form id="info-publik-form" class="space-y-6">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label for="divisi" class="form-label">Divisi yang Membuat</label>
+                                            <input type="text" id="divisi" name="divisi" class="form-input" required>
+                                        </div>
+                                        <div>
+                                            <label for="tahun_pembuatan" class="form-label">Tahun Pembuatan</label>
+                                            <input type="number" id="tahun_pembuatan" name="tahun_pembuatan" class="form-input" placeholder="Contoh: 2025" required>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label for="judul_informasi" class="form-label">Judul Informasi</label>
+                                        <input type="text" id="judul_informasi" name="judul_informasi" class="form-input" required>
+                                    </div>
+                                    <div>
+                                        <label for="deskripsi" class="form-label">Deskripsi</label>
+                                        <textarea id="deskripsi" name="deskripsi" rows="4" class="form-input" required></textarea>
+                                    </div>
+                                    <div>
+                                        <label for="upload_file_publik" class="form-label">Upload File</label>
+                                        <input type="file" id="upload_file_publik" name="upload_file_publik" class="form-input file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" required>
+                                    </div>
+                                    <div class="flex justify-end pt-6 border-t mt-8">
+                                        <button type="button" id="cancel-add-info-btn" class="px-6 py-3 rounded-lg font-semibold flex items-center mr-4 bg-gray-100 hover:bg-gray-200">Batal</button>
+                                        <button type="submit" class="btn-primary px-6 py-3 rounded-lg font-semibold flex items-center">
+                                            <i data-lucide="save" class="w-5 h-5 mr-2"></i>
+                                            <span>Simpan Informasi</span>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                             <div id="info-publik-loading" class="text-center p-12 hidden">
+                                <svg class="animate-spin h-8 w-8 text-bawaslu-primary mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                <p class="mt-4 text-gray-500">Memuat data...</p>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table id="info-publik-table" class="min-w-full divide-y divide-gray-200 hidden">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No. Registrasi</th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Divisi</th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Judul</th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deskripsi</th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tahun</th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="info-publik-table-body" class="bg-white divide-y divide-gray-200"></tbody>
+                                </table>
+                            </div>
+                            <p id="no-info-publik-message" class="text-center py-12 text-gray-500 hidden">Belum ada data informasi publik.</p>
+                        </div>
+                    </div>
+                    <div id="form-keberatan" class="page-content hidden"><div class="card"><h2 class="text-2xl font-bold">Formulir Keberatan (Dalam Pengembangan)</h2></div></div>
+                    <div id="daftar-keberatan" class="page-content hidden"><div class="card"><h2 class="text-2xl font-bold">Daftar Keberatan Informasi (Dalam Pengembangan)</h2></div></div>
+                    <div id="buat-surat" class="page-content hidden"><div class="card"><h2 class="text-2xl font-bold">Buat Surat Pemberitahuan (Dalam Pengembangan)</h2></div></div>
+                </main>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal untuk Detail Permohonan -->
+    <div id="detail-modal" class="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 hidden opacity-0 z-50">
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] transform scale-95">
+            <div class="flex justify-between items-center p-4 border-b">
+                <h3 class="text-xl font-bold text-bawaslu-primary">Detail Permohonan Informasi</h3>
+                <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div id="detail-modal-body" class="p-6 overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+
+            const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbymeAeMwdITf0Kttsy6COyouC3VfKLdrUCqCaZAiBVYIYj-cGNZ_S3GCa6yvY33Q63m/exec'; 
+
+            const loginPage = document.getElementById('login-page');
+            const appPage = document.getElementById('app-page');
+            const loginForm = document.getElementById('login-form');
+            const loginError = document.getElementById('login-error');
+            const signoutBtn = document.getElementById('signout-btn');
+            const navLinks = document.querySelectorAll('.nav-link');
+            const pageContents = document.querySelectorAll('.page-content');
+            
+            const infoRequestForm = document.getElementById('info-request-form');
+            const pekerjaanSelect = document.getElementById('pekerjaan');
+            const pekerjaanLainnyaWrapper = document.getElementById('pekerjaan_lainnya_wrapper');
+            const successNotification = document.getElementById('success-notification');
+            const successMessage = document.getElementById('success-message');
+            const printFormBtn = document.getElementById('print-form-btn');
+            const printReceiptBtn = document.getElementById('print-receipt-btn');
+            
+            const tahunStatistikSelect = document.getElementById('tahun-statistik');
+            const statPermohonan = document.getElementById('stat-permohonan');
+            const statKeberatan = document.getElementById('stat-keberatan');
+
+            const loadingSpinner = document.getElementById('loading-spinner');
+            const permohonanTable = document.getElementById('permohonan-table');
+            const permohonanTableBody = document.getElementById('permohonan-table-body');
+            const noDataMessage = document.getElementById('no-data-message');
+            const refreshDataBtn = document.getElementById('refresh-data-btn');
+            
+            const detailModal = document.getElementById('detail-modal');
+            const detailModalBody = document.getElementById('detail-modal-body');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+
+            const showAddInfoFormBtn = document.getElementById('show-add-info-form-btn');
+            const addInfoPublikFormContainer = document.getElementById('add-info-publik-form-container');
+            const infoPublikForm = document.getElementById('info-publik-form');
+            const cancelAddInfoBtn = document.getElementById('cancel-add-info-btn');
+            const infoPublikSuccessNotification = document.getElementById('info-publik-success-notification');
+            const infoPublikSuccessMessage = document.getElementById('info-publik-success-message');
+            const infoPublikLoading = document.getElementById('info-publik-loading');
+            const infoPublikTable = document.getElementById('info-publik-table');
+            const infoPublikTableBody = document.getElementById('info-publik-table-body');
+            const noInfoPublikMessage = document.getElementById('no-info-publik-message');
+            const searchInfoPublikInput = document.getElementById('search-info-publik');
+            
+            let lastFormData = null;
+            let cachedPermohonanData = null; 
+            let cachedInfoPublikData = null;
+
+            const statsData = {
+                '2025': { permohonan: 152, keberatan: 12 },
+                '2024': { permohonan: 345, keberatan: 28 },
+                '2023': { permohonan: 289, keberatan: 19 },
+            };
+
+            // --- HELPER FUNCTIONS ---
+            function showCustomModal(title, message, icon = 'alert-triangle', iconColor = 'text-red-600', iconBg = 'bg-red-100') {
+                const modal = document.createElement('div');
+                modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50';
+                modal.innerHTML = `
+                    <div class="relative mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                        <div class="mt-3 text-center">
+                            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full ${iconBg}">
+                                <i data-lucide="${icon}" class="h-6 w-6 ${iconColor}"></i>
+                            </div>
+                            <h3 class="text-lg leading-6 font-medium text-gray-900 mt-2">${title}</h3>
+                            <div class="mt-2 px-7 py-3">
+                                <p class="text-sm text-gray-500">${message}</p>
+                            </div>
+                            <div class="items-center px-4 py-3">
+                                <button class="px-4 py-2 bg-bawaslu-primary text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-bawaslu-secondary focus:outline-none focus:ring-2 focus:ring-bawaslu-primary">
+                                    OK
+                                </button>
+                            </div>
+                        </div>
+                    </div>`;
+                
+                document.body.appendChild(modal);
+                lucide.createIcons();
+                
+                modal.querySelector('button').addEventListener('click', () => modal.remove());
+            }
+
+            function updateStats(year) {
+                const data = statsData[year] || { permohonan: 0, keberatan: 0 };
+                statPermohonan.textContent = data.permohonan;
+                statKeberatan.textContent = data.keberatan;
+            }
+            
+            function fileToBase64(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = error => reject(error);
+                });
+            }
+
+            function getGoogleDriveDownloadUrl(url) {
+                if (!url || !url.includes('drive.google.com')) return null;
+                // Ekstrak ID file dari URL Google Drive
+                const match = url.match(/file\/d\/([a-zA-Z0-9_-]+)/);
+                if (match && match[1]) {
+                    const fileId = match[1];
+                    return `https://drive.google.com/uc?export=download&id=${fileId}`;
+                }
+                return url; // Fallback jika format URL tidak dikenali
+            }
+
+
+            // --- DATA FETCHING & RENDERING ---
+            function fetchPermohonanData() {
+                loadingSpinner.classList.remove('hidden');
+                permohonanTable.classList.add('hidden');
+                noDataMessage.classList.add('hidden');
+
+                fetch(SCRIPT_URL + '?sheet=permohonan')
+                    .then(res => res.json())
+                    .then(response => {
+                        if (response.status === 'success') {
+                            cachedPermohonanData = response.data.reverse(); 
+                            populatePermohonanTable(cachedPermohonanData);
+                        } else { throw new Error(response.message || 'Gagal mengambil data.'); }
+                    })
+                    .catch(error => {
+                        showCustomModal('Gagal Mengambil Data', error.message);
+                        noDataMessage.textContent = 'Gagal memuat data. Coba lagi nanti.';
+                        noDataMessage.classList.remove('hidden');
+                    })
+                    .finally(() => loadingSpinner.classList.add('hidden'));
+            }
+
+            function fetchInfoPublikData() {
+                infoPublikLoading.classList.remove('hidden');
+                infoPublikTable.classList.add('hidden');
+                noInfoPublikMessage.classList.add('hidden');
+                
+                fetch(SCRIPT_URL + '?sheet=informasi_publik')
+                    .then(res => res.json())
+                    .then(response => {
+                        if (response.status === 'success') {
+                            cachedInfoPublikData = response.data.reverse();
+                            populateInfoPublikTable(cachedInfoPublikData);
+                        } else { throw new Error(response.message || 'Gagal mengambil data.'); }
+                    })
+                    .catch(error => {
+                        showCustomModal('Gagal Mengambil Data', error.message);
+                        noInfoPublikMessage.textContent = 'Gagal memuat data. Coba lagi nanti.';
+                        noInfoPublikMessage.classList.remove('hidden');
+                    })
+                    .finally(() => infoPublikLoading.classList.add('hidden'));
+            }
+            
+            function populatePermohonanTable(data) {
+                permohonanTableBody.innerHTML = '';
+                if (!data || data.length === 0) {
+                    noDataMessage.textContent = 'Belum ada data permohonan.';
+                    noDataMessage.classList.remove('hidden');
+                    permohonanTable.classList.add('hidden');
+                    return;
+                }
+
+                permohonanTable.classList.remove('hidden');
+                noDataMessage.classList.add('hidden');
+
+                data.forEach((row, index) => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-gray-50';
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${row['No Registrasi']}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row['Timestamp']}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row['Nama Pemohon']}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button class="view-btn text-bawaslu-secondary hover:text-bawaslu-primary" data-index="${index}">View</button>
+                        </td>`;
+                    permohonanTableBody.appendChild(tr);
+                });
+
+                document.querySelectorAll('.view-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const index = e.target.getAttribute('data-index');
+                        showDetail(cachedPermohonanData[index]);
+                    });
+                });
+            }
+
+            function populateInfoPublikTable(data) {
+                infoPublikTableBody.innerHTML = '';
+                if (!data || data.length === 0) {
+                    noInfoPublikMessage.textContent = 'Belum ada data informasi publik.';
+                    noInfoPublikMessage.classList.remove('hidden');
+                    infoPublikTable.classList.add('hidden');
+                    return;
+                }
+
+                infoPublikTable.classList.remove('hidden');
+                noInfoPublikMessage.classList.add('hidden');
+
+                data.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-gray-50';
+                    const fileLink = row['Link File (Google Drive)'];
+                    const downloadUrl = getGoogleDriveDownloadUrl(fileLink);
+                    const downloadButton = downloadUrl
+                        ? `<a href="${downloadUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-green-600 hover:bg-green-700">Download</a>`
+                        : `<span class="text-xs text-gray-400">N/A</span>`;
+                    
+                    const shortDesc = row['Deskripsi'].length > 50 ? row['Deskripsi'].substring(0, 50) + '...' : row['Deskripsi'];
+
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${row['No Registrasi']}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row['Divisi']}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">${row['Judul Informasi']}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500 max-w-xs truncate" title="${row['Deskripsi']}">${shortDesc}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row['Tahun Pembuatan']}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${downloadButton}</td>`;
+                    infoPublikTableBody.appendChild(tr);
+                });
+            }
+            
+            function showDetail(data) {
+                const linkIdentitas = data['Link Identitas (Google Drive)'];
+                detailModalBody.innerHTML = `
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-3 gap-4 text-sm">
+                            <strong class="text-gray-500 col-span-1">No. Registrasi</strong><span class="text-gray-800 col-span-2">: ${data['No Registrasi'] || '-'}</span>
+                            <strong class="text-gray-500 col-span-1">Tanggal Permohonan</strong><span class="text-gray-800 col-span-2">: ${data['Timestamp'] || '-'}</span>
+                        </div><hr>
+                        <div class="grid grid-cols-3 gap-4 text-sm">
+                            <strong class="text-gray-500 col-span-1">Nama Pemohon</strong><span class="text-gray-800 col-span-2">: ${data['Nama Pemohon'] || '-'}</span>
+                            <strong class="text-gray-500 col-span-1">Alamat</strong><span class="text-gray-800 col-span-2">: ${data['Alamat'] || '-'}</span>
+                             <strong class="text-gray-500 col-span-1">Pekerjaan</strong><span class="text-gray-800 col-span-2">: ${data['Pekerjaan'] || '-'}</span>
+                            <strong class="text-gray-500 col-span-1">No. Telepon</strong><span class="text-gray-800 col-span-2">: ${data['No. Telp'] || '-'}</span>
+                            <strong class="text-gray-500 col-span-1">Email</strong><span class="text-gray-800 col-span-2">: ${data['Email'] || '-'}</span>
+                        </div><hr>
+                        <div>
+                            <strong class="text-sm text-gray-500">Rincian Informasi</strong>
+                            <p class="text-sm text-gray-800 mt-1 p-3 bg-gray-50 rounded-md">${data['Rincian Informasi'] || '-'}</p>
+                        </div>
+                        <div>
+                            <strong class="text-sm text-gray-500">Tujuan Informasi</strong>
+                            <p class="text-sm text-gray-800 mt-1 p-3 bg-gray-50 rounded-md">${data['Tujuan Informasi'] || '-'}</p>
+                        </div><hr>
+                        <div class="grid grid-cols-3 gap-4 text-sm">
+                            <strong class="text-gray-500 col-span-1">Cara Memperoleh</strong><span class="text-gray-800 col-span-2">: ${data['Cara Memperoleh'] || '-'}</span>
+                            <strong class="text-gray-500 col-span-1">Bentuk Salinan</strong><span class="text-gray-800 col-span-2">: ${data['Bentuk Salinan'] || '-'}</span>
+                            <strong class="text-gray-500 col-span-1">Cara Mendapat Salinan</strong><span class="text-gray-800 col-span-2">: ${data['Cara Mendapat Salinan'] || '-'}</span>
+                            <strong class="text-gray-500 col-span-1">Petugas Pelayanan</strong><span class="text-gray-800 col-span-2">: ${data['Petugas Pelayanan'] || '-'}</span>
+                            <strong class="text-gray-500 col-span-1">Identitas Pemohon</strong><span class="text-gray-800 col-span-2">: ${linkIdentitas && linkIdentitas.startsWith('http') ? `<a href="${linkIdentitas}" target="_blank" class="text-blue-600 hover:underline">Lihat Dokumen</a>` : 'Tidak diunggah'}</span>
+                        </div>
+                    </div>`;
+                detailModal.classList.remove('hidden');
+                setTimeout(() => {
+                    detailModal.classList.remove('opacity-0');
+                    detailModal.querySelector('.modal-content').classList.remove('scale-95');
+                }, 10);
+            }
+
+            function closeDetailModal() {
+                detailModal.classList.add('opacity-0');
+                detailModal.querySelector('.modal-content').classList.add('scale-95');
+                setTimeout(() => detailModal.classList.add('hidden'), 300);
+            }
+
+            // --- EVENT LISTENERS ---
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                if (e.target.username.value === 'admin' && e.target.password.value === 'agustus2025') {
+                    loginPage.classList.add('hidden');
+                    appPage.classList.remove('hidden');
+                    loginError.classList.add('hidden');
+                    e.target.password.value = '';
+                } else {
+                    loginError.classList.remove('hidden');
+                    lucide.createIcons();
+                }
+            });
+
+            signoutBtn.addEventListener('click', () => {
+                appPage.classList.add('hidden');
+                loginPage.classList.remove('hidden');
+                cachedPermohonanData = null;
+                cachedInfoPublikData = null;
+            });
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    link.classList.add('active');
+                    const pageId = link.getAttribute('data-page');
+                    pageContents.forEach(content => content.classList.toggle('hidden', content.id !== pageId));
+
+                    if (pageId === 'daftar-permohonan' && !cachedPermohonanData) fetchPermohonanData();
+                    if (pageId === 'daftar-informasi-publik' && !cachedInfoPublikData) fetchInfoPublikData();
+                });
+            });
+
+            document.querySelector('.nav-link[data-page="beranda"]').click();
+            updateStats(tahunStatistikSelect.value);
+            tahunStatistikSelect.addEventListener('change', (e) => updateStats(e.target.value));
+            pekerjaanSelect.addEventListener('change', (e) => pekerjaanLainnyaWrapper.classList.toggle('hidden', e.target.value !== 'Lainnya'));
+
+            infoRequestForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                const formData = new FormData(e.target);
+                const data = Object.fromEntries(formData.entries());
+                const file = document.getElementById('upload_identitas').files[0];
+
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Mengirim...</span>`;
+
+                try {
+                    data.identitas_pemohon_img = file ? await fileToBase64(file) : null;
+                    const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(data) });
+                    if (!res.ok) throw new Error(`Network response error: ${res.statusText}`);
+                    const response = await res.json();
+
+                    if (response.status === 'success') {
+                        lastFormData = data; 
+                        lastFormData.no_registrasi = response.reg; 
+                        successMessage.textContent = `Permohonan an. '${data.nama_pemohon}' sukses diregistrasi (No. ${response.reg}).`;
+                        successNotification.classList.remove('hidden');
+                        lucide.createIcons();
+                        document.querySelector('main').scrollTo({ top: 0, behavior: 'smooth' });
+                        infoRequestForm.reset();
+                        pekerjaanLainnyaWrapper.classList.add('hidden');
+                        cachedPermohonanData = null;
+                    } else { throw new Error(response.message || 'Server script error.'); }
+                } catch (error) {
+                    showCustomModal('Gagal Mengirim Data', `Error: ${error.message}`);
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = `<i data-lucide="save" class="w-5 h-5 mr-2"></i><span>Submit Permohonan</span>`;
+                    lucide.createIcons();
+                }
+            });
+
+            showAddInfoFormBtn.addEventListener('click', () => {
+                addInfoPublikFormContainer.classList.remove('hidden');
+                showAddInfoFormBtn.classList.add('hidden');
+            });
+            cancelAddInfoBtn.addEventListener('click', () => {
+                addInfoPublikFormContainer.classList.add('hidden');
+                showAddInfoFormBtn.classList.remove('hidden');
+                infoPublikForm.reset();
+            });
+
+            infoPublikForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                const formData = new FormData(e.target);
+                const data = Object.fromEntries(formData.entries());
+                const file = document.getElementById('upload_file_publik').files[0];
+                data.action = 'addPublicInfo';
+
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Menyimpan...</span>`;
+
+                try {
+                    data.file_publik = await fileToBase64(file);
+                    const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(data) });
+                    if (!res.ok) throw new Error(`Network response error: ${res.statusText}`);
+                    const response = await res.json();
+                    if (response.status === 'success') {
+                        infoPublikSuccessMessage.textContent = `Informasi Publik berhasil disimpan (No. ${response.reg})`;
+                        infoPublikSuccessNotification.classList.remove('hidden');
+                        infoPublikForm.reset();
+                        cachedInfoPublikData = null; // Invalidate cache
+                        fetchInfoPublikData(); // Refresh list
+                        setTimeout(() => {
+                            infoPublikSuccessNotification.classList.add('hidden');
+                            addInfoPublikFormContainer.classList.add('hidden');
+                            showAddInfoFormBtn.classList.remove('hidden');
+                        }, 3000);
+                    } else { throw new Error(response.message || 'Server script error.'); }
+                } catch (error) {
+                    showCustomModal('Gagal Menyimpan', `Error: ${error.message}`);
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = `<i data-lucide="save" class="w-5 h-5 mr-2"></i><span>Simpan Informasi</span>`;
+                    lucide.createIcons();
+                }
+            });
+
+            searchInfoPublikInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                if (!cachedInfoPublikData) return;
+                const filteredData = cachedInfoPublikData.filter(row => 
+                    row['Judul Informasi'].toLowerCase().includes(searchTerm)
+                );
+                populateInfoPublikTable(filteredData);
+            });
+
+            refreshDataBtn.addEventListener('click', () => {
+                cachedPermohonanData = null; 
+                fetchPermohonanData();
+            });
+            
+            closeModalBtn.addEventListener('click', closeDetailModal);
+            detailModal.addEventListener('click', (e) => {
+                if(e.target === detailModal) closeDetailModal();
+            });
+            
+            printFormBtn.addEventListener('click', () => generatePDF('form'));
+            printReceiptBtn.addEventListener('click', () => generatePDF('receipt'));
+
+            function generatePDF(type) { if (!lastFormData) { showCustomModal('Perhatian', 'Tidak ada data untuk dicetak.'); return; } const { jsPDF } = window.jspdf; const doc = new jsPDF(); const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }); doc.setFontSize(16); doc.setFont('helvetica', 'bold'); doc.text('PPID BAWASLU PROVINSI RIAU', doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' }); doc.setFontSize(12); doc.setFont('helvetica', 'normal'); doc.text('Jalan Jenderal Sudirman No. 201, Pekanbaru', doc.internal.pageSize.getWidth() / 2, 28, { align: 'center' }); doc.setLineWidth(1); doc.line(15, 35, 195, 35); if (type === 'form') { generateFormPDF(doc, today); } else { generateReceiptPDF(doc, today); } }
+            function generateFormPDF(doc, today) { doc.setFontSize(14); doc.setFont('helvetica', 'bold'); doc.text('FORMULIR PERMOHONAN INFORMASI', doc.internal.pageSize.getWidth() / 2, 48, { align: 'center' }); doc.setFontSize(11); doc.setFont('helvetica', 'normal'); doc.text(`No. Registrasi: ${lastFormData.no_registrasi || 'N/A'}`, 20, 60); const pekerjaan = lastFormData.pekerjaan === 'Lainnya' ? lastFormData.pekerjaan_lainnya : lastFormData.pekerjaan; const body = [ { content: 'Nama', styles: { fontStyle: 'bold', cellWidth: 60 } }, { content: `: ${lastFormData.nama_pemohon}` }, { content: 'Alamat', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.alamat}` }, { content: 'Pekerjaan', styles: { fontStyle: 'bold' } }, { content: `: ${pekerjaan}` }, { content: 'Nomor Telepon', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.no_telp}` }, { content: 'Email', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.email}` }, { content: 'Rincian Informasi', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.rincian_informasi}` }, { content: 'Tujuan Penggunaan', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.tujuan_informasi}` }, { content: 'Cara Memperoleh', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.cara_memperoleh}` }, { content: 'Cara Mendapatkan Salinan', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.cara_mendapat_salinan}` }, { content: 'Bentuk Salinan', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.salinan_informasi}` }, ]; let rowData = []; let tableBody = []; body.forEach((cell, index) => { rowData.push(cell); if ((index + 1) % 2 === 0) { tableBody.push(rowData); rowData = []; } }); doc.autoTable({ startY: 65, body: tableBody, theme: 'plain', styles: { fontSize: 11, cellPadding: 2.5, cellWidth: 'wrap' }, columnStyles: { 1: { cellWidth: 'auto' } } }); let finalY = doc.autoTable.previous.finalY; finalY = Math.max(finalY, 180); doc.text(`Pekanbaru, ${today}`, 130, finalY); finalY += 8; doc.text('Petugas Pelayanan Informasi', 20, finalY); doc.text('Pemohon Informasi', 130, finalY); doc.text('(Penerima Permohonan)', 20, finalY + 5); finalY += 25; doc.text(`( ${lastFormData.petugas_pelayanan} )`, 20, finalY); doc.text(`( ${lastFormData.nama_pemohon} )`, 130, finalY); doc.addPage(); doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.text('DOKUMEN IDENTITAS PEMOHON', doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' }); if (lastFormData.identitas_pemohon_img) { try { const imgProps = doc.getImageProperties(lastFormData.identitas_pemohon_img); const pdfWidth = doc.internal.pageSize.getWidth(); const imgWidth = pdfWidth * 0.8; const imgHeight = (imgProps.height * imgWidth) / imgProps.width; doc.addImage(lastFormData.identitas_pemohon_img, 'JPEG', (pdfWidth - imgWidth) / 2, 30, imgWidth, imgHeight); } catch (e) { doc.text('Gagal memuat gambar.', 20, 30); } } else { doc.text('Tidak ada dokumen identitas.', 20, 30); } doc.save(`Formulir_Permohonan_${lastFormData.nama_pemohon}.pdf`); }
+            function generateReceiptPDF(doc, today) { doc.setFontSize(14); doc.setFont('helvetica', 'bold'); doc.text('TANDA TERIMA PERMOHONAN INFORMASI', doc.internal.pageSize.getWidth() / 2, 48, { align: 'center' }); doc.setFontSize(11); doc.setFont('helvetica', 'normal'); doc.text(`No. Registrasi: ${lastFormData.no_registrasi || 'N/A'}`, 20, 60); doc.text('Telah diterima permohonan informasi dari:', 20, 70); const body = [ ['Nama', `: ${lastFormData.nama_pemohon}`], ['No. Telepon', `: ${lastFormData.no_telp}`], ['Email', `: ${lastFormData.email}`], ['Rincian Informasi', `: ${lastFormData.rincian_informasi}`], ]; doc.autoTable({ startY: 75, body: body, theme: 'plain', styles: { cellPadding: 2, fontSize: 11 }, columnStyles: { 0: { cellWidth: 50, fontStyle: 'bold' } } }); const finalY = doc.autoTable.previous.finalY; doc.text('Permohonan akan diproses sesuai peraturan.', 20, finalY + 15, { maxWidth: 170 }); doc.text(`Pekanbaru, ${today}`, 130, finalY + 35); doc.text('Petugas Pelayanan,', 130, finalY + 43); doc.text(`( ${lastFormData.petugas_pelayanan} )`, 130, finalY + 65); doc.save(`Tanda_Terima_${lastFormData.nama_pemohon}.pdf`); }
+        });
+    </script>
+</body>
+</html>
+
+
