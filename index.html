@@ -1,1016 +1,1970 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplikasi Pelayanan Informasi Publik - PPID Bawaslu Riau</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bawaslu-primary: #1A3A5A;
-            --bawaslu-secondary: #2d639c;
-            --background-light: #F7F9FC;
-            --card-bg: #FFFFFF;
-            --text-primary: #1F2937;
-            --text-secondary: #6B7280;
-            --border-color: #E5E7EB;
-        }
-
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PPID Bawaslu Provinsi Riau</title>
+  <script src="/_sdk/data_sdk.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--background-light);
-            color: var(--text-primary);
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-
-        .bg-bawaslu-primary { background-color: var(--bawaslu-primary); }
-        .text-bawaslu-primary { color: var(--bawaslu-primary); }
-
-        .btn-primary {
-            background-color: var(--bawaslu-primary);
+        .bg-navy { background-color: #1e3a8a; }
+        .bg-navy-dark { background-color: #1e40af; }
+        .text-navy { color: #1e3a8a; }
+        .border-navy { border-color: #1e3a8a; }
+        .hover-navy:hover { background-color: #1d4ed8; }
+        .loading { opacity: 0.6; pointer-events: none; }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #10b981;
             color: white;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-        }
-        .btn-primary:hover {
-            background-color: var(--bawaslu-secondary);
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border-radius: 0.5rem;
-            border: 1px solid var(--border-color);
-            background-color: #F9FAFB;
-            transition: all 0.3s ease;
-        }
-        .form-input:focus {
-            outline: none;
-            border-color: var(--bawaslu-primary);
-            box-shadow: 0 0 0 3px rgba(26, 58, 90, 0.2);
-            background-color: var(--card-bg);
-        }
-        
-        .form-label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .card {
-            background-color: var(--card-bg);
-            border-radius: 1rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-            padding: 2rem;
-        }
-
-        .nav-link {
-            display: flex;
-            align-items: center;
-            padding: 0.75rem 1rem;
-            border-radius: 0.5rem;
-            font-weight: 500;
-            color: var(--text-secondary);
-            transition: all 0.2s ease-in-out;
-            position: relative;
-        }
-        .nav-link:hover {
-            background-color: var(--bawaslu-secondary);
-            color: white;
-        }
-        .nav-link.active {
-            background-color: var(--bawaslu-secondary);
-            color: white;
-            font-weight: 600;
-        }
-
-        .hidden { display: none; }
-        
-        .modal-overlay {
-            transition: opacity 0.3s ease;
-        }
-        .modal-content {
+            padding: 12px 24px;
+            border-radius: 8px;
+            z-index: 1000;
+            transform: translateX(100%);
             transition: transform 0.3s ease;
         }
+        .toast.show { transform: translateX(0); }
+        .toast.error { background: #ef4444; }
     </style>
-</head>
-<body class="antialiased">
-
-    <!-- Halaman Login -->
-    <div id="login-page" class="relative flex items-center justify-center min-h-screen overflow-hidden">
-         <!-- Latar Belakang Video -->
-        <video autoplay loop muted class="absolute z-0 w-auto min-w-full min-h-full max-w-none object-cover">
-            <source src="https://drive.google.com/uc?export=view&id=1JstvHSZRslB0HLSSlymCD2-DuRtgB3f1" type="video/mp4">
-            Browser Anda tidak mendukung tag video.
-        </video>
-        <!-- Overlay Gelap -->
-        <div class="absolute inset-0 bg-black/60 z-10"></div>
-
-        <div class="relative w-full max-w-md p-8 space-y-6 card z-20 bg-white/90 backdrop-blur-sm border border-gray-200/50">
-            <div class="text-center">
-                <img src="https://bawaslukabsemarang.wordpress.com/wp-content/uploads/2017/11/cropped-cropped-bawaslu-logo.png?w=200" alt="Logo Bawaslu" class="mx-auto mb-4 h-20 w-auto">
-                <h1 class="text-3xl font-extrabold text-bawaslu-primary">PPID Bawaslu Riau</h1>
-                <p class="text-gray-500 mt-2">Selamat datang, silakan masuk ke akun Anda</p>
-            </div>
-            <form id="login-form" class="space-y-6">
-                <div>
-                    <label for="username" class="form-label">Username</label>
-                    <div class="relative">
-                         <span class="absolute inset-y-0 left-0 flex items-center pl-3">
-                            <i data-lucide="user" class="w-5 h-5 text-gray-400"></i>
-                        </span>
-                        <input id="username" name="username" type="text" required class="form-input pl-10" placeholder="admin">
-                    </div>
-                </div>
-                <div>
-                    <label for="password" class="form-label">Password</label>
-                     <div class="relative">
-                         <span class="absolute inset-y-0 left-0 flex items-center pl-3">
-                            <i data-lucide="lock" class="w-5 h-5 text-gray-400"></i>
-                        </span>
-                        <input id="password" name="password" type="password" required class="form-input pl-10" placeholder="••••••••">
-                    </div>
-                </div>
-                <div id="login-error" class="text-red-500 text-sm text-center hidden">
-                    <i data-lucide="alert-circle" class="inline w-4 h-4 mr-1"></i> Username atau password salah.
-                </div>
-                <button type="submit" class="w-full px-4 py-3 font-semibold btn-primary rounded-lg flex items-center justify-center">
-                    <i data-lucide="log-in" class="w-5 h-5 mr-2"></i>
-                    <span>Masuk</span>
-                </button>
-            </form>
-        </div>
+  <style>@view-transition { navigation: auto; }</style>
+ </head>
+ <body class="min-h-full bg-gray-50"><!-- Toast Notification -->
+  <div id="toast" class="toast"></div><!-- Login Page -->
+  <div id="loginPage" class="min-h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+   <div class="max-w-md w-full space-y-8">
+    <div class="text-center">
+     <div class="mx-auto h-20 w-20 bg-navy rounded-full flex items-center justify-center mb-4">
+      <svg class="h-12 w-12 text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+      </svg>
+     </div>
+     <h2 id="loginTitle" class="text-3xl font-bold text-gray-900">PPID Bawaslu Provinsi Riau</h2>
+     <p class="mt-2 text-sm text-gray-600">Silakan masuk ke akun Anda</p>
     </div>
-
-    <!-- Halaman Aplikasi Utama (setelah login) -->
-    <div id="app-page" class="hidden">
-        <div class="flex h-screen bg-gray-50">
-            <!-- Sidebar Navigasi -->
-            <nav class="w-72 bg-bawaslu-primary shadow-lg p-4 flex flex-col">
-                <div class="flex items-center space-x-3 p-4 mb-6">
-                    <img src="https://bawaslukabsemarang.wordpress.com/wp-content/uploads/2017/11/cropped-cropped-bawaslu-logo.png?w=200" alt="Logo Bawaslu" class="h-12 w-auto">
-                    <div>
-                        <h2 class="text-lg font-bold text-white">PPID BAWASLU</h2>
-                        <p class="text-sm text-gray-300">Provinsi Riau</p>
-                    </div>
-                </div>
-                <ul class="space-y-2 flex-grow">
-                    <li><a href="#" class="nav-link text-gray-300" data-page="beranda"><i data-lucide="home" class="w-5 h-5 mr-3"></i>Beranda</a></li>
-                    <li><a href="#" class="nav-link text-gray-300" data-page="form-permohonan"><i data-lucide="file-plus-2" class="w-5 h-5 mr-3"></i>Formulir Permohonan</a></li>
-                    <li><a href="#" class="nav-link text-gray-300" data-page="daftar-permohonan"><i data-lucide="list-checks" class="w-5 h-5 mr-3"></i>Daftar Permohonan</a></li>
-                    <li><a href="#" class="nav-link text-gray-300" data-page="daftar-informasi-publik"><i data-lucide="library" class="w-5 h-5 mr-3"></i>Daftar Informasi Publik</a></li>
-                    <li><a href="#" class="nav-link text-gray-300" data-page="form-keberatan"><i data-lucide="shield-alert" class="w-5 h-5 mr-3"></i>Formulir Keberatan</a></li>
-                    <li><a href="#" class="nav-link text-gray-300" data-page="daftar-keberatan"><i data-lucide="list-x" class="w-5 h-5 mr-3"></i>Daftar Keberatan</a></li>
-                    <li><a href="#" class="nav-link text-gray-300" data-page="buat-surat"><i data-lucide="mail-plus" class="w-5 h-5 mr-3"></i>Buat Surat Pemberitahuan</a></li>
-                </ul>
-                <div class="mt-auto">
-                     <button id="signout-btn" class="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 hover:text-red-300 transition">
-                        <i data-lucide="log-out" class="w-5 h-5"></i>
-                        <span>Sign Out</span>
-                    </button>
-                </div>
-            </nav>
-
-            <!-- Konten Utama -->
-            <div class="flex-1 flex flex-col overflow-hidden">
-                <header class="bg-orange-500 shadow-sm text-white">
-                    <div class="container mx-auto px-8 py-4 flex justify-between items-center">
-                        <h1 class="text-xl font-semibold">Selamat Datang, <span class="font-bold">ADMIN</span></h1>
-                        <div class="flex items-center space-x-2">
-                            <img src="https://placehold.co/40x40/FFFFFF/F97316?text=A" alt="Avatar Admin" class="rounded-full">
-                            <span class="font-semibold">Admin</span>
-                        </div>
-                    </div>
-                </header>
-                <main class="flex-1 overflow-x-hidden overflow-y-auto bg-background-light p-8">
-                    <div id="beranda" class="page-content">
-                        <!-- Konten Beranda -->
-                        <div class="card bg-bawaslu-primary text-white p-8 mb-8">
-                            <h2 class="text-3xl font-bold">Selamat Datang di Dasbor PPID</h2>
-                            <p class="mt-2 text-gray-300">Kelola permohonan informasi dan keberatan dengan mudah di satu tempat.</p>
-                        </div>
-                        <div class="card">
-                            <div class="flex justify-between items-center border-b border-gray-200 pb-4 mb-6">
-                                <h2 class="text-2xl font-bold text-bawaslu-primary">Statistik Layanan Informasi</h2>
-                                <div class="flex items-center space-x-2">
-                                    <label for="tahun-statistik" class="text-sm font-medium">Tahun:</label>
-                                    <select id="tahun-statistik" name="tahun-statistik" class="form-input !w-auto !py-2 !px-3">
-                                        <option value="2025">2025</option>
-                                        <option value="2024">2024</option>
-                                        <option value="2023">2023</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div class="bg-blue-50 p-6 rounded-lg flex items-center">
-                                    <div class="bg-blue-500 p-4 rounded-full text-white">
-                                        <i data-lucide="inbox" class="w-8 h-8"></i>
-                                    </div>
-                                    <div class="ml-4">
-                                        <p class="text-gray-500 text-sm font-medium">Jumlah Permohonan Informasi</p>
-                                        <p id="stat-permohonan" class="text-3xl font-bold text-gray-800">0</p>
-                                    </div>
-                                </div>
-                                <div class="bg-orange-50 p-6 rounded-lg flex items-center">
-                                    <div class="bg-orange-500 p-4 rounded-full text-white">
-                                        <i data-lucide="shield-alert" class="w-8 h-8"></i>
-                                    </div>
-                                    <div class="ml-4">
-                                        <p class="text-gray-500 text-sm font-medium">Jumlah Keberatan Informasi</p>
-                                        <p id="stat-keberatan" class="text-3xl font-bold text-gray-800">0</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="form-permohonan" class="page-content hidden">
-                        <!-- Konten Formulir Permohonan -->
-                        <div class="card">
-                            <div class="border-b border-gray-200 pb-4 mb-6">
-                                <h2 class="text-2xl font-bold text-bawaslu-primary">Formulir Permohonan Informasi Publik</h2>
-                                <p class="text-gray-500 mt-1">Isi data pemohon dengan lengkap dan benar.</p>
-                            </div>
-                            <div id="success-notification" class="hidden bg-green-50 border-l-4 border-green-400 text-green-700 p-4 rounded-lg mb-6" role="alert">
-                                <div class="flex">
-                                    <div class="py-1"><i data-lucide="check-circle" class="w-6 h-6 mr-3"></i></div>
-                                    <div>
-                                        <p class="font-bold">Sukses!</p>
-                                        <p id="success-message"></p>
-                                <div id="print-buttons" class="mt-4">
-                                    <button id="print-form-btn" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm font-semibold">Cetak Formulir</button>
-                                            <button id="print-receipt-btn" class="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 ml-2 text-sm font-semibold">Cetak Tanda Terima</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <form id="info-request-form" class="space-y-6">
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label for="nama_pemohon" class="form-label">Nama Pemohon</label>
-                                        <input type="text" id="nama_pemohon" name="nama_pemohon" class="form-input" required>
-                                    </div>
-                                    <div>
-                                        <label for="no_telp" class="form-label">No. Telepon / HP</label>
-                                        <input type="tel" id="no_telp" name="no_telp" class="form-input" required>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label for="alamat" class="form-label">Alamat</label>
-                                    <textarea id="alamat" name="alamat" rows="3" class="form-input" required></textarea>
-                                </div>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                                    <div>
-                                        <label for="pekerjaan" class="form-label">Pekerjaan</label>
-                                        <select id="pekerjaan" name="pekerjaan" class="form-input" required>
-                                            <option value="">Pilih Pekerjaan</option>
-                                            <option value="Mahasiswa">Mahasiswa</option>
-                                            <option value="LSM">LSM</option>
-                                            <option value="Instansi Pemerintah">Instansi Pemerintah</option>
-                                            <option value="Masyarakat">Masyarakat</option>
-                                            <option value="Lainnya">Lainnya</option>
-                                        </select>
-                                    </div>
-                                    <div id="pekerjaan_lainnya_wrapper" class="hidden">
-                                        <label for="pekerjaan_lainnya" class="form-label">Sebutkan Pekerjaan Lainnya</label>
-                                        <input type="text" id="pekerjaan_lainnya" name="pekerjaan_lainnya" class="form-input">
-                                    </div>
-                                </div>
-                                <div>
-                                    <label for="email" class="form-label">Email</label>
-                                    <input type="email" id="email" name="email" class="form-input" required>
-                                </div>
-                                <div>
-                                    <label for="rincian_informasi" class="form-label">Rincian Informasi yang Dibutuhkan</label>
-                                    <textarea id="rincian_informasi" name="rincian_informasi" rows="4" class="form-input" required></textarea>
-                                </div>
-                                <div>
-                                    <label for="tujuan_informasi" class="form-label">Tujuan Penggunaan Informasi</label>
-                                    <textarea id="tujuan_informasi" name="tujuan_informasi" rows="4" class="form-input" required></textarea>
-                                </div>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label for="cara_memperoleh" class="form-label">Cara Memperoleh Informasi</label>
-                                        <select id="cara_memperoleh" name="cara_memperoleh" class="form-input" required>
-                                            <option value="Melihat">Melihat</option>
-                                            <option value="Membaca">Membaca</option>
-                                            <option value="Mencatat">Mencatat</option>
-                                            <option value="Mendengarkan">Mendengarkan</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="form-label">Salinan Informasi Berupa</label>
-                                        <div class="flex items-center space-x-6 mt-3">
-                                            <label class="flex items-center cursor-pointer"><input type="radio" name="salinan_informasi" value="Hardcopy" class="mr-2 h-4 w-4 text-bawaslu-primary focus:ring-bawaslu-secondary"> Hardcopy</label>
-                                            <label class="flex items-center cursor-pointer"><input type="radio" name="salinan_informasi" value="Softcopy" class="mr-2 h-4 w-4 text-bawaslu-primary focus:ring-bawaslu-secondary" checked> Softcopy</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label for="cara_mendapat_salinan" class="form-label">Cara Mendapatkan Salinan Informasi</label>
-                                        <select id="cara_mendapat_salinan" name="cara_mendapat_salinan" class="form-input" required>
-                                            <option value="Mengambil Langsung">Mengambil Langsung</option>
-                                            <option value="Kurir">Kurir</option>
-                                            <option value="Pos">Pos</option>
-                                            <option value="Email">Email</option>
-                                            <option value="Whatsapp">Whatsapp</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label for="upload_identitas" class="form-label">Upload Identitas (KTP/SIM/Lainnya)</label>
-                                        <input type="file" id="upload_identitas" name="upload_identitas" accept="image/*" class="form-input file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                                    </div>
-                                </div>
-                                <div>
-                                    <label for="petugas_pelayanan" class="form-label">Petugas Pelayanan</label>
-                                    <select id="petugas_pelayanan" name="petugas_pelayanan" class="form-input" required>
-                                        <option value="">Pilih Petugas</option>
-                                        <option value="Rachmatul Azmi">Rachmatul Azmi</option>
-                                        <option value="Nur Asiah">Nur Asiah</option>
-                                        <option value="Dandi">Dandi</option>
-                                    </select>
-                                </div>
-                                <div class="flex justify-end pt-6 border-t mt-8">
-                                    <button type="submit" class="btn-primary px-6 py-3 rounded-lg font-semibold flex items-center">
-                                        <i data-lucide="save" class="w-5 h-5 mr-2"></i>
-                                        Submit Permohonan
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                    <div id="daftar-permohonan" class="page-content hidden">
-                        <!-- Konten Daftar Permohonan -->
-                        <div class="card">
-                            <div class="flex justify-between items-center border-b border-gray-200 pb-4 mb-6">
-                                <h2 class="text-2xl font-bold text-bawaslu-primary">Daftar Permohonan Informasi</h2>
-                                <button id="refresh-data-btn" class="text-sm btn-primary py-2 px-4 rounded-lg flex items-center">
-                                    <i data-lucide="refresh-cw" class="w-4 h-4 mr-2"></i>
-                                    <span>Refresh Data</span>
-                                </button>
-                            </div>
-                            <div id="loading-spinner" class="text-center p-12 hidden">
-                                <svg class="animate-spin h-8 w-8 text-bawaslu-primary mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                <p class="mt-4 text-gray-500">Memuat data...</p>
-                            </div>
-                            <div class="overflow-x-auto">
-                                <table id="permohonan-table" class="min-w-full divide-y divide-gray-200 hidden">
-                                    <thead class="bg-gray-50">
-                                        <tr>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No. Registrasi</th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Pemohon</th>
-                                            <th scope="col" class="relative px-6 py-3"><span class="sr-only">Aksi</span></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="permohonan-table-body" class="bg-white divide-y divide-gray-200"></tbody>
-                                </table>
-                            </div>
-                             <p id="no-data-message" class="text-center py-12 text-gray-500 hidden">Belum ada data permohonan.</p>
-                        </div>
-                    </div>
-                    <div id="daftar-informasi-publik" class="page-content hidden">
-                        <!-- Konten Daftar Informasi Publik -->
-                        <div class="card">
-                            <div class="flex flex-col md:flex-row justify-between md:items-center gap-4 border-b border-gray-200 pb-4 mb-6">
-                                <h2 class="text-2xl font-bold text-bawaslu-primary">Daftar Informasi Publik</h2>
-                                <div class="flex items-center gap-4 w-full md:w-auto">
-                                    <div class="relative flex-grow">
-                                        <input type="text" id="search-info-publik" placeholder="Cari berdasarkan judul..." class="form-input pl-10 w-full">
-                                        <span class="absolute inset-y-0 left-0 flex items-center pl-3">
-                                            <i data-lucide="search" class="w-5 h-5 text-gray-400"></i>
-                                        </span>
-                                    </div>
-                                    <button id="show-add-info-form-btn" class="text-sm btn-primary py-2 px-4 rounded-lg flex items-center flex-shrink-0">
-                                        <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
-                                        <span>Tambah Informasi</span>
-                                    </button>
-                                </div>
-                            </div>
-                            <div id="add-info-publik-form-container" class="hidden mb-8">
-                                <hr class="my-6">
-                                <h3 class="text-xl font-bold text-bawaslu-primary mb-4">Formulir Tambah Informasi Publik</h3>
-                                <div id="info-publik-success-notification" class="hidden bg-green-50 border-l-4 border-green-400 text-green-700 p-4 rounded-lg mb-6" role="alert">
-                                    <p id="info-publik-success-message"></p>
-                                </div>
-                                <form id="info-publik-form" class="space-y-6">
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div>
-                                            <label for="divisi" class="form-label">Divisi yang Membuat</label>
-                                            <input type="text" id="divisi" name="divisi" class="form-input" required>
-                                        </div>
-                                        <div>
-                                            <label for="tahun_pembuatan" class="form-label">Tahun Pembuatan</label>
-                                            <input type="number" id="tahun_pembuatan" name="tahun_pembuatan" class="form-input" placeholder="Contoh: 2025" required>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label for="judul_informasi" class="form-label">Judul Informasi</label>
-                                        <input type="text" id="judul_informasi" name="judul_informasi" class="form-input" required>
-                                    </div>
-                                    <div>
-                                        <label for="deskripsi" class="form-label">Deskripsi</label>
-                                        <textarea id="deskripsi" name="deskripsi" rows="4" class="form-input" required></textarea>
-                                    </div>
-                                    <div>
-                                        <label for="upload_file_publik" class="form-label">Upload File</label>
-                                        <input type="file" id="upload_file_publik" name="upload_file_publik" class="form-input file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" required>
-                                    </div>
-                                    <div class="flex justify-end pt-6 border-t mt-8">
-                                        <button type="button" id="cancel-add-info-btn" class="px-6 py-3 rounded-lg font-semibold flex items-center mr-4 bg-gray-100 hover:bg-gray-200">Batal</button>
-                                        <button type="submit" class="btn-primary px-6 py-3 rounded-lg font-semibold flex items-center">
-                                            <i data-lucide="save" class="w-5 h-5 mr-2"></i>
-                                            <span>Simpan Informasi</span>
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                             <div id="info-publik-loading" class="text-center p-12 hidden">
-                                <svg class="animate-spin h-8 w-8 text-bawaslu-primary mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                <p class="mt-4 text-gray-500">Memuat data...</p>
-                            </div>
-                            <div class="overflow-x-auto">
-                                <table id="info-publik-table" class="min-w-full divide-y divide-gray-200 hidden">
-                                    <thead class="bg-gray-50">
-                                        <tr>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No. Registrasi</th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Divisi</th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Judul</th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deskripsi</th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tahun</th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="info-publik-table-body" class="bg-white divide-y divide-gray-200"></tbody>
-                                </table>
-                            </div>
-                            <p id="no-info-publik-message" class="text-center py-12 text-gray-500 hidden">Belum ada data informasi publik.</p>
-                        </div>
-                    </div>
-                    <div id="form-keberatan" class="page-content hidden"><div class="card"><h2 class="text-2xl font-bold">Formulir Keberatan (Dalam Pengembangan)</h2></div></div>
-                    <div id="daftar-keberatan" class="page-content hidden"><div class="card"><h2 class="text-2xl font-bold">Daftar Keberatan Informasi (Dalam Pengembangan)</h2></div></div>
-                    <div id="buat-surat" class="page-content hidden"><div class="card"><h2 class="text-2xl font-bold">Buat Surat Pemberitahuan (Dalam Pengembangan)</h2></div></div>
-                </main>
-            </div>
-        </div>
+    <form id="loginForm" class="mt-8 space-y-6">
+     <div class="space-y-4">
+      <div><label for="username" class="block text-sm font-medium text-gray-700">Username</label> <input id="username" name="username" type="text" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-navy focus:border-navy">
+      </div>
+      <div><label for="password" class="block text-sm font-medium text-gray-700">Password</label> <input id="password" name="password" type="password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-navy focus:border-navy">
+      </div>
+     </div>
+     <div id="loginError" class="hidden text-red-600 text-sm text-center"></div><button type="submit" id="loginBtn" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-navy hover-navy focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-navy"> Masuk </button>
+    </form>
+   </div>
+  </div><!-- Main Application -->
+  <div id="mainApp" class="hidden min-h-full"><!-- Header -->
+   <header class="bg-white shadow-sm border-b">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+     <div class="flex justify-between items-center py-4">
+      <h1 id="welcomeMessage" class="text-xl font-semibold text-gray-900">Selamat Datang ADMIN di PPID Bawaslu Provinsi Riau</h1><button id="signoutBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"> Sign Out </button>
+     </div>
     </div>
-    
-    <!-- Modal untuk Detail Permohonan -->
-    <div id="detail-modal" class="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 hidden opacity-0 z-50">
-        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] transform scale-95">
-            <div class="flex justify-between items-center p-4 border-b">
-                <h3 class="text-xl font-bold text-bawaslu-primary">Detail Permohonan Informasi</h3>
-                <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600">
-                    <i data-lucide="x" class="w-6 h-6"></i>
-                </button>
-            </div>
-            <div id="detail-modal-body" class="p-6 overflow-y-auto"></div>
+   </header>
+   <div class="flex"><!-- Sidebar -->
+    <nav class="bg-navy w-64 min-h-screen">
+     <div class="p-4">
+      <ul class="space-y-2">
+       <li><button class="nav-btn w-full text-left px-4 py-3 text-white hover:bg-blue-700 rounded-md" data-page="beranda">📊 Beranda</button></li>
+       <li><button class="nav-btn w-full text-left px-4 py-3 text-white hover:bg-blue-700 rounded-md" data-page="formulir-permohonan">📝 Formulir Permohonan</button></li>
+       <li><button class="nav-btn w-full text-left px-4 py-3 text-white hover:bg-blue-700 rounded-md" data-page="daftar-permohonan">📋 Daftar Permohonan</button></li>
+       <li><button class="nav-btn w-full text-left px-4 py-3 text-white hover:bg-blue-700 rounded-md" data-page="input-informasi">📝 Input Informasi Publik</button></li>
+       <li><button class="nav-btn w-full text-left px-4 py-3 text-white hover:bg-blue-700 rounded-md" data-page="daftar-informasi">📚 Daftar Informasi Publik</button></li>
+       <li><button class="nav-btn w-full text-left px-4 py-3 text-white hover:bg-blue-700 rounded-md" data-page="formulir-keberatan">⚖️ Formulir Keberatan</button></li>
+       <li><button class="nav-btn w-full text-left px-4 py-3 text-white hover:bg-blue-700 rounded-md" data-page="daftar-keberatan">📑 Daftar Keberatan</button></li>
+       <li><button class="nav-btn w-full text-left px-4 py-3 text-white hover:bg-blue-700 rounded-md" data-page="buat-surat">✉️ Buat Surat Pemberitahuan</button></li>
+      </ul>
+     </div>
+    </nav><!-- Main Content -->
+    <main class="flex-1 p-6"><!-- Beranda Page -->
+     <div id="beranda" class="page">
+      <h2 class="text-2xl font-bold mb-6">Dashboard Statistik</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+       <div class="bg-white p-6 rounded-lg shadow">
+        <h3 class="text-lg font-semibold text-gray-700">Jumlah Permohonan</h3>
+        <p id="totalPermohonan" class="text-3xl font-bold text-navy">0</p>
+       </div>
+       <div class="bg-white p-6 rounded-lg shadow">
+        <h3 class="text-lg font-semibold text-gray-700">Jumlah Keberatan</h3>
+        <p id="totalKeberatan" class="text-3xl font-bold text-navy">0</p>
+       </div>
+       <div class="bg-white p-6 rounded-lg shadow">
+        <h3 class="text-lg font-semibold text-gray-700">Informasi Publik</h3>
+        <p id="totalInformasi" class="text-3xl font-bold text-navy">0</p>
+       </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+       <div class="bg-white p-6 rounded-lg shadow">
+        <h3 class="text-lg font-semibold mb-4">Status Permohonan</h3>
+        <div class="space-y-2">
+         <div class="flex justify-between"><span>Diberikan:</span> <span id="statusDiberikan" class="font-semibold text-green-600">0</span>
+         </div>
+         <div class="flex justify-between"><span>Sebagian:</span> <span id="statusSebagian" class="font-semibold text-yellow-600">0</span>
+         </div>
+         <div class="flex justify-between"><span>Ditolak:</span> <span id="statusDitolak" class="font-semibold text-red-600">0</span>
+         </div>
         </div>
+       </div>
+       <div class="bg-white p-6 rounded-lg shadow">
+        <h3 class="text-lg font-semibold mb-4">Berdasarkan Pekerjaan</h3>
+        <div id="statistikPekerjaan" class="space-y-2"></div>
+       </div>
+      </div>
+     </div><!-- Formulir Permohonan Page -->
+     <div id="formulir-permohonan" class="page hidden">
+      <h2 class="text-2xl font-bold mb-6">Formulir Permohonan Informasi</h2>
+      <form id="permohonanForm" class="bg-white p-6 rounded-lg shadow space-y-4">
+       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div><label for="namaPemohon" class="block text-sm font-medium text-gray-700">Nama Pemohon</label> <input type="text" id="namaPemohon" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy">
+        </div>
+        <div><label for="noTelp" class="block text-sm font-medium text-gray-700">No. Telepon</label> <input type="tel" id="noTelp" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy">
+        </div>
+       </div>
+       <div><label for="alamat" class="block text-sm font-medium text-gray-700">Alamat</label> <textarea id="alamat" required rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"></textarea>
+       </div>
+       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div><label for="pekerjaan" class="block text-sm font-medium text-gray-700">Pekerjaan</label> <select id="pekerjaan" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"> <option value="">Pilih Pekerjaan</option> <option value="Mahasiswa">Mahasiswa</option> <option value="LSM">LSM</option> <option value="Instansi Pemerintah">Instansi Pemerintah</option> <option value="Masyarakat">Masyarakat</option> <option value="Lainnya">Lainnya</option> </select>
+        </div>
+        <div id="pekerjaanLainnyaDiv" class="hidden"><label for="pekerjaanLainnya" class="block text-sm font-medium text-gray-700">Pekerjaan Lainnya</label> <input type="text" id="pekerjaanLainnya" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy">
+        </div>
+       </div>
+       <div><label for="email" class="block text-sm font-medium text-gray-700">Email</label> <input type="email" id="email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy">
+       </div>
+       <div><label for="rincianInformasi" class="block text-sm font-medium text-gray-700">Rincian Informasi yang Dibutuhkan</label> <textarea id="rincianInformasi" required rows="4" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"></textarea>
+       </div>
+       <div><label for="tujuanPenggunaan" class="block text-sm font-medium text-gray-700">Tujuan Penggunaan Informasi</label> <textarea id="tujuanPenggunaan" required rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"></textarea>
+       </div>
+       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div><label for="caraMemperoleh" class="block text-sm font-medium text-gray-700">Cara Memperoleh Informasi</label> <select id="caraMemperoleh" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"> <option value="">Pilih Cara</option> <option value="Melihat">Melihat</option> <option value="Membaca">Membaca</option> <option value="Mencatat">Mencatat</option> <option value="Mendengarkan">Mendengarkan</option> </select>
+        </div>
+        <div><label for="bentukSalinan" class="block text-sm font-medium text-gray-700">Bentuk Salinan</label> <select id="bentukSalinan" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"> <option value="">Pilih Bentuk</option> <option value="Hardcopy">Hardcopy</option> <option value="Softcopy">Softcopy</option> </select>
+        </div>
+       </div>
+       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div><label for="caraMendapatSalinan" class="block text-sm font-medium text-gray-700">Cara Mendapat Salinan</label> <select id="caraMendapatSalinan" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"> <option value="">Pilih Cara</option> <option value="Mengambil Langsung">Mengambil Langsung</option> <option value="Kurir">Kurir</option> <option value="Pos">Pos</option> <option value="Email">Email</option> <option value="WhatsApp">WhatsApp</option> </select>
+        </div>
+        <div><label for="petugasPelayanan" class="block text-sm font-medium text-gray-700">Petugas Pelayanan</label> <select id="petugasPelayanan" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"> <option value="">Pilih Petugas</option> <option value="Rachmatul Azmi">Rachmatul Azmi</option> <option value="Nur Asiah">Nur Asiah</option> <option value="Dandi">Dandi</option> </select>
+        </div>
+       </div>
+       <div><label for="uploadIdentitas" class="block text-sm font-medium text-gray-700">Upload Identitas</label> <input type="file" id="uploadIdentitas" accept=".pdf,.jpg,.jpeg,.png" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy">
+        <p class="text-sm text-gray-500 mt-1">Format: PDF, JPG, JPEG, PNG (Max 5MB)</p>
+       </div><button type="submit" id="submitPermohonan" class="w-full bg-navy hover-navy text-white py-3 px-4 rounded-md font-medium"> Submit Permohonan </button>
+      </form>
+     </div><!-- Daftar Permohonan Page -->
+     <div id="daftar-permohonan" class="page hidden">
+      <h2 class="text-2xl font-bold mb-6">Daftar Permohonan Informasi</h2><!-- Search Bar -->
+      <div class="bg-white p-4 rounded-lg shadow mb-6">
+       <div class="flex flex-col md:flex-row gap-4">
+        <div class="flex-1"><label for="searchPermohonan" class="block text-sm font-medium text-gray-700 mb-2">Pencarian</label> <input type="text" id="searchPermohonan" placeholder="Cari berdasarkan nomor registrasi atau nama pemohon..." class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy">
+        </div>
+        <div class="flex items-end"><button id="clearSearch" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"> Clear </button>
+        </div>
+       </div>
+      </div>
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+       <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+         <thead class="bg-gray-50">
+          <tr>
+           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No. Registrasi</th>
+           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
+           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Pemohon</th>
+           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+          </tr>
+         </thead>
+         <tbody id="daftarPermohonanTable" class="bg-white divide-y divide-gray-200">
+         </tbody>
+        </table>
+       </div>
+      </div>
+     </div><!-- Input Informasi Publik Page -->
+     <div id="input-informasi" class="page hidden">
+      <h2 class="text-2xl font-bold mb-6">Input Informasi Publik</h2>
+      <form id="informasiForm" class="bg-white p-6 rounded-lg shadow space-y-4">
+       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div><label for="divisiPembuat" class="block text-sm font-medium text-gray-700">Divisi yang Membuat</label> <select id="divisiPembuat" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"> <option value="">Pilih Divisi</option> <option value="Divisi Hukum dan HAM">Divisi Hukum dan HAM</option> <option value="Divisi Teknis dan Hupmas">Divisi Teknis dan Hupmas</option> <option value="Divisi Pengawasan dan Penindakan">Divisi Pengawasan dan Penindakan</option> <option value="Divisi Pencegahan dan Partisipasi Masyarakat">Divisi Pencegahan dan Partisipasi Masyarakat</option> <option value="Divisi Penyelesaian Sengketa">Divisi Penyelesaian Sengketa</option> <option value="Divisi SDM dan Keuangan">Divisi SDM dan Keuangan</option> <option value="Sekretariat">Sekretariat</option> </select>
+        </div>
+        <div><label for="tahunPembuatan" class="block text-sm font-medium text-gray-700">Tahun Pembuatan</label> <select id="tahunPembuatan" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"> <option value="">Pilih Tahun</option> </select>
+        </div>
+       </div>
+       <div><label for="judulInformasi" class="block text-sm font-medium text-gray-700">Judul Informasi</label> <input type="text" id="judulInformasi" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy">
+       </div>
+       <div><label for="deskripsiInformasi" class="block text-sm font-medium text-gray-700">Deskripsi</label> <textarea id="deskripsiInformasi" required rows="4" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"></textarea>
+       </div>
+       <div><label for="uploadFile" class="block text-sm font-medium text-gray-700">Upload File</label> <input type="file" id="uploadFile" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy">
+        <p class="text-sm text-gray-500 mt-1">Format: PDF, DOC, XLS, PPT, JPG, PNG (Max 10MB)</p>
+       </div><button type="submit" id="submitInformasi" class="w-full bg-navy hover-navy text-white py-3 px-4 rounded-md font-medium"> Submit Informasi Publik </button>
+      </form>
+     </div><!-- Daftar Informasi Publik Page -->
+     <div id="daftar-informasi" class="page hidden">
+      <h2 class="text-2xl font-bold mb-6">Daftar Informasi Publik</h2><!-- Search Bar -->
+      <div class="bg-white p-4 rounded-lg shadow mb-6">
+       <div class="flex flex-col md:flex-row gap-4">
+        <div class="flex-1"><label for="searchInformasi" class="block text-sm font-medium text-gray-700 mb-2">Pencarian</label> <input type="text" id="searchInformasi" placeholder="Cari berdasarkan judul informasi..." class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy">
+        </div>
+        <div class="flex items-end"><button id="clearSearchInformasi" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"> Clear </button>
+        </div>
+       </div>
+      </div>
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+       <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+         <thead class="bg-gray-50">
+          <tr>
+           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No. Register</th>
+           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Divisi</th>
+           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Judul</th>
+           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deskripsi</th>
+           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tahun</th>
+           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+          </tr>
+         </thead>
+         <tbody id="daftarInformasiTable" class="bg-white divide-y divide-gray-200">
+         </tbody>
+        </table>
+       </div>
+      </div>
+     </div><!-- Formulir Keberatan Page -->
+     <div id="formulir-keberatan" class="page hidden">
+      <h2 class="text-2xl font-bold mb-6">Formulir Keberatan Informasi</h2>
+      <form id="keberatanForm" class="bg-white p-6 rounded-lg shadow space-y-6"><!-- Informasi Permohonan -->
+       <div class="border-b pb-4">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">A. INFORMASI PERMOHONAN</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+         <div><label for="noRegisterPermohonan" class="block text-sm font-medium text-gray-700">Nomor Register Permohonan Informasi</label> <input type="text" id="noRegisterPermohonan" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy" placeholder="PERM-xxxxxxxxx">
+         </div>
+         <div><label for="tujuanPenggunaanKeberatan" class="block text-sm font-medium text-gray-700">Tujuan Penggunaan Informasi</label> <textarea id="tujuanPenggunaanKeberatan" required rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"></textarea>
+         </div>
+        </div>
+       </div><!-- Data Pemohon -->
+       <div class="border-b pb-4">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">B. DATA PEMOHON</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+         <div><label for="namaPemohonKeberatan" class="block text-sm font-medium text-gray-700">Nama</label> <input type="text" id="namaPemohonKeberatan" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy">
+         </div>
+         <div><label for="noTelpKeberatan" class="block text-sm font-medium text-gray-700">Nomor Telepon</label> <input type="tel" id="noTelpKeberatan" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy">
+         </div>
+        </div>
+        <div class="mt-4"><label for="alamatKeberatan" class="block text-sm font-medium text-gray-700">Alamat</label> <textarea id="alamatKeberatan" required rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"></textarea>
+        </div>
+        <div class="mt-4"><label for="pekerjaanKeberatan" class="block text-sm font-medium text-gray-700">Pekerjaan</label> <select id="pekerjaanKeberatan" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"> <option value="">Pilih Pekerjaan</option> <option value="Mahasiswa">Mahasiswa</option> <option value="LSM">LSM</option> <option value="Instansi Pemerintah">Instansi Pemerintah</option> <option value="Masyarakat">Masyarakat</option> <option value="Lainnya">Lainnya</option> </select>
+        </div>
+       </div><!-- Identitas Kuasa Pemohon -->
+       <div class="border-b pb-4">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">C. IDENTITAS KUASA PEMOHON (Opsional)</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+         <div><label for="namaKuasa" class="block text-sm font-medium text-gray-700">Nama</label> <input type="text" id="namaKuasa" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy">
+         </div>
+         <div><label for="noTelpKuasa" class="block text-sm font-medium text-gray-700">Nomor Telepon</label> <input type="tel" id="noTelpKuasa" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy">
+         </div>
+        </div>
+        <div class="mt-4"><label for="alamatKuasa" class="block text-sm font-medium text-gray-700">Alamat</label> <textarea id="alamatKuasa" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"></textarea>
+        </div>
+       </div><!-- Alasan Keberatan -->
+       <div class="border-b pb-4">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">D. ALASAN PENGAJUAN KEBERATAN</h3>
+        <div><label for="alasanKeberatan" class="block text-sm font-medium text-gray-700">Pilih Alasan Keberatan</label> <select id="alasanKeberatan" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"> <option value="">Pilih Alasan</option> <option value="Permohonan Informasi ditolak">a. Permohonan Informasi ditolak</option> <option value="Informasi berkala tidak disediakan">b. Informasi berkala tidak disediakan</option> <option value="Permintaan Informasi tidak ditanggapi">c. Permintaan Informasi tidak ditanggapi</option> <option value="Permintaan Informasi ditanggapi tidak sebagaimana yang diminta">d. Permintaan Informasi ditanggapi tidak sebagaimana yang diminta</option> <option value="Permintaan Informasi tidak dipenuhi">e. Permintaan Informasi tidak dipenuhi</option> <option value="Biaya yang dikenakan tidak wajar">f. Biaya yang dikenakan tidak wajar</option> <option value="Informasi disampaikan melebihi jangka waktu yang ditentukan">g. Informasi disampaikan melebihi jangka waktu yang ditentukan</option> </select>
+        </div>
+       </div><!-- Cara Pengajuan -->
+       <div class="border-b pb-4">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">E. KEBERATAN DIAJUKAN MELALUI</h3>
+        <div class="space-y-3">
+         <div class="flex items-center"><input id="datangLangsung" name="caraPengajuan" type="radio" value="Datang Langsung" required class="h-4 w-4 text-navy focus:ring-navy border-gray-300"> <label for="datangLangsung" class="ml-3 block text-sm font-medium text-gray-700">Datang Langsung</label>
+         </div>
+         <div class="flex items-center"><input id="surat" name="caraPengajuan" type="radio" value="Surat" required class="h-4 w-4 text-navy focus:ring-navy border-gray-300"> <label for="surat" class="ml-3 block text-sm font-medium text-gray-700">Surat</label>
+         </div>
+         <div class="flex items-center"><input id="aplikasiPPID" name="caraPengajuan" type="radio" value="Aplikasi PPID" required class="h-4 w-4 text-navy focus:ring-navy border-gray-300"> <label for="aplikasiPPID" class="ml-3 block text-sm font-medium text-gray-700">Aplikasi PPID</label>
+         </div>
+        </div>
+       </div><!-- Upload Dokumen -->
+       <div class="border-b pb-4">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">F. DOKUMEN PENDUKUNG</h3>
+        <div><label for="uploadDokumenKeberatan" class="block text-sm font-medium text-gray-700">Upload Dokumen Pendukung</label> <input type="file" id="uploadDokumenKeberatan" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy">
+         <p class="text-sm text-gray-500 mt-1">Format: PDF, JPG, JPEG, PNG, DOC, DOCX (Max 5MB)</p>
+        </div>
+       </div><button type="submit" id="submitKeberatan" class="w-full bg-navy hover-navy text-white py-3 px-4 rounded-md font-medium"> Submit Keberatan </button>
+      </form>
+     </div><!-- Other pages placeholders -->
+     <div id="daftar-keberatan" class="page hidden">
+      <h2 class="text-2xl font-bold mb-6">Daftar Keberatan</h2><!-- Search Bar -->
+      <div class="bg-white p-4 rounded-lg shadow mb-6">
+       <div class="flex flex-col md:flex-row gap-4">
+        <div class="flex-1"><label for="searchKeberatan" class="block text-sm font-medium text-gray-700 mb-2">Pencarian</label> <input type="text" id="searchKeberatan" placeholder="Cari berdasarkan nomor registrasi atau nama pemohon..." class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy">
+        </div>
+        <div class="flex items-end"><button id="clearSearchKeberatan" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"> Clear </button>
+        </div>
+       </div>
+      </div>
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+       <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+         <thead class="bg-gray-50">
+          <tr>
+           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No. Registrasi</th>
+           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Pengajuan</th>
+           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Pemohon</th>
+           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No. Reg. Permohonan</th>
+           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+          </tr>
+         </thead>
+         <tbody id="daftarKeberatanTable" class="bg-white divide-y divide-gray-200">
+         </tbody>
+        </table>
+       </div>
+      </div>
+     </div>
+     <div id="buat-surat" class="page hidden">
+      <h2 class="text-2xl font-bold mb-6">Buat Surat Pemberitahuan</h2>
+      <div class="bg-white p-6 rounded-lg shadow">
+       <form id="suratForm" class="space-y-6"><!-- Input Nomor Registrasi -->
+        <div><label for="noRegistrasiSurat" class="block text-sm font-medium text-gray-700">Nomor Registrasi Permohonan</label>
+         <div class="mt-1 flex rounded-md shadow-sm"><input type="text" id="noRegistrasiSurat" required class="flex-1 block w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-navy focus:border-navy" placeholder="Masukkan nomor registrasi (contoh: PERM-1234567890)"> <button type="button" id="cariPermohonanBtn" class="inline-flex items-center px-4 py-2 border border-l-0 border-gray-300 rounded-r-md bg-gray-50 text-gray-500 text-sm hover:bg-gray-100"> Cari </button>
+         </div>
+        </div><!-- Status Permohonan (Hidden by default) -->
+        <div id="statusPermohonanSection" class="hidden">
+         <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
+          <h3 class="text-lg font-semibold text-blue-900 mb-3">Data Permohonan Ditemukan</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+           <div>
+            <span class="font-medium">Nama Pemohon:</span> <span id="namaPemohonSurat"></span>
+           </div>
+           <div>
+            <span class="font-medium">Tanggal Permohonan:</span> <span id="tanggalPermohonanSurat"></span>
+           </div>
+           <div>
+            <span class="font-medium">Status Saat Ini:</span> <span id="statusSaatIni" class="px-2 py-1 text-xs font-semibold rounded-full"></span>
+           </div>
+           <div>
+            <span class="font-medium">Petugas Pelayanan:</span> <span id="petugasPelayananSurat"></span>
+           </div>
+          </div>
+         </div>
+        </div><!-- Update Status -->
+        <div id="updateStatusSection" class="hidden"><label for="statusBaru" class="block text-sm font-medium text-gray-700">Update Status Permohonan</label> <select id="statusBaru" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"> <option value="">Pilih Status Baru</option> <option value="Diberikan">✅ Diberikan</option> <option value="Sebagian">⚠️ Diberikan Sebagian</option> <option value="Ditolak">❌ Ditolak</option> </select>
+        </div><!-- Alasan Penolakan (Hidden by default) -->
+        <div id="alasanPenolakanSection" class="hidden"><label for="alasanPenolakan" class="block text-sm font-medium text-gray-700">Alasan Penolakan</label> <textarea id="alasanPenolakan" rows="4" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy" placeholder="Masukkan alasan penolakan permohonan informasi..."></textarea>
+        </div><!-- Catatan Tambahan -->
+        <div id="catatanSection" class="hidden"><label for="catatanTambahan" class="block text-sm font-medium text-gray-700">Catatan Tambahan (Opsional)</label> <textarea id="catatanTambahan" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy" placeholder="Catatan atau keterangan tambahan..."></textarea>
+        </div><!-- Submit Button -->
+        <div id="submitSuratSection" class="hidden"><button type="submit" id="submitSuratBtn" class="w-full bg-navy hover-navy text-white py-3 px-4 rounded-md font-medium"> Buat Surat Pemberitahuan </button>
+        </div>
+       </form>
+      </div>
+     </div>
+    </main>
+   </div>
+  </div><!-- Success Modal -->
+  <div id="successModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+   <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+    <div class="mt-3 text-center">
+     <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+      <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+      </svg>
+     </div>
+     <h3 class="text-lg leading-6 font-medium text-gray-900 mt-2">Permohonan Berhasil!</h3>
+     <div class="mt-2 px-7 py-3">
+      <p id="successMessage" class="text-sm text-gray-500"></p>
+     </div>
+     <div class="items-center px-4 py-3 space-y-2"><button id="printFormBtn" class="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-700"> Cetak Formulir </button> <button id="printReceiptBtn" class="px-4 py-2 bg-green-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-green-700"> Cetak Tanda Terima </button> <button id="closeModalBtn" class="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-700"> Tutup </button>
+     </div>
     </div>
+   </div>
+  </div><!-- Informasi Success Modal -->
+  <div id="informasiSuccessModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+   <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+    <div class="mt-3 text-center">
+     <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+      <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+      </svg>
+     </div>
+     <h3 class="text-lg leading-6 font-medium text-gray-900 mt-2">Informasi Berhasil Disimpan!</h3>
+     <div class="mt-2 px-7 py-3">
+      <p id="informasiSuccessMessage" class="text-sm text-gray-500"></p>
+     </div>
+     <div class="items-center px-4 py-3 space-y-2"><button id="viewInformasiListBtn" class="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-700"> Lihat Daftar Informasi </button> <button id="closeInformasiModalBtn" class="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-700"> Tutup </button>
+     </div>
+    </div>
+   </div>
+  </div><!-- Objection Success Modal -->
+  <div id="keberatanSuccessModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+   <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+    <div class="mt-3 text-center">
+     <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+      <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+      </svg>
+     </div>
+     <h3 class="text-lg leading-6 font-medium text-gray-900 mt-2">Keberatan Berhasil Diajukan!</h3>
+     <div class="mt-2 px-7 py-3">
+      <p id="keberatanSuccessMessage" class="text-sm text-gray-500"></p>
+     </div>
+     <div class="items-center px-4 py-3 space-y-2"><button id="printKeberatanBtn" class="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-700"> Download Formulir Keberatan </button> <button id="closeKeberatanModalBtn" class="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-700"> Tutup </button>
+     </div>
+    </div>
+   </div>
+  </div><!-- Surat Success Modal -->
+  <div id="suratSuccessModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+   <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+    <div class="mt-3 text-center">
+     <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+      <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+      </svg>
+     </div>
+     <h3 class="text-lg leading-6 font-medium text-gray-900 mt-2">Surat Pemberitahuan Berhasil Dibuat!</h3>
+     <div class="mt-2 px-7 py-3">
+      <p id="suratSuccessMessage" class="text-sm text-gray-500"></p>
+     </div>
+     <div class="items-center px-4 py-3 space-y-2"><button id="downloadSuratBtn" class="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-700"> Download Surat Pemberitahuan </button> <button id="closeSuratModalBtn" class="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-700"> Tutup </button>
+     </div>
+    </div>
+   </div>
+  </div><!-- Detail Permohonan Modal -->
+  <div id="detailModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+   <div class="relative top-10 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white">
+    <div class="flex justify-between items-center mb-4">
+     <h3 class="text-lg leading-6 font-medium text-gray-900">Detail Permohonan Informasi</h3><button id="closeDetailBtn" class="text-gray-400 hover:text-gray-600">
+      <svg class="h-6 w-6" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+      </svg></button>
+    </div>
+    <div id="detailContent" class="grid grid-cols-1 md:grid-cols-2 gap-6"><!-- Content will be populated by JavaScript -->
+    </div>
+    <div class="mt-6 flex justify-end space-x-3"><button id="updateStatusBtn" class="px-4 py-2 bg-navy text-white rounded-md hover:bg-blue-700"> Update Status </button> <button id="downloadFromDetailBtn" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"> Download PDF </button>
+    </div>
+   </div>
+  </div><!-- Status Update Modal -->
+  <div id="statusModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+   <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+    <div class="mt-3">
+     <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Update Status Permohonan</h3>
+     <div class="space-y-3"><button onclick="updateStatusFromModal('Diberikan')" class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"> ✅ Diberikan </button> <button onclick="updateStatusFromModal('Sebagian')" class="w-full px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700"> ⚠️ Diberikan Sebagian </button> <button onclick="updateStatusFromModal('Ditolak')" class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"> ❌ Ditolak </button> <button id="closeStatusBtn" class="w-full px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-700"> Batal </button>
+     </div>
+    </div>
+   </div>
+  </div><!-- Status Update Modal Keberatan -->
+  <div id="statusKeberatanModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+   <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+    <div class="mt-3">
+     <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Update Status Keberatan</h3>
+     <div class="space-y-3"><button onclick="updateStatusKeberatanFromModal('Dikabulkan')" class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"> ✅ Dikabulkan </button> <button onclick="updateStatusKeberatanFromModal('Dikabulkan Sebagian')" class="w-full px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700"> ⚠️ Dikabulkan Sebagian </button> <button onclick="updateStatusKeberatanFromModal('Ditolak')" class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"> ❌ Ditolak </button> <button id="closeStatusKeberatanBtn" class="w-full px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-700"> Batal </button>
+     </div>
+    </div>
+   </div>
+  </div>
+  <script>
+        // Configuration
+        const defaultConfig = {
+            app_title: "PPID Bawaslu Provinsi Riau",
+            welcome_message: "Selamat Datang ADMIN di PPID Bawaslu Provinsi Riau"
+        };
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            lucide.createIcons();
+        // Global variables
+        let currentUser = null;
+        let allData = [];
+        let currentPermohonanData = null;
+        let currentKeberatanData = null;
+        let currentSuratData = null;
+        let filteredData = [];
+        let filteredInformasiData = [];
+        let filteredKeberatanData = [];
+        let currentDetailData = null;
+        let currentDetailKeberatanData = null;
 
-            const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbymeAeMwdITf0Kttsy6COyouC3VfKLdrUCqCaZAiBVYIYj-cGNZ_S3GCa6yvY33Q63m/exec'; 
+        // Google Sheets Configuration
+        const GOOGLE_SHEETS_CONFIG = {
+            // Ganti dengan URL Google Apps Script Web App Anda
+            SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzw3vDjIQt5a2On0VP6D9NHdVErBmoJE8RtfhGyAJu4fLERPb4cyBysTocq_C6EhocV/exec',
+            // Ganti dengan ID Google Drive folder untuk upload file
+            DRIVE_FOLDER_ID: '1SW7YWQj6BTURDAyzdxsIrgzdDcNBbKnJ'
+        };
 
-            const loginPage = document.getElementById('login-page');
-            const appPage = document.getElementById('app-page');
-            const loginForm = document.getElementById('login-form');
-            const loginError = document.getElementById('login-error');
-            const signoutBtn = document.getElementById('signout-btn');
-            const navLinks = document.querySelectorAll('.nav-link');
-            const pageContents = document.querySelectorAll('.page-content');
+        // Data handler for SDK
+        const dataHandler = {
+            onDataChanged(data) {
+                allData = data;
+                // Reset filtered data when main data changes
+                filteredData = [];
+                filteredInformasiData = [];
+                filteredKeberatanData = [];
+                updateStatistics();
+                updateDaftarPermohonan();
+                updateDaftarInformasi();
+                updateDaftarKeberatan();
+            }
+        };
+
+        // Google Sheets Integration Functions
+        async function saveToGoogleSheets(data, sheetName) {
+            try {
+                const response = await fetch(GOOGLE_SHEETS_CONFIG.SCRIPT_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'saveData',
+                        sheetName: sheetName,
+                        data: data
+                    })
+                });
+
+                const result = await response.json();
+                return result.success;
+            } catch (error) {
+                console.error('Error saving to Google Sheets:', error);
+                return false;
+            }
+        }
+
+        async function uploadToGoogleDrive(file, fileName) {
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('fileName', fileName);
+                formData.append('folderId', GOOGLE_SHEETS_CONFIG.DRIVE_FOLDER_ID);
+                formData.append('action', 'uploadFile');
+
+                const response = await fetch(GOOGLE_SHEETS_CONFIG.SCRIPT_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                return result.success ? result.fileUrl : null;
+            } catch (error) {
+                console.error('Error uploading to Google Drive:', error);
+                return null;
+            }
+        }
+
+        async function loadFromGoogleSheets(sheetName) {
+            try {
+                const response = await fetch(`${GOOGLE_SHEETS_CONFIG.SCRIPT_URL}?action=loadData&sheetName=${sheetName}`);
+                const result = await response.json();
+                return result.success ? result.data : [];
+            } catch (error) {
+                console.error('Error loading from Google Sheets:', error);
+                return [];
+            }
+        }
+
+        // Initialize SDK
+        async function initializeApp() {
+            if (window.dataSdk) {
+                const result = await window.dataSdk.init(dataHandler);
+                if (!result.isOk) {
+                    console.error("Failed to initialize data SDK");
+                }
+            }
+
+            if (window.elementSdk) {
+                await window.elementSdk.init({
+                    defaultConfig,
+                    render: async (config) => {
+                        document.getElementById('loginTitle').textContent = config.app_title || defaultConfig.app_title;
+                        document.getElementById('welcomeMessage').textContent = config.welcome_message || defaultConfig.welcome_message;
+                    },
+                    mapToCapabilities: () => ({
+                        recolorables: [],
+                        borderables: [],
+                        fontEditable: undefined,
+                        fontSizeable: undefined
+                    }),
+                    mapToEditPanelValues: (config) => new Map([
+                        ["app_title", config.app_title || defaultConfig.app_title],
+                        ["welcome_message", config.welcome_message || defaultConfig.welcome_message]
+                    ])
+                });
+            }
+
+            // Populate year dropdown
+            populateYearDropdown();
             
-            const infoRequestForm = document.getElementById('info-request-form');
-            const pekerjaanSelect = document.getElementById('pekerjaan');
-            const pekerjaanLainnyaWrapper = document.getElementById('pekerjaan_lainnya_wrapper');
-            const successNotification = document.getElementById('success-notification');
-            const successMessage = document.getElementById('success-message');
-            const printFormBtn = document.getElementById('print-form-btn');
-            const printReceiptBtn = document.getElementById('print-receipt-btn');
-            
-            const tahunStatistikSelect = document.getElementById('tahun-statistik');
-            const statPermohonan = document.getElementById('stat-permohonan');
-            const statKeberatan = document.getElementById('stat-keberatan');
+            // Load existing data from Google Sheets
+            await loadExistingData();
+        }
 
-            const loadingSpinner = document.getElementById('loading-spinner');
-            const permohonanTable = document.getElementById('permohonan-table');
-            const permohonanTableBody = document.getElementById('permohonan-table-body');
-            const noDataMessage = document.getElementById('no-data-message');
-            const refreshDataBtn = document.getElementById('refresh-data-btn');
-            
-            const detailModal = document.getElementById('detail-modal');
-            const detailModalBody = document.getElementById('detail-modal-body');
-            const closeModalBtn = document.getElementById('close-modal-btn');
-
-            const showAddInfoFormBtn = document.getElementById('show-add-info-form-btn');
-            const addInfoPublikFormContainer = document.getElementById('add-info-publik-form-container');
-            const infoPublikForm = document.getElementById('info-publik-form');
-            const cancelAddInfoBtn = document.getElementById('cancel-add-info-btn');
-            const infoPublikSuccessNotification = document.getElementById('info-publik-success-notification');
-            const infoPublikSuccessMessage = document.getElementById('info-publik-success-message');
-            const infoPublikLoading = document.getElementById('info-publik-loading');
-            const infoPublikTable = document.getElementById('info-publik-table');
-            const infoPublikTableBody = document.getElementById('info-publik-table-body');
-            const noInfoPublikMessage = document.getElementById('no-info-publik-message');
-            const searchInfoPublikInput = document.getElementById('search-info-publik');
-            
-            let lastFormData = null;
-            let cachedPermohonanData = null; 
-            let cachedInfoPublikData = null;
-
-            const statsData = {
-                '2025': { permohonan: 152, keberatan: 12 },
-                '2024': { permohonan: 345, keberatan: 28 },
-                '2023': { permohonan: 289, keberatan: 19 },
-            };
-
-            // --- HELPER FUNCTIONS ---
-            function showCustomModal(title, message, icon = 'alert-triangle', iconColor = 'text-red-600', iconBg = 'bg-red-100') {
-                const modal = document.createElement('div');
-                modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50';
-                modal.innerHTML = `
-                    <div class="relative mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-                        <div class="mt-3 text-center">
-                            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full ${iconBg}">
-                                <i data-lucide="${icon}" class="h-6 w-6 ${iconColor}"></i>
-                            </div>
-                            <h3 class="text-lg leading-6 font-medium text-gray-900 mt-2">${title}</h3>
-                            <div class="mt-2 px-7 py-3">
-                                <p class="text-sm text-gray-500">${message}</p>
-                            </div>
-                            <div class="items-center px-4 py-3">
-                                <button class="px-4 py-2 bg-bawaslu-primary text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-bawaslu-secondary focus:outline-none focus:ring-2 focus:ring-bawaslu-primary">
-                                    OK
-                                </button>
-                            </div>
-                        </div>
-                    </div>`;
+        // Load existing data from Google Sheets
+        async function loadExistingData() {
+            try {
+                showToast('Memuat data dari Google Sheets...');
                 
-                document.body.appendChild(modal);
-                lucide.createIcons();
-                
-                modal.querySelector('button').addEventListener('click', () => modal.remove());
-            }
+                // Load data from different sheets
+                const [permohonanData, informasiData, keberatanData] = await Promise.all([
+                    loadFromGoogleSheets('Permohonan'),
+                    loadFromGoogleSheets('Informasi'),
+                    loadFromGoogleSheets('Keberatan')
+                ]);
 
-            function updateStats(year) {
-                const data = statsData[year] || { permohonan: 0, keberatan: 0 };
-                statPermohonan.textContent = data.permohonan;
-                statKeberatan.textContent = data.keberatan;
-            }
-            
-            function fileToBase64(file) {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.readAsDataURL(file);
-                    reader.onload = () => resolve(reader.result);
-                    reader.onerror = error => reject(error);
-                });
-            }
-
-            function getGoogleDriveDownloadUrl(url) {
-                if (!url || !url.includes('drive.google.com')) return null;
-                // Ekstrak ID file dari URL Google Drive
-                const match = url.match(/file\/d\/([a-zA-Z0-9_-]+)/);
-                if (match && match[1]) {
-                    const fileId = match[1];
-                    return `https://drive.google.com/uc?export=download&id=${fileId}`;
-                }
-                return url; // Fallback jika format URL tidak dikenali
-            }
-
-
-            // --- DATA FETCHING & RENDERING ---
-            function fetchPermohonanData() {
-                loadingSpinner.classList.remove('hidden');
-                permohonanTable.classList.add('hidden');
-                noDataMessage.classList.add('hidden');
-
-                fetch(SCRIPT_URL + '?sheet=permohonan')
-                    .then(res => res.json())
-                    .then(response => {
-                        if (response.status === 'success') {
-                            cachedPermohonanData = response.data.reverse(); 
-                            populatePermohonanTable(cachedPermohonanData);
-                        } else { throw new Error(response.message || 'Gagal mengambil data.'); }
-                    })
-                    .catch(error => {
-                        showCustomModal('Gagal Mengambil Data', error.message);
-                        noDataMessage.textContent = 'Gagal memuat data. Coba lagi nanti.';
-                        noDataMessage.classList.remove('hidden');
-                    })
-                    .finally(() => loadingSpinner.classList.add('hidden'));
-            }
-
-            function fetchInfoPublikData() {
-                infoPublikLoading.classList.remove('hidden');
-                infoPublikTable.classList.add('hidden');
-                noInfoPublikMessage.classList.add('hidden');
-                
-                fetch(SCRIPT_URL + '?sheet=informasi_publik')
-                    .then(res => res.json())
-                    .then(response => {
-                        if (response.status === 'success') {
-                            cachedInfoPublikData = response.data.reverse();
-                            populateInfoPublikTable(cachedInfoPublikData);
-                        } else { throw new Error(response.message || 'Gagal mengambil data.'); }
-                    })
-                    .catch(error => {
-                        showCustomModal('Gagal Mengambil Data', error.message);
-                        noInfoPublikMessage.textContent = 'Gagal memuat data. Coba lagi nanti.';
-                        noInfoPublikMessage.classList.remove('hidden');
-                    })
-                    .finally(() => infoPublikLoading.classList.add('hidden'));
-            }
-            
-            function populatePermohonanTable(data) {
-                permohonanTableBody.innerHTML = '';
-                if (!data || data.length === 0) {
-                    noDataMessage.textContent = 'Belum ada data permohonan.';
-                    noDataMessage.classList.remove('hidden');
-                    permohonanTable.classList.add('hidden');
-                    return;
-                }
-
-                permohonanTable.classList.remove('hidden');
-                noDataMessage.classList.add('hidden');
-
-                data.forEach((row, index) => {
-                    const tr = document.createElement('tr');
-                    tr.className = 'hover:bg-gray-50';
-                    tr.innerHTML = `
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${row['No Registrasi']}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row['Timestamp']}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row['Nama Pemohon']}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <button class="view-btn text-bawaslu-secondary hover:text-bawaslu-primary" data-index="${index}">View</button>
-                        </td>`;
-                    permohonanTableBody.appendChild(tr);
-                });
-
-                document.querySelectorAll('.view-btn').forEach(button => {
-                    button.addEventListener('click', (e) => {
-                        const index = e.target.getAttribute('data-index');
-                        showDetail(cachedPermohonanData[index]);
-                    });
-                });
-            }
-
-            function populateInfoPublikTable(data) {
-                infoPublikTableBody.innerHTML = '';
-                if (!data || data.length === 0) {
-                    noInfoPublikMessage.textContent = 'Belum ada data informasi publik.';
-                    noInfoPublikMessage.classList.remove('hidden');
-                    infoPublikTable.classList.add('hidden');
-                    return;
-                }
-
-                infoPublikTable.classList.remove('hidden');
-                noInfoPublikMessage.classList.add('hidden');
-
-                data.forEach(row => {
-                    const tr = document.createElement('tr');
-                    tr.className = 'hover:bg-gray-50';
-                    const fileLink = row['Link File (Google Drive)'];
-                    const downloadUrl = getGoogleDriveDownloadUrl(fileLink);
-                    const downloadButton = downloadUrl
-                        ? `<a href="${downloadUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-green-600 hover:bg-green-700">Download</a>`
-                        : `<span class="text-xs text-gray-400">N/A</span>`;
-                    
-                    const shortDesc = row['Deskripsi'].length > 50 ? row['Deskripsi'].substring(0, 50) + '...' : row['Deskripsi'];
-
-                    tr.innerHTML = `
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${row['No Registrasi']}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row['Divisi']}</td>
-                        <td class="px-6 py-4 text-sm text-gray-500">${row['Judul Informasi']}</td>
-                        <td class="px-6 py-4 text-sm text-gray-500 max-w-xs truncate" title="${row['Deskripsi']}">${shortDesc}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row['Tahun Pembuatan']}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${downloadButton}</td>`;
-                    infoPublikTableBody.appendChild(tr);
-                });
-            }
-            
-            function showDetail(data) {
-                const linkIdentitas = data['Link Identitas (Google Drive)'];
-                detailModalBody.innerHTML = `
-                    <div class="space-y-4">
-                        <div class="grid grid-cols-3 gap-4 text-sm">
-                            <strong class="text-gray-500 col-span-1">No. Registrasi</strong><span class="text-gray-800 col-span-2">: ${data['No Registrasi'] || '-'}</span>
-                            <strong class="text-gray-500 col-span-1">Tanggal Permohonan</strong><span class="text-gray-800 col-span-2">: ${data['Timestamp'] || '-'}</span>
-                        </div><hr>
-                        <div class="grid grid-cols-3 gap-4 text-sm">
-                            <strong class="text-gray-500 col-span-1">Nama Pemohon</strong><span class="text-gray-800 col-span-2">: ${data['Nama Pemohon'] || '-'}</span>
-                            <strong class="text-gray-500 col-span-1">Alamat</strong><span class="text-gray-800 col-span-2">: ${data['Alamat'] || '-'}</span>
-                             <strong class="text-gray-500 col-span-1">Pekerjaan</strong><span class="text-gray-800 col-span-2">: ${data['Pekerjaan'] || '-'}</span>
-                            <strong class="text-gray-500 col-span-1">No. Telepon</strong><span class="text-gray-800 col-span-2">: ${data['No. Telp'] || '-'}</span>
-                            <strong class="text-gray-500 col-span-1">Email</strong><span class="text-gray-800 col-span-2">: ${data['Email'] || '-'}</span>
-                        </div><hr>
-                        <div>
-                            <strong class="text-sm text-gray-500">Rincian Informasi</strong>
-                            <p class="text-sm text-gray-800 mt-1 p-3 bg-gray-50 rounded-md">${data['Rincian Informasi'] || '-'}</p>
-                        </div>
-                        <div>
-                            <strong class="text-sm text-gray-500">Tujuan Informasi</strong>
-                            <p class="text-sm text-gray-800 mt-1 p-3 bg-gray-50 rounded-md">${data['Tujuan Informasi'] || '-'}</p>
-                        </div><hr>
-                        <div class="grid grid-cols-3 gap-4 text-sm">
-                            <strong class="text-gray-500 col-span-1">Cara Memperoleh</strong><span class="text-gray-800 col-span-2">: ${data['Cara Memperoleh'] || '-'}</span>
-                            <strong class="text-gray-500 col-span-1">Bentuk Salinan</strong><span class="text-gray-800 col-span-2">: ${data['Bentuk Salinan'] || '-'}</span>
-                            <strong class="text-gray-500 col-span-1">Cara Mendapat Salinan</strong><span class="text-gray-800 col-span-2">: ${data['Cara Mendapat Salinan'] || '-'}</span>
-                            <strong class="text-gray-500 col-span-1">Petugas Pelayanan</strong><span class="text-gray-800 col-span-2">: ${data['Petugas Pelayanan'] || '-'}</span>
-                            <strong class="text-gray-500 col-span-1">Identitas Pemohon</strong><span class="text-gray-800 col-span-2">: ${linkIdentitas && linkIdentitas.startsWith('http') ? `<a href="${linkIdentitas}" target="_blank" class="text-blue-600 hover:underline">Lihat Dokumen</a>` : 'Tidak diunggah'}</span>
-                        </div>
-                    </div>`;
-                detailModal.classList.remove('hidden');
-                setTimeout(() => {
-                    detailModal.classList.remove('opacity-0');
-                    detailModal.querySelector('.modal-content').classList.remove('scale-95');
-                }, 10);
-            }
-
-            function closeDetailModal() {
-                detailModal.classList.add('opacity-0');
-                detailModal.querySelector('.modal-content').classList.add('scale-95');
-                setTimeout(() => detailModal.classList.add('hidden'), 300);
-            }
-
-            // --- EVENT LISTENERS ---
-            loginForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                if (e.target.username.value === 'admin' && e.target.password.value === 'agustus2025') {
-                    loginPage.classList.add('hidden');
-                    appPage.classList.remove('hidden');
-                    loginError.classList.add('hidden');
-                    e.target.password.value = '';
-                } else {
-                    loginError.classList.remove('hidden');
-                    lucide.createIcons();
-                }
-            });
-
-            signoutBtn.addEventListener('click', () => {
-                appPage.classList.add('hidden');
-                loginPage.classList.remove('hidden');
-                cachedPermohonanData = null;
-                cachedInfoPublikData = null;
-            });
-
-            navLinks.forEach(link => {
-                link.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    navLinks.forEach(l => l.classList.remove('active'));
-                    link.classList.add('active');
-                    const pageId = link.getAttribute('data-page');
-                    pageContents.forEach(content => content.classList.toggle('hidden', content.id !== pageId));
-
-                    if (pageId === 'daftar-permohonan' && !cachedPermohonanData) fetchPermohonanData();
-                    if (pageId === 'daftar-informasi-publik' && !cachedInfoPublikData) fetchInfoPublikData();
-                });
-            });
-
-            document.querySelector('.nav-link[data-page="beranda"]').click();
-            updateStats(tahunStatistikSelect.value);
-            tahunStatistikSelect.addEventListener('change', (e) => updateStats(e.target.value));
-            pekerjaanSelect.addEventListener('change', (e) => pekerjaanLainnyaWrapper.classList.toggle('hidden', e.target.value !== 'Lainnya'));
-
-            infoRequestForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const submitBtn = e.target.querySelector('button[type="submit"]');
-                const formData = new FormData(e.target);
-                const data = Object.fromEntries(formData.entries());
-                const file = document.getElementById('upload_identitas').files[0];
-
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Mengirim...</span>`;
-
-                try {
-                    data.identitas_pemohon_img = file ? await fileToBase64(file) : null;
-                    const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(data) });
-                    if (!res.ok) throw new Error(`Network response error: ${res.statusText}`);
-                    const response = await res.json();
-
-                    if (response.status === 'success') {
-                        lastFormData = data; 
-                        lastFormData.no_registrasi = response.reg; 
-                        successMessage.textContent = `Permohonan an. '${data.nama_pemohon}' sukses diregistrasi (No. ${response.reg}).`;
-                        successNotification.classList.remove('hidden');
-                        lucide.createIcons();
-                        document.querySelector('main').scrollTo({ top: 0, behavior: 'smooth' });
-                        infoRequestForm.reset();
-                        pekerjaanLainnyaWrapper.classList.add('hidden');
-                        cachedPermohonanData = null;
-                    } else { throw new Error(response.message || 'Server script error.'); }
-                } catch (error) {
-                    showCustomModal('Gagal Mengirim Data', `Error: ${error.message}`);
-                } finally {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = `<i data-lucide="save" class="w-5 h-5 mr-2"></i><span>Submit Permohonan</span>`;
-                    lucide.createIcons();
-                }
-            });
-
-            showAddInfoFormBtn.addEventListener('click', () => {
-                addInfoPublikFormContainer.classList.remove('hidden');
-                showAddInfoFormBtn.classList.add('hidden');
-            });
-            cancelAddInfoBtn.addEventListener('click', () => {
-                addInfoPublikFormContainer.classList.add('hidden');
-                showAddInfoFormBtn.classList.remove('hidden');
-                infoPublikForm.reset();
-            });
-
-            infoPublikForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const submitBtn = e.target.querySelector('button[type="submit"]');
-                const formData = new FormData(e.target);
-                const data = Object.fromEntries(formData.entries());
-                const file = document.getElementById('upload_file_publik').files[0];
-                data.action = 'addPublicInfo';
-
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Menyimpan...</span>`;
-
-                try {
-                    data.file_publik = await fileToBase64(file);
-                    const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(data) });
-                    if (!res.ok) throw new Error(`Network response error: ${res.statusText}`);
-                    const response = await res.json();
-                    if (response.status === 'success') {
-                        infoPublikSuccessMessage.textContent = `Informasi Publik berhasil disimpan (No. ${response.reg})`;
-                        infoPublikSuccessNotification.classList.remove('hidden');
-                        infoPublikForm.reset();
-                        cachedInfoPublikData = null; // Invalidate cache
-                        fetchInfoPublikData(); // Refresh list
-                        setTimeout(() => {
-                            infoPublikSuccessNotification.classList.add('hidden');
-                            addInfoPublikFormContainer.classList.add('hidden');
-                            showAddInfoFormBtn.classList.remove('hidden');
-                        }, 3000);
-                    } else { throw new Error(response.message || 'Server script error.'); }
-                } catch (error) {
-                    showCustomModal('Gagal Menyimpan', `Error: ${error.message}`);
-                } finally {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = `<i data-lucide="save" class="w-5 h-5 mr-2"></i><span>Simpan Informasi</span>`;
-                    lucide.createIcons();
-                }
-            });
-
-            searchInfoPublikInput.addEventListener('input', (e) => {
-                const searchTerm = e.target.value.toLowerCase();
-                if (!cachedInfoPublikData) return;
-                const filteredData = cachedInfoPublikData.filter(row => 
-                    row['Judul Informasi'].toLowerCase().includes(searchTerm)
-                );
-                populateInfoPublikTable(filteredData);
-            });
-
-            refreshDataBtn.addEventListener('click', () => {
-                cachedPermohonanData = null; 
-                fetchPermohonanData();
-            });
-            
-            closeModalBtn.addEventListener('click', closeDetailModal);
-            detailModal.addEventListener('click', (e) => {
-                if(e.target === detailModal) closeDetailModal();
-            });
-            
-            printFormBtn.addEventListener('click', () => generatePDF('form'));
-            printReceiptBtn.addEventListener('click', () => generatePDF('receipt'));
-
-            const BAWASLU_KOP_BASE64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABAAAAAIAAQMAAADoB64OAAAABlBMVEUAAAD///+l2Z/dAAACpklEQVR4nO3WMW4CMQwA0M9iCBx/Qd/N1Yv0BgwlJqFDLhAhFxD+2SAgYyL2+MhPWu13O7so1gXg2+75/zB3cT6Hyx94ADyAL4CjG3sACCCAAAIiiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCCCIiAACCC-AMhdwAAAABJRU5ErkJggg==';
-
-            function addHeader(doc) {
-                try {
-                    const imgWidth = 180;
-                    const imgHeight = 30;
-                    const x = (doc.internal.pageSize.getWidth() - imgWidth) / 2;
-                    const y = 10;
-                    doc.addImage(BAWASLU_KOP_BASE64, 'PNG', x, y, imgWidth, imgHeight);
-                } catch (e) {
-                    console.error("Error adding header image:", e);
-                    // Fallback text if image fails
-                    doc.setFontSize(14);
-                    doc.setFont('helvetica', 'bold');
-                    doc.text('BADAN PENGAWAS PEMILIHAN UMUM', doc.internal.pageSize.getWidth() / 2, 15, { align: 'center' });
-                    doc.setFontSize(12);
-                    doc.text('PROVINSI RIAU', doc.internal.pageSize.getWidth() / 2, 22, { align: 'center' });
-                }
-            }
-
-            function generatePDF(type) {
-                if (!lastFormData) {
-                    showCustomModal('Perhatian', 'Tidak ada data untuk dicetak.');
-                    return;
-                }
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
-                const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-
-                addHeader(doc); // Add the letterhead to every page
-
-                if (type === 'form') {
-                    generateFormPDF(doc, today);
-                } else {
-                    generateReceiptPDF(doc, today);
-                }
-            }
-            function generateFormPDF(doc, today) {
-                const contentStartY = 50;
-                doc.setFontSize(14);
-                doc.setFont('helvetica', 'bold');
-                doc.text('FORMULIR PERMOHONAN INFORMASI', doc.internal.pageSize.getWidth() / 2, contentStartY, { align: 'center' });
-                doc.setFontSize(11);
-                doc.setFont('helvetica', 'normal');
-                doc.text(`No. Registrasi: ${lastFormData.no_registrasi || 'N/A'}`, 20, contentStartY + 10);
-                const pekerjaan = lastFormData.pekerjaan === 'Lainnya' ? lastFormData.pekerjaan_lainnya : lastFormData.pekerjaan;
-                const body = [
-                    { content: 'Nama', styles: { fontStyle: 'bold', cellWidth: 60 } }, { content: `: ${lastFormData.nama_pemohon}` },
-                    { content: 'Alamat', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.alamat}` },
-                    { content: 'Pekerjaan', styles: { fontStyle: 'bold' } }, { content: `: ${pekerjaan}` },
-                    { content: 'Nomor Telepon', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.no_telp}` },
-                    { content: 'Email', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.email}` },
-                    { content: 'Rincian Informasi', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.rincian_informasi}` },
-                    { content: 'Tujuan Penggunaan', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.tujuan_informasi}` },
-                    { content: 'Cara Memperoleh', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.cara_memperoleh}` },
-                    { content: 'Cara Mendapatkan Salinan', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.cara_mendapat_salinan}` },
-                    { content: 'Bentuk Salinan', styles: { fontStyle: 'bold' } }, { content: `: ${lastFormData.salinan_informasi}` },
+                // Convert Google Sheets data to SDK format and save to local storage
+                const allGoogleData = [
+                    ...permohonanData.map(item => ({...item, type: 'permohonan'})),
+                    ...informasiData.map(item => ({...item, type: 'informasi'})),
+                    ...keberatanData.map(item => ({...item, type: 'keberatan'}))
                 ];
-                let rowData = [];
-                let tableBody = [];
-                body.forEach((cell, index) => {
-                    rowData.push(cell);
-                    if ((index + 1) % 2 === 0) {
-                        tableBody.push(rowData);
-                        rowData = [];
+
+                // Save to SDK if there's data
+                if (allGoogleData.length > 0 && window.dataSdk) {
+                    for (const item of allGoogleData) {
+                        // Check if item already exists in SDK
+                        const exists = allData.find(existing => existing.id === item.id);
+                        if (!exists) {
+                            await window.dataSdk.create(item);
+                        }
                     }
-                });
-                doc.autoTable({ startY: contentStartY + 15, body: tableBody, theme: 'plain', styles: { fontSize: 11, cellPadding: 2.5, cellWidth: 'wrap' }, columnStyles: { 1: { cellWidth: 'auto' } } });
-                let finalY = doc.autoTable.previous.finalY;
-                finalY = Math.max(finalY, 180);
-                doc.text(`Pekanbaru, ${today}`, 130, finalY);
-                finalY += 8;
-                doc.text('Petugas Pelayanan Informasi', 20, finalY);
-                doc.text('Pemohon Informasi', 130, finalY);
-                doc.text('(Penerima Permohonan)', 20, finalY + 5);
-                finalY += 25;
-                doc.text(`( ${lastFormData.petugas_pelayanan} )`, 20, finalY);
-                doc.text(`( ${lastFormData.nama_pemohon} )`, 130, finalY);
-                doc.addPage();
-                addHeader(doc); // Add header to the new page as well
-                doc.setFontSize(12);
-                doc.setFont('helvetica', 'bold');
-                doc.text('DOKUMEN IDENTITAS PEMOHON', doc.internal.pageSize.getWidth() / 2, contentStartY, { align: 'center' });
-                if (lastFormData.identitas_pemohon_img) {
-                    try {
-                        const imgProps = doc.getImageProperties(lastFormData.identitas_pemohon_img);
-                        const pdfWidth = doc.internal.pageSize.getWidth();
-                        const imgWidth = pdfWidth * 0.8;
-                        const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
-                        doc.addImage(lastFormData.identitas_pemohon_img, 'JPEG', (pdfWidth - imgWidth) / 2, contentStartY + 10, imgWidth, imgHeight);
-                    } catch (e) {
-                        doc.text('Gagal memuat gambar.', 20, contentStartY + 10);
-                    }
-                } else {
-                    doc.text('Tidak ada dokumen identitas.', 20, contentStartY + 10);
                 }
-                doc.save(`Formulir_Permohonan_${lastFormData.nama_pemohon}.pdf`);
+
+                showToast('Data berhasil dimuat dari Google Sheets!');
+            } catch (error) {
+                console.error('Error loading existing data:', error);
+                showToast('Gagal memuat data dari Google Sheets', true);
             }
-            function generateReceiptPDF(doc, today) {
-                const contentStartY = 50;
-                doc.setFontSize(14);
-                doc.setFont('helvetica', 'bold');
-                doc.text('TANDA TERIMA PERMOHONAN INFORMASI', doc.internal.pageSize.getWidth() / 2, contentStartY, { align: 'center' });
-                doc.setFontSize(11);
-                doc.setFont('helvetica', 'normal');
-                doc.text(`No. Registrasi: ${lastFormData.no_registrasi || 'N/A'}`, 20, contentStartY + 10);
-                doc.text('Telah diterima permohonan informasi dari:', 20, contentStartY + 20);
-                const body = [
-                    ['Nama', `: ${lastFormData.nama_pemohon}`],
-                    ['No. Telepon', `: ${lastFormData.no_telp}`],
-                    ['Email', `: ${lastFormData.email}`],
-                    ['Rincian Informasi', `: ${lastFormData.rincian_informasi}`],
-                ];
-                doc.autoTable({ startY: contentStartY + 25, body: body, theme: 'plain', styles: { cellPadding: 2, fontSize: 11 }, columnStyles: { 0: { cellWidth: 50, fontStyle: 'bold' } } });
-                const finalY = doc.autoTable.previous.finalY;
-                doc.text('Permohonan akan diproses sesuai peraturan.', 20, finalY + 15, { maxWidth: 170 });
-                doc.text(`Pekanbaru, ${today}`, 130, finalY + 35);
-                doc.text('Petugas Pelayanan,', 130, finalY + 43);
-                doc.text(`( ${lastFormData.petugas_pelayanan} )`, 130, finalY + 65);
-                doc.save(`Tanda_Terima_${lastFormData.nama_pemohon}.pdf`);
+        }
+
+        // Populate year dropdown for informasi form
+        function populateYearDropdown() {
+            const yearSelect = document.getElementById('tahunPembuatan');
+            const currentYear = new Date().getFullYear();
+            
+            for (let year = currentYear; year >= 2000; year--) {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                yearSelect.appendChild(option);
+            }
+        }
+
+        // Show toast notification
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${isError ? 'error' : ''} show`;
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Login functionality
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('loginError');
+
+            if (username === 'admin' && password === 'agustus2025') {
+                currentUser = 'admin';
+                document.getElementById('loginPage').classList.add('hidden');
+                document.getElementById('mainApp').classList.remove('hidden');
+                showToast('Login berhasil!');
+            } else {
+                errorDiv.textContent = 'Username atau password salah!';
+                errorDiv.classList.remove('hidden');
             }
         });
+
+        // Sign out functionality
+        document.getElementById('signoutBtn').addEventListener('click', function() {
+            currentUser = null;
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('loginPage').classList.remove('hidden');
+            document.getElementById('loginForm').reset();
+            document.getElementById('loginError').classList.add('hidden');
+            showToast('Berhasil logout');
+        });
+
+        // Navigation functionality
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const targetPage = this.dataset.page;
+                
+                // Hide all pages
+                document.querySelectorAll('.page').forEach(page => {
+                    page.classList.add('hidden');
+                });
+                
+                // Show target page
+                document.getElementById(targetPage).classList.remove('hidden');
+                
+                // Update active nav
+                document.querySelectorAll('.nav-btn').forEach(navBtn => {
+                    navBtn.classList.remove('bg-blue-700');
+                });
+                this.classList.add('bg-blue-700');
+            });
+        });
+
+        // Search functionality
+        document.getElementById('searchPermohonan').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            filterPermohonanData(searchTerm);
+        });
+
+        document.getElementById('clearSearch').addEventListener('click', function() {
+            document.getElementById('searchPermohonan').value = '';
+            filterPermohonanData('');
+        });
+
+        // Search functionality for informasi publik
+        document.getElementById('searchInformasi').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            filterInformasiData(searchTerm);
+        });
+
+        document.getElementById('clearSearchInformasi').addEventListener('click', function() {
+            document.getElementById('searchInformasi').value = '';
+            filterInformasiData('');
+        });
+
+        // Search functionality for keberatan
+        document.getElementById('searchKeberatan').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            filterKeberatanData(searchTerm);
+        });
+
+        document.getElementById('clearSearchKeberatan').addEventListener('click', function() {
+            document.getElementById('searchKeberatan').value = '';
+            filterKeberatanData('');
+        });
+
+        function filterPermohonanData(searchTerm) {
+            const permohonanData = allData.filter(item => item.type === 'permohonan');
+            
+            if (searchTerm === '') {
+                filteredData = permohonanData;
+            } else {
+                filteredData = permohonanData.filter(item => 
+                    item.id.toLowerCase().includes(searchTerm) ||
+                    item.nama_pemohon.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            updateDaftarPermohonan();
+        }
+
+        function filterInformasiData(searchTerm) {
+            const informasiData = allData.filter(item => item.type === 'informasi');
+            
+            if (searchTerm === '') {
+                filteredInformasiData = informasiData;
+            } else {
+                filteredInformasiData = informasiData.filter(item => 
+                    item.judul && item.judul.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            updateDaftarInformasi();
+        }
+
+        function filterKeberatanData(searchTerm) {
+            const keberatanData = allData.filter(item => item.type === 'keberatan');
+            
+            if (searchTerm === '') {
+                filteredKeberatanData = keberatanData;
+            } else {
+                filteredKeberatanData = keberatanData.filter(item => 
+                    item.id.toLowerCase().includes(searchTerm) ||
+                    item.nama_pemohon.toLowerCase().includes(searchTerm) ||
+                    (item.no_register_permohonan && item.no_register_permohonan.toLowerCase().includes(searchTerm))
+                );
+            }
+            
+            updateDaftarKeberatan();
+        }
+
+        // Pekerjaan dropdown handler
+        document.getElementById('pekerjaan').addEventListener('change', function() {
+            const pekerjaanLainnyaDiv = document.getElementById('pekerjaanLainnyaDiv');
+            if (this.value === 'Lainnya') {
+                pekerjaanLainnyaDiv.classList.remove('hidden');
+                document.getElementById('pekerjaanLainnya').required = true;
+            } else {
+                pekerjaanLainnyaDiv.classList.add('hidden');
+                document.getElementById('pekerjaanLainnya').required = false;
+            }
+        });
+
+        // Objection form submission
+        document.getElementById('keberatanForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitKeberatan');
+            submitBtn.classList.add('loading');
+            submitBtn.textContent = 'Menyimpan...';
+
+            // Check data limit
+            const keberatanData = allData.filter(item => item.type === 'keberatan');
+            if (keberatanData.length >= 999) {
+                showToast('Maksimum 999 data keberatan telah tercapai. Silakan hapus beberapa data terlebih dahulu.', true);
+                submitBtn.classList.remove('loading');
+                submitBtn.textContent = 'Submit Keberatan';
+                return;
+            }
+
+            // Handle file upload to Google Drive
+            let fileUrl = '';
+            const fileInput = document.getElementById('uploadDokumenKeberatan');
+            if (fileInput.files.length > 0) {
+                showToast('Mengupload dokumen ke Google Drive...');
+                const file = fileInput.files[0];
+                const fileName = `keberatan_${Date.now()}_${file.name}`;
+                fileUrl = await uploadToGoogleDrive(file, fileName);
+                
+                if (!fileUrl) {
+                    showToast('Gagal mengupload dokumen ke Google Drive', true);
+                    submitBtn.classList.remove('loading');
+                    submitBtn.textContent = 'Submit Keberatan';
+                    return;
+                }
+            }
+
+            const caraPengajuan = document.querySelector('input[name="caraPengajuan"]:checked')?.value || '';
+
+            const formData = {
+                id: 'KEB-' + Date.now(),
+                type: 'keberatan',
+                no_register_permohonan: document.getElementById('noRegisterPermohonan').value,
+                tujuan_penggunaan: document.getElementById('tujuanPenggunaanKeberatan').value,
+                nama_pemohon: document.getElementById('namaPemohonKeberatan').value,
+                alamat: document.getElementById('alamatKeberatan').value,
+                pekerjaan: document.getElementById('pekerjaanKeberatan').value,
+                no_telp: document.getElementById('noTelpKeberatan').value,
+                nama_kuasa: document.getElementById('namaKuasa').value || '',
+                alamat_kuasa: document.getElementById('alamatKuasa').value || '',
+                no_telp_kuasa: document.getElementById('noTelpKuasa').value || '',
+                alasan_keberatan: document.getElementById('alasanKeberatan').value,
+                cara_pengajuan: caraPengajuan,
+                tanggal_keberatan: new Date().toISOString(),
+                status: 'Diajukan',
+                tahun: new Date().getFullYear(),
+                file_dokumen_url: fileUrl
+            };
+
+            currentKeberatanData = formData;
+
+            // Save to both SDK and Google Sheets
+            let sdkSuccess = false;
+            let sheetsSuccess = false;
+
+            if (window.dataSdk) {
+                const result = await window.dataSdk.create(formData);
+                sdkSuccess = result.isOk;
+            }
+
+            // Save to Google Sheets
+            sheetsSuccess = await saveToGoogleSheets(formData, 'Keberatan');
+
+            if (sdkSuccess || sheetsSuccess) {
+                const fileStatus = fileUrl ? 'Dokumen berhasil diupload ke Google Drive.' : 'Tidak ada dokumen yang diupload.';
+                const saveStatus = sdkSuccess && sheetsSuccess ? 
+                    'Data tersimpan di Canva Sheet dan Google Sheets' :
+                    sdkSuccess ? 'Data tersimpan di Canva Sheet' :
+                    'Data tersimpan di Google Sheets';
+                
+                document.getElementById('keberatanSuccessMessage').textContent = 
+                    `Keberatan an. ${formData.nama_pemohon} berhasil diajukan dengan ID ${formData.id}. ${fileStatus} ${saveStatus}. Silakan download formulir keberatan.`;
+                document.getElementById('keberatanSuccessModal').classList.remove('hidden');
+                document.getElementById('keberatanForm').reset();
+                
+                if (sheetsSuccess) {
+                    showToast('Data berhasil disimpan ke Google Sheets!');
+                }
+            } else {
+                showToast('Gagal menyimpan keberatan', true);
+            }
+
+            submitBtn.classList.remove('loading');
+            submitBtn.textContent = 'Submit Keberatan';
+        });
+
+        // Form submission
+        document.getElementById('permohonanForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitPermohonan');
+            submitBtn.classList.add('loading');
+            submitBtn.textContent = 'Menyimpan...';
+
+            // Handle file upload to Google Drive
+            let fileUrl = '';
+            const fileInput = document.getElementById('uploadIdentitas');
+            if (fileInput.files.length > 0) {
+                showToast('Mengupload file ke Google Drive...');
+                const file = fileInput.files[0];
+                const fileName = `identitas_${Date.now()}_${file.name}`;
+                fileUrl = await uploadToGoogleDrive(file, fileName);
+                
+                if (!fileUrl) {
+                    showToast('Gagal mengupload file ke Google Drive', true);
+                    submitBtn.classList.remove('loading');
+                    submitBtn.textContent = 'Submit Permohonan';
+                    return;
+                }
+            }
+
+            const formData = {
+                id: 'PERM-' + Date.now(),
+                type: 'permohonan',
+                nama_pemohon: document.getElementById('namaPemohon').value,
+                alamat: document.getElementById('alamat').value,
+                pekerjaan: document.getElementById('pekerjaan').value,
+                pekerjaan_lainnya: document.getElementById('pekerjaanLainnya').value || '',
+                no_telp: document.getElementById('noTelp').value,
+                email: document.getElementById('email').value,
+                rincian_informasi: document.getElementById('rincianInformasi').value,
+                tujuan_penggunaan: document.getElementById('tujuanPenggunaan').value,
+                cara_memperoleh: document.getElementById('caraMemperoleh').value,
+                bentuk_salinan: document.getElementById('bentukSalinan').value,
+                cara_mendapat_salinan: document.getElementById('caraMendapatSalinan').value,
+                petugas_pelayanan: document.getElementById('petugasPelayanan').value,
+                tanggal_permohonan: new Date().toISOString(),
+                status: 'Menunggu',
+                tahun: new Date().getFullYear(),
+                file_identitas_url: fileUrl
+            };
+
+            currentPermohonanData = formData;
+
+            // Save to both SDK and Google Sheets
+            let sdkSuccess = false;
+            let sheetsSuccess = false;
+
+            if (window.dataSdk) {
+                const result = await window.dataSdk.create(formData);
+                sdkSuccess = result.isOk;
+            }
+
+            // Save to Google Sheets
+            sheetsSuccess = await saveToGoogleSheets(formData, 'Permohonan');
+
+            if (sdkSuccess || sheetsSuccess) {
+                const saveStatus = sdkSuccess && sheetsSuccess ? 
+                    'Data tersimpan di Canva Sheet dan Google Sheets' :
+                    sdkSuccess ? 'Data tersimpan di Canva Sheet' :
+                    'Data tersimpan di Google Sheets';
+                
+                document.getElementById('successMessage').textContent = 
+                    `Permohonan Informasi an. ${formData.nama_pemohon} Sukses di Registrasi. ${saveStatus}. Silahkan Cetak Formulir dan Tanda Terima Permohonan`;
+                document.getElementById('successModal').classList.remove('hidden');
+                document.getElementById('permohonanForm').reset();
+                document.getElementById('pekerjaanLainnyaDiv').classList.add('hidden');
+                
+                if (sheetsSuccess) {
+                    showToast('Data berhasil disimpan ke Google Sheets!');
+                }
+            } else {
+                showToast('Gagal menyimpan permohonan', true);
+            }
+
+            submitBtn.classList.remove('loading');
+            submitBtn.textContent = 'Submit Permohonan';
+        });
+
+        // Informasi form submission
+        document.getElementById('informasiForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitInformasi');
+            submitBtn.classList.add('loading');
+            submitBtn.textContent = 'Menyimpan...';
+
+            // Check data limit
+            const informasiData = allData.filter(item => item.type === 'informasi');
+            if (informasiData.length >= 999) {
+                showToast('Maksimum 999 data informasi telah tercapai. Silakan hapus beberapa data terlebih dahulu.', true);
+                submitBtn.classList.remove('loading');
+                submitBtn.textContent = 'Submit Informasi Publik';
+                return;
+            }
+
+            const tahunPembuatan = parseInt(document.getElementById('tahunPembuatan').value);
+            
+            // Generate registration number
+            const existingInfoForYear = informasiData.filter(item => 
+                item.tahun_pembuatan === tahunPembuatan
+            );
+            const nextNumber = existingInfoForYear.length + 1;
+            const noRegister = `INFO-${tahunPembuatan}-${nextNumber.toString().padStart(3, '0')}`;
+
+            // Handle file upload to Google Drive
+            let fileUrl = '';
+            const fileInput = document.getElementById('uploadFile');
+            if (fileInput.files.length > 0) {
+                showToast('Mengupload file ke Google Drive...');
+                const file = fileInput.files[0];
+                const fileName = `informasi_${Date.now()}_${file.name}`;
+                fileUrl = await uploadToGoogleDrive(file, fileName);
+                
+                if (!fileUrl) {
+                    showToast('Gagal mengupload file ke Google Drive', true);
+                    submitBtn.classList.remove('loading');
+                    submitBtn.textContent = 'Submit Informasi Publik';
+                    return;
+                }
+            }
+
+            const formData = {
+                id: 'INFO-' + Date.now(),
+                type: 'informasi',
+                no_register: noRegister,
+                divisi: document.getElementById('divisiPembuat').value,
+                judul: document.getElementById('judulInformasi').value,
+                deskripsi: document.getElementById('deskripsiInformasi').value,
+                tahun_pembuatan: tahunPembuatan,
+                file_url: fileUrl,
+                tanggal_input: new Date().toISOString()
+            };
+
+            // Save to both SDK and Google Sheets
+            let sdkSuccess = false;
+            let sheetsSuccess = false;
+
+            if (window.dataSdk) {
+                const result = await window.dataSdk.create(formData);
+                sdkSuccess = result.isOk;
+            }
+
+            // Save to Google Sheets
+            sheetsSuccess = await saveToGoogleSheets(formData, 'Informasi');
+
+            if (sdkSuccess || sheetsSuccess) {
+                const fileStatus = fileUrl ? 'File berhasil diupload ke Google Drive.' : 'Tidak ada file yang diupload.';
+                const saveStatus = sdkSuccess && sheetsSuccess ? 
+                    'Data tersimpan di Canva Sheet dan Google Sheets' :
+                    sdkSuccess ? 'Data tersimpan di Canva Sheet' :
+                    'Data tersimpan di Google Sheets';
+                
+                document.getElementById('informasiSuccessMessage').textContent = 
+                    `Informasi "${formData.judul}" berhasil disimpan dengan No. Register ${formData.no_register}. ${fileStatus} ${saveStatus}`;
+                document.getElementById('informasiSuccessModal').classList.remove('hidden');
+                document.getElementById('informasiForm').reset();
+                
+                if (sheetsSuccess) {
+                    showToast('Data berhasil disimpan ke Google Sheets!');
+                }
+            } else {
+                showToast('Gagal menyimpan informasi', true);
+            }
+
+            submitBtn.classList.remove('loading');
+            submitBtn.textContent = 'Submit Informasi Publik';
+        });
+
+        // Modal handlers
+        document.getElementById('closeModalBtn').addEventListener('click', function() {
+            document.getElementById('successModal').classList.add('hidden');
+        });
+
+        document.getElementById('printFormBtn').addEventListener('click', function() {
+            if (currentPermohonanData) {
+                generateFormPDF(currentPermohonanData);
+            }
+        });
+
+        document.getElementById('printReceiptBtn').addEventListener('click', function() {
+            if (currentPermohonanData) {
+                generateReceiptPDF(currentPermohonanData);
+            }
+        });
+
+        // Objection modal handlers
+        document.getElementById('closeKeberatanModalBtn').addEventListener('click', function() {
+            document.getElementById('keberatanSuccessModal').classList.add('hidden');
+        });
+
+        document.getElementById('printKeberatanBtn').addEventListener('click', function() {
+            if (currentKeberatanData) {
+                generateKeberatanPDF(currentKeberatanData);
+            }
+        });
+
+        // Surat modal handlers
+        document.getElementById('closeSuratModalBtn').addEventListener('click', function() {
+            document.getElementById('suratSuccessModal').classList.add('hidden');
+        });
+
+        document.getElementById('downloadSuratBtn').addEventListener('click', function() {
+            if (currentSuratData) {
+                generateSuratPemberitahuanPDF(currentSuratData);
+            }
+        });
+
+        // Surat form handlers
+        document.getElementById('cariPermohonanBtn').addEventListener('click', function() {
+            cariPermohonanByRegistrasi();
+        });
+
+        document.getElementById('statusBaru').addEventListener('change', function() {
+            const selectedStatus = this.value;
+            const alasanSection = document.getElementById('alasanPenolakanSection');
+            const catatanSection = document.getElementById('catatanSection');
+            const submitSection = document.getElementById('submitSuratSection');
+            
+            if (selectedStatus === 'Ditolak') {
+                alasanSection.classList.remove('hidden');
+                document.getElementById('alasanPenolakan').required = true;
+            } else {
+                alasanSection.classList.add('hidden');
+                document.getElementById('alasanPenolakan').required = false;
+            }
+            
+            if (selectedStatus) {
+                catatanSection.classList.remove('hidden');
+                submitSection.classList.remove('hidden');
+            } else {
+                catatanSection.classList.add('hidden');
+                submitSection.classList.add('hidden');
+            }
+        });
+
+        // Surat form submission
+        document.getElementById('suratForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await submitSuratPemberitahuan();
+        });
+
+        // Informasi modal handlers
+        document.getElementById('closeInformasiModalBtn').addEventListener('click', function() {
+            document.getElementById('informasiSuccessModal').classList.add('hidden');
+        });
+
+        document.getElementById('viewInformasiListBtn').addEventListener('click', function() {
+            document.getElementById('informasiSuccessModal').classList.add('hidden');
+            // Navigate to daftar informasi page
+            document.querySelectorAll('.page').forEach(page => page.classList.add('hidden'));
+            document.getElementById('daftar-informasi').classList.remove('hidden');
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('bg-blue-700'));
+            document.querySelector('[data-page="daftar-informasi"]').classList.add('bg-blue-700');
+        });
+
+        // Detail modal handlers
+        document.getElementById('closeDetailBtn').addEventListener('click', function() {
+            document.getElementById('detailModal').classList.add('hidden');
+        });
+
+        document.getElementById('updateStatusBtn').addEventListener('click', function() {
+            document.getElementById('statusModal').classList.remove('hidden');
+        });
+
+        document.getElementById('downloadFromDetailBtn').addEventListener('click', function() {
+            if (currentDetailData) {
+                generateFormPDF(currentDetailData);
+            }
+        });
+
+        document.getElementById('closeStatusBtn').addEventListener('click', function() {
+            document.getElementById('statusModal').classList.add('hidden');
+        });
+
+        document.getElementById('closeStatusKeberatanBtn').addEventListener('click', function() {
+            document.getElementById('statusKeberatanModal').classList.add('hidden');
+        });
+
+        // PDF Generation functions
+        function generateFormPDF(data) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            doc.setFontSize(16);
+            doc.text('FORMULIR PERMOHONAN INFORMASI', 20, 20);
+            doc.text('PPID BAWASLU PROVINSI RIAU', 20, 30);
+
+            doc.setFontSize(12);
+            let y = 50;
+            const lineHeight = 10;
+
+            doc.text(`Nama Pemohon: ${data.nama_pemohon}`, 20, y);
+            y += lineHeight;
+            doc.text(`Alamat: ${data.alamat}`, 20, y);
+            y += lineHeight;
+            doc.text(`Pekerjaan: ${data.pekerjaan}${data.pekerjaan_lainnya ? ' - ' + data.pekerjaan_lainnya : ''}`, 20, y);
+            y += lineHeight;
+            doc.text(`No. Telepon: ${data.no_telp}`, 20, y);
+            y += lineHeight;
+            doc.text(`Email: ${data.email}`, 20, y);
+            y += lineHeight * 2;
+            doc.text(`Rincian Informasi: ${data.rincian_informasi}`, 20, y);
+            y += lineHeight * 2;
+            doc.text(`Tujuan Penggunaan: ${data.tujuan_penggunaan}`, 20, y);
+            y += lineHeight * 2;
+            doc.text(`Cara Memperoleh: ${data.cara_memperoleh}`, 20, y);
+            y += lineHeight;
+            doc.text(`Bentuk Salinan: ${data.bentuk_salinan}`, 20, y);
+            y += lineHeight;
+            doc.text(`Cara Mendapat Salinan: ${data.cara_mendapat_salinan}`, 20, y);
+            y += lineHeight;
+            doc.text(`Petugas Pelayanan: ${data.petugas_pelayanan}`, 20, y);
+            y += lineHeight * 2;
+            doc.text(`Tanggal: ${new Date(data.tanggal_permohonan).toLocaleDateString('id-ID')}`, 20, y);
+
+            doc.save(`Formulir_${data.nama_pemohon}_${data.id}.pdf`);
+        }
+
+        function generateReceiptPDF(data) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            doc.setFontSize(16);
+            doc.text('TANDA TERIMA PERMOHONAN INFORMASI', 20, 20);
+            doc.text('PPID BAWASLU PROVINSI RIAU', 20, 30);
+
+            doc.setFontSize(12);
+            let y = 50;
+
+            doc.text(`No. Registrasi: ${data.id}`, 20, y);
+            y += 15;
+            doc.text(`Nama Pemohon: ${data.nama_pemohon}`, 20, y);
+            y += 10;
+            doc.text(`Tanggal Permohonan: ${new Date(data.tanggal_permohonan).toLocaleDateString('id-ID')}`, 20, y);
+            y += 10;
+            doc.text(`Status: ${data.status}`, 20, y);
+            y += 10;
+            doc.text(`Petugas Pelayanan: ${data.petugas_pelayanan}`, 20, y);
+            y += 30;
+            doc.text('Permohonan Anda telah diterima dan akan diproses', 20, y);
+            y += 10;
+            doc.text('sesuai dengan ketentuan yang berlaku.', 20, y);
+
+            doc.save(`TandaTerima_${data.nama_pemohon}_${data.id}.pdf`);
+        }
+
+        // Generate PDF for objection form
+        function generateKeberatanPDF(data) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            doc.setFontSize(16);
+            doc.text('FORMULIR KEBERATAN INFORMASI', 20, 20);
+            doc.text('PPID BAWASLU PROVINSI RIAU', 20, 30);
+
+            doc.setFontSize(12);
+            let y = 50;
+            const lineHeight = 8;
+
+            // A. Informasi Permohonan
+            doc.setFontSize(14);
+            doc.text('A. INFORMASI PERMOHONAN', 20, y);
+            y += lineHeight + 2;
+            doc.setFontSize(12);
+            doc.text(`No. Register Permohonan: ${data.no_register_permohonan}`, 20, y);
+            y += lineHeight;
+            const tujuanLines = doc.splitTextToSize(`Tujuan Penggunaan: ${data.tujuan_penggunaan}`, 170);
+            doc.text(tujuanLines, 20, y);
+            y += tujuanLines.length * lineHeight + 5;
+
+            // B. Data Pemohon
+            doc.setFontSize(14);
+            doc.text('B. DATA PEMOHON', 20, y);
+            y += lineHeight + 2;
+            doc.setFontSize(12);
+            doc.text(`Nama: ${data.nama_pemohon}`, 20, y);
+            y += lineHeight;
+            const alamatLines = doc.splitTextToSize(`Alamat: ${data.alamat}`, 170);
+            doc.text(alamatLines, 20, y);
+            y += alamatLines.length * lineHeight;
+            doc.text(`Pekerjaan: ${data.pekerjaan}`, 20, y);
+            y += lineHeight;
+            doc.text(`No. Telepon: ${data.no_telp}`, 20, y);
+            y += lineHeight + 5;
+
+            // C. Identitas Kuasa (jika ada)
+            if (data.nama_kuasa) {
+                doc.setFontSize(14);
+                doc.text('C. IDENTITAS KUASA PEMOHON', 20, y);
+                y += lineHeight + 2;
+                doc.setFontSize(12);
+                doc.text(`Nama: ${data.nama_kuasa}`, 20, y);
+                y += lineHeight;
+                if (data.alamat_kuasa) {
+                    const alamatKuasaLines = doc.splitTextToSize(`Alamat: ${data.alamat_kuasa}`, 170);
+                    doc.text(alamatKuasaLines, 20, y);
+                    y += alamatKuasaLines.length * lineHeight;
+                }
+                if (data.no_telp_kuasa) {
+                    doc.text(`No. Telepon: ${data.no_telp_kuasa}`, 20, y);
+                    y += lineHeight;
+                }
+                y += 5;
+            }
+
+            // D. Alasan Keberatan
+            doc.setFontSize(14);
+            doc.text('D. ALASAN PENGAJUAN KEBERATAN', 20, y);
+            y += lineHeight + 2;
+            doc.setFontSize(12);
+            const alasanLines = doc.splitTextToSize(data.alasan_keberatan, 170);
+            doc.text(alasanLines, 20, y);
+            y += alasanLines.length * lineHeight + 5;
+
+            // E. Cara Pengajuan
+            doc.setFontSize(14);
+            doc.text('E. KEBERATAN DIAJUKAN MELALUI', 20, y);
+            y += lineHeight + 2;
+            doc.setFontSize(12);
+            doc.text(data.cara_pengajuan, 20, y);
+            y += lineHeight + 10;
+
+            // Footer
+            doc.text(`ID Keberatan: ${data.id}`, 20, y);
+            y += lineHeight;
+            doc.text(`Tanggal: ${new Date(data.tanggal_keberatan).toLocaleDateString('id-ID')}`, 20, y);
+            y += lineHeight;
+            doc.text(`Status: ${data.status}`, 20, y);
+
+            doc.save(`Keberatan_${data.nama_pemohon}_${data.id}.pdf`);
+        }
+
+        // Update statistics
+        function updateStatistics() {
+            const permohonanData = allData.filter(item => item.type === 'permohonan');
+            const keberatanData = allData.filter(item => item.type === 'keberatan');
+            const informasiData = allData.filter(item => item.type === 'informasi');
+
+            document.getElementById('totalPermohonan').textContent = permohonanData.length;
+            document.getElementById('totalKeberatan').textContent = keberatanData.length;
+            document.getElementById('totalInformasi').textContent = informasiData.length;
+
+            // Status statistics
+            const statusDiberikan = permohonanData.filter(item => item.status === 'Diberikan').length;
+            const statusSebagian = permohonanData.filter(item => item.status === 'Sebagian').length;
+            const statusDitolak = permohonanData.filter(item => item.status === 'Ditolak').length;
+
+            document.getElementById('statusDiberikan').textContent = statusDiberikan;
+            document.getElementById('statusSebagian').textContent = statusSebagian;
+            document.getElementById('statusDitolak').textContent = statusDitolak;
+
+            // Pekerjaan statistics
+            const pekerjaanStats = {};
+            permohonanData.forEach(item => {
+                const pekerjaan = item.pekerjaan || 'Tidak Diketahui';
+                pekerjaanStats[pekerjaan] = (pekerjaanStats[pekerjaan] || 0) + 1;
+            });
+
+            const statistikPekerjaanDiv = document.getElementById('statistikPekerjaan');
+            statistikPekerjaanDiv.innerHTML = '';
+            Object.entries(pekerjaanStats).forEach(([pekerjaan, count]) => {
+                const div = document.createElement('div');
+                div.className = 'flex justify-between';
+                div.innerHTML = `<span>${pekerjaan}:</span><span class="font-semibold">${count}</span>`;
+                statistikPekerjaanDiv.appendChild(div);
+            });
+        }
+
+        // Update daftar permohonan table
+        function updateDaftarPermohonan() {
+            const dataToShow = filteredData.length > 0 || document.getElementById('searchPermohonan').value !== '' 
+                ? filteredData 
+                : allData.filter(item => item.type === 'permohonan');
+            
+            const tableBody = document.getElementById('daftarPermohonanTable');
+            
+            tableBody.innerHTML = '';
+            dataToShow.forEach((item, index) => {
+                const statusColor = getStatusColor(item.status);
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.id}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${new Date(item.tanggal_permohonan).toLocaleDateString('id-ID')}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.nama_pemohon}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}">
+                            ${item.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div class="flex space-x-2">
+                            <button onclick="viewDetail('${item.__backendId}')" class="text-blue-600 hover:text-blue-900" title="Lihat Detail">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                            </button>
+                            <button onclick="updateStatusQuick('${item.__backendId}')" class="text-purple-600 hover:text-purple-900" title="Update Status">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                            </button>
+                            <button onclick="downloadPDF('${item.__backendId}')" class="text-green-600 hover:text-green-900" title="Download PDF">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                            </button>
+                            <button onclick="openWhatsApp('${item.no_telp}')" class="text-green-500 hover:text-green-700" title="WhatsApp">
+                                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function getStatusColor(status) {
+            switch(status) {
+                case 'Diberikan':
+                    return 'bg-green-100 text-green-800';
+                case 'Sebagian':
+                    return 'bg-yellow-100 text-yellow-800';
+                case 'Ditolak':
+                    return 'bg-red-100 text-red-800';
+                default:
+                    return 'bg-gray-100 text-gray-800';
+            }
+        }
+
+        // Update status function
+        async function updateStatus(backendId, newStatus) {
+            const item = allData.find(data => data.__backendId === backendId);
+            if (item && window.dataSdk) {
+                item.status = newStatus;
+                const result = await window.dataSdk.update(item);
+                if (result.isOk) {
+                    showToast(`Status berhasil diubah menjadi ${newStatus}`);
+                } else {
+                    showToast('Gagal mengubah status', true);
+                }
+            }
+        }
+
+        // View detail function
+        function viewDetail(backendId) {
+            const item = allData.find(data => data.__backendId === backendId);
+            if (item) {
+                currentDetailData = item;
+                showDetailModal(item);
+            }
+        }
+
+        // Show detail modal
+        function showDetailModal(data) {
+            const detailContent = document.getElementById('detailContent');
+            detailContent.innerHTML = `
+                <div class="space-y-4">
+                    <h4 class="text-lg font-semibold text-gray-900">Informasi Pemohon</h4>
+                    <div class="grid grid-cols-1 gap-3">
+                        <div><span class="font-medium">No. Registrasi:</span> ${data.id}</div>
+                        <div><span class="font-medium">Nama:</span> ${data.nama_pemohon}</div>
+                        <div><span class="font-medium">Alamat:</span> ${data.alamat}</div>
+                        <div><span class="font-medium">Pekerjaan:</span> ${data.pekerjaan}${data.pekerjaan_lainnya ? ' - ' + data.pekerjaan_lainnya : ''}</div>
+                        <div><span class="font-medium">No. Telepon:</span> ${data.no_telp}</div>
+                        <div><span class="font-medium">Email:</span> ${data.email}</div>
+                        <div><span class="font-medium">Tanggal Permohonan:</span> ${new Date(data.tanggal_permohonan).toLocaleDateString('id-ID')}</div>
+                        <div><span class="font-medium">Petugas Pelayanan:</span> ${data.petugas_pelayanan}</div>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <h4 class="text-lg font-semibold text-gray-900">Detail Permohonan</h4>
+                    <div class="grid grid-cols-1 gap-3">
+                        <div><span class="font-medium">Rincian Informasi:</span><br><p class="mt-1 text-gray-700">${data.rincian_informasi}</p></div>
+                        <div><span class="font-medium">Tujuan Penggunaan:</span><br><p class="mt-1 text-gray-700">${data.tujuan_penggunaan}</p></div>
+                        <div><span class="font-medium">Cara Memperoleh:</span> ${data.cara_memperoleh}</div>
+                        <div><span class="font-medium">Bentuk Salinan:</span> ${data.bentuk_salinan}</div>
+                        <div><span class="font-medium">Cara Mendapat Salinan:</span> ${data.cara_mendapat_salinan}</div>
+                        <div><span class="font-medium">Status:</span> 
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(data.status)}">${data.status}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('detailModal').classList.remove('hidden');
+        }
+
+        // Download PDF function
+        function downloadPDF(backendId) {
+            const item = allData.find(data => data.__backendId === backendId);
+            if (item) {
+                generateFormPDF(item);
+            }
+        }
+
+        // Open WhatsApp function
+        function openWhatsApp(phoneNumber) {
+            // Clean phone number (remove non-digits)
+            const cleanNumber = phoneNumber.replace(/\D/g, '');
+            // Add country code if not present
+            const formattedNumber = cleanNumber.startsWith('62') ? cleanNumber : '62' + cleanNumber.substring(1);
+            const whatsappUrl = `https://web.whatsapp.com/send?phone=${formattedNumber}`;
+            window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+        }
+
+        // Update status from modal
+        async function updateStatusFromModal(newStatus) {
+            if (currentDetailData && window.dataSdk) {
+                currentDetailData.status = newStatus;
+                const result = await window.dataSdk.update(currentDetailData);
+                if (result.isOk) {
+                    showToast(`Status berhasil diubah menjadi ${newStatus}`);
+                    document.getElementById('statusModal').classList.add('hidden');
+                    document.getElementById('detailModal').classList.add('hidden');
+                } else {
+                    showToast('Gagal mengubah status', true);
+                }
+            }
+        }
+
+        // Quick status update function
+        function updateStatusQuick(backendId) {
+            const item = allData.find(data => data.__backendId === backendId);
+            if (item) {
+                currentDetailData = item;
+                document.getElementById('statusModal').classList.remove('hidden');
+            }
+        }
+
+        // Update daftar informasi publik table
+        function updateDaftarInformasi() {
+            const dataToShow = filteredInformasiData.length > 0 || document.getElementById('searchInformasi').value !== '' 
+                ? filteredInformasiData 
+                : allData.filter(item => item.type === 'informasi');
+            
+            const tableBody = document.getElementById('daftarInformasiTable');
+            
+            tableBody.innerHTML = '';
+            dataToShow.forEach((item, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.no_register || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.divisi || '-'}</td>
+                    <td class="px-6 py-4 text-sm text-gray-900">
+                        <div class="max-w-xs truncate" title="${item.judul || '-'}">${item.judul || '-'}</div>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-900">
+                        <div class="max-w-xs truncate" title="${item.deskripsi || '-'}">${item.deskripsi || '-'}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.tahun_pembuatan || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="downloadInformasi('${item.__backendId}')" class="text-green-600 hover:text-green-900 flex items-center space-x-1" title="Download">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <span>Download</span>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Update daftar keberatan table
+        function updateDaftarKeberatan() {
+            const dataToShow = filteredKeberatanData.length > 0 || document.getElementById('searchKeberatan').value !== '' 
+                ? filteredKeberatanData 
+                : allData.filter(item => item.type === 'keberatan');
+            
+            const tableBody = document.getElementById('daftarKeberatanTable');
+            
+            tableBody.innerHTML = '';
+            dataToShow.forEach((item, index) => {
+                const statusColor = getKeberatanStatusColor(item.status);
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.id}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${new Date(item.tanggal_keberatan).toLocaleDateString('id-ID')}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.nama_pemohon}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.no_register_permohonan || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}">
+                            ${item.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div class="flex space-x-2">
+                            <button onclick="viewKeberatanDetail('${item.__backendId}')" class="text-blue-600 hover:text-blue-900" title="Lihat Detail">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                            </button>
+                            <button onclick="updateStatusKeberatanQuick('${item.__backendId}')" class="text-purple-600 hover:text-purple-900" title="Update Status">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                            </button>
+                            <button onclick="downloadKeberatanPDF('${item.__backendId}')" class="text-green-600 hover:text-green-900" title="Download PDF">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function getKeberatanStatusColor(status) {
+            switch(status) {
+                case 'Dikabulkan':
+                    return 'bg-green-100 text-green-800';
+                case 'Dikabulkan Sebagian':
+                    return 'bg-yellow-100 text-yellow-800';
+                case 'Ditolak':
+                    return 'bg-red-100 text-red-800';
+                default:
+                    return 'bg-gray-100 text-gray-800';
+            }
+        }
+
+        // Download informasi function
+        function downloadInformasi(backendId) {
+            const item = allData.find(data => data.__backendId === backendId);
+            if (item) {
+                if (item.file_url) {
+                    // If there's a file URL, open it in new tab
+                    window.open(item.file_url, '_blank', 'noopener,noreferrer');
+                } else {
+                    // Generate a PDF with the information details
+                    generateInformasiPDF(item);
+                }
+            }
+        }
+
+        // Generate PDF for informasi publik
+        function generateInformasiPDF(data) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            doc.setFontSize(16);
+            doc.text('INFORMASI PUBLIK', 20, 20);
+            doc.text('PPID BAWASLU PROVINSI RIAU', 20, 30);
+
+            doc.setFontSize(12);
+            let y = 50;
+            const lineHeight = 10;
+
+            doc.text(`No. Register: ${data.no_register || '-'}`, 20, y);
+            y += lineHeight;
+            doc.text(`Divisi: ${data.divisi || '-'}`, 20, y);
+            y += lineHeight;
+            doc.text(`Judul: ${data.judul || '-'}`, 20, y);
+            y += lineHeight * 2;
+            
+            // Handle long description
+            const description = data.deskripsi || '-';
+            const splitDescription = doc.splitTextToSize(description, 170);
+            doc.text('Deskripsi:', 20, y);
+            y += lineHeight;
+            doc.text(splitDescription, 20, y);
+            y += splitDescription.length * lineHeight + lineHeight;
+            
+            doc.text(`Tahun Pembuatan: ${data.tahun_pembuatan || '-'}`, 20, y);
+            y += lineHeight * 2;
+            doc.text(`Tanggal Diunduh: ${new Date().toLocaleDateString('id-ID')}`, 20, y);
+
+            doc.save(`Informasi_${data.judul || 'Document'}_${data.no_register || Date.now()}.pdf`);
+        }
+
+        // Cari permohonan by registrasi
+        function cariPermohonanByRegistrasi() {
+            const noRegistrasi = document.getElementById('noRegistrasiSurat').value.trim();
+            
+            if (!noRegistrasi) {
+                showToast('Masukkan nomor registrasi terlebih dahulu', true);
+                return;
+            }
+
+            const permohonan = allData.find(item => 
+                item.type === 'permohonan' && item.id === noRegistrasi
+            );
+
+            if (permohonan) {
+                // Show permohonan data
+                document.getElementById('namaPemohonSurat').textContent = permohonan.nama_pemohon;
+                document.getElementById('tanggalPermohonanSurat').textContent = 
+                    new Date(permohonan.tanggal_permohonan).toLocaleDateString('id-ID');
+                
+                const statusElement = document.getElementById('statusSaatIni');
+                statusElement.textContent = permohonan.status;
+                statusElement.className = `px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(permohonan.status)}`;
+                
+                document.getElementById('petugasPelayananSurat').textContent = permohonan.petugas_pelayanan;
+                
+                // Show sections
+                document.getElementById('statusPermohonanSection').classList.remove('hidden');
+                document.getElementById('updateStatusSection').classList.remove('hidden');
+                
+                // Store current permohonan for later use
+                currentSuratData = permohonan;
+                
+                showToast('Data permohonan ditemukan!');
+            } else {
+                showToast('Nomor registrasi tidak ditemukan', true);
+                // Hide sections
+                document.getElementById('statusPermohonanSection').classList.add('hidden');
+                document.getElementById('updateStatusSection').classList.add('hidden');
+                document.getElementById('alasanPenolakanSection').classList.add('hidden');
+                document.getElementById('catatanSection').classList.add('hidden');
+                document.getElementById('submitSuratSection').classList.add('hidden');
+            }
+        }
+
+        // Submit surat pemberitahuan
+        async function submitSuratPemberitahuan() {
+            const submitBtn = document.getElementById('submitSuratBtn');
+            submitBtn.classList.add('loading');
+            submitBtn.textContent = 'Membuat Surat...';
+
+            const statusBaru = document.getElementById('statusBaru').value;
+            const alasanPenolakan = document.getElementById('alasanPenolakan').value;
+            const catatanTambahan = document.getElementById('catatanTambahan').value;
+
+            if (!statusBaru) {
+                showToast('Pilih status baru terlebih dahulu', true);
+                submitBtn.classList.remove('loading');
+                submitBtn.textContent = 'Buat Surat Pemberitahuan';
+                return;
+            }
+
+            if (statusBaru === 'Ditolak' && !alasanPenolakan.trim()) {
+                showToast('Alasan penolakan harus diisi', true);
+                submitBtn.classList.remove('loading');
+                submitBtn.textContent = 'Buat Surat Pemberitahuan';
+                return;
+            }
+
+            // Update status permohonan
+            if (currentSuratData && window.dataSdk) {
+                currentSuratData.status = statusBaru;
+                const updateResult = await window.dataSdk.update(currentSuratData);
+                
+                if (updateResult.isOk) {
+                    // Prepare surat data
+                    const suratData = {
+                        ...currentSuratData,
+                        status_baru: statusBaru,
+                        alasan_penolakan: alasanPenolakan || '',
+                        catatan_tambahan: catatanTambahan || '',
+                        tanggal_surat: new Date().toISOString(),
+                        petugas_pembuat_surat: currentUser || 'Admin'
+                    };
+
+                    currentSuratData = suratData;
+
+                    // Show success modal
+                    document.getElementById('suratSuccessMessage').textContent = 
+                        `Surat pemberitahuan untuk ${suratData.nama_pemohon} (${suratData.id}) berhasil dibuat. Status telah diupdate menjadi "${statusBaru}".`;
+                    document.getElementById('suratSuccessModal').classList.remove('hidden');
+
+                    // Reset form
+                    document.getElementById('suratForm').reset();
+                    document.getElementById('statusPermohonanSection').classList.add('hidden');
+                    document.getElementById('updateStatusSection').classList.add('hidden');
+                    document.getElementById('alasanPenolakanSection').classList.add('hidden');
+                    document.getElementById('catatanSection').classList.add('hidden');
+                    document.getElementById('submitSuratSection').classList.add('hidden');
+
+                    showToast('Status permohonan berhasil diupdate!');
+                } else {
+                    showToast('Gagal mengupdate status permohonan', true);
+                }
+            }
+
+            submitBtn.classList.remove('loading');
+            submitBtn.textContent = 'Buat Surat Pemberitahuan';
+        }
+
+        // Generate PDF surat pemberitahuan
+        function generateSuratPemberitahuanPDF(data) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Header
+            doc.setFontSize(16);
+            doc.text('SURAT PEMBERITAHUAN', 20, 20);
+            doc.text('HASIL PERMOHONAN INFORMASI PUBLIK', 20, 30);
+            doc.text('PPID BAWASLU PROVINSI RIAU', 20, 40);
+
+            doc.setFontSize(12);
+            let y = 60;
+            const lineHeight = 8;
+
+            // Nomor surat dan tanggal
+            doc.text(`Nomor: ${data.id}/PPID/${new Date().getFullYear()}`, 20, y);
+            y += lineHeight;
+            doc.text(`Tanggal: ${new Date(data.tanggal_surat).toLocaleDateString('id-ID')}`, 20, y);
+            y += lineHeight * 2;
+
+            // Kepada
+            doc.text('Kepada Yth.', 20, y);
+            y += lineHeight;
+            doc.text(`Sdr/i. ${data.nama_pemohon}`, 20, y);
+            y += lineHeight;
+            const alamatLines = doc.splitTextToSize(`di ${data.alamat}`, 170);
+            doc.text(alamatLines, 20, y);
+            y += alamatLines.length * lineHeight + lineHeight;
+
+            // Isi surat
+            doc.text('Dengan hormat,', 20, y);
+            y += lineHeight * 2;
+
+            doc.text('Berdasarkan permohonan informasi publik yang Saudara ajukan dengan:', 20, y);
+            y += lineHeight * 2;
+
+            doc.text(`- Nomor Registrasi: ${data.id}`, 30, y);
+            y += lineHeight;
+            doc.text(`- Tanggal Permohonan: ${new Date(data.tanggal_permohonan).toLocaleDateString('id-ID')}`, 30, y);
+            y += lineHeight;
+            const rincianLines = doc.splitTextToSize(`- Rincian Informasi: ${data.rincian_informasi}`, 160);
+            doc.text(rincianLines, 30, y);
+            y += rincianLines.length * lineHeight + lineHeight;
+
+            // Status keputusan
+            doc.text('Dengan ini kami sampaikan bahwa permohonan informasi Saudara:', 20, y);
+            y += lineHeight * 2;
+
+            let statusText = '';
+            switch(data.status_baru) {
+                case 'Diberikan':
+                    statusText = '✅ DIBERIKAN SELURUHNYA';
+                    break;
+                case 'Sebagian':
+                    statusText = '⚠️ DIBERIKAN SEBAGIAN';
+                    break;
+                case 'Ditolak':
+                    statusText = '❌ DITOLAK';
+                    break;
+            }
+
+            doc.setFontSize(14);
+            doc.text(statusText, 20, y);
+            doc.setFontSize(12);
+            y += lineHeight * 2;
+
+            // Alasan penolakan jika ada
+            if (data.status_baru === 'Ditolak' && data.alasan_penolakan) {
+                doc.text('Alasan penolakan:', 20, y);
+                y += lineHeight;
+                const alasanLines = doc.splitTextToSize(data.alasan_penolakan, 170);
+                doc.text(alasanLines, 20, y);
+                y += alasanLines.length * lineHeight + lineHeight;
+            }
+
+            // Catatan tambahan jika ada
+            if (data.catatan_tambahan) {
+                doc.text('Catatan:', 20, y);
+                y += lineHeight;
+                const catatanLines = doc.splitTextToSize(data.catatan_tambahan, 170);
+                doc.text(catatanLines, 20, y);
+                y += catatanLines.length * lineHeight + lineHeight;
+            }
+
+            // Penutup
+            y += lineHeight;
+            doc.text('Demikian surat pemberitahuan ini kami sampaikan.', 20, y);
+            y += lineHeight * 2;
+            doc.text('Hormat kami,', 20, y);
+            y += lineHeight * 3;
+            doc.text('PPID Bawaslu Provinsi Riau', 20, y);
+            y += lineHeight * 2;
+            doc.text(`${data.petugas_pembuat_surat || 'Admin'}`, 20, y);
+
+            doc.save(`Surat_Pemberitahuan_${data.nama_pemohon}_${data.id}.pdf`);
+        }
+
+        // View keberatan detail function
+        function viewKeberatanDetail(backendId) {
+            const item = allData.find(data => data.__backendId === backendId);
+            if (item) {
+                currentDetailKeberatanData = item;
+                showKeberatanDetailModal(item);
+            }
+        }
+
+        // Show keberatan detail modal
+        function showKeberatanDetailModal(data) {
+            const detailContent = document.getElementById('detailContent');
+            detailContent.innerHTML = `
+                <div class="space-y-4">
+                    <h4 class="text-lg font-semibold text-gray-900">Informasi Keberatan</h4>
+                    <div class="grid grid-cols-1 gap-3">
+                        <div><span class="font-medium">No. Registrasi Keberatan:</span> ${data.id}</div>
+                        <div><span class="font-medium">No. Register Permohonan:</span> ${data.no_register_permohonan}</div>
+                        <div><span class="font-medium">Nama Pemohon:</span> ${data.nama_pemohon}</div>
+                        <div><span class="font-medium">Alamat:</span> ${data.alamat}</div>
+                        <div><span class="font-medium">Pekerjaan:</span> ${data.pekerjaan}</div>
+                        <div><span class="font-medium">No. Telepon:</span> ${data.no_telp}</div>
+                        <div><span class="font-medium">Tanggal Keberatan:</span> ${new Date(data.tanggal_keberatan).toLocaleDateString('id-ID')}</div>
+                        <div><span class="font-medium">Status:</span> 
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full ${getKeberatanStatusColor(data.status)}">${data.status}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <h4 class="text-lg font-semibold text-gray-900">Detail Keberatan</h4>
+                    <div class="grid grid-cols-1 gap-3">
+                        <div><span class="font-medium">Tujuan Penggunaan:</span><br><p class="mt-1 text-gray-700">${data.tujuan_penggunaan}</p></div>
+                        <div><span class="font-medium">Alasan Keberatan:</span><br><p class="mt-1 text-gray-700">${data.alasan_keberatan}</p></div>
+                        <div><span class="font-medium">Cara Pengajuan:</span> ${data.cara_pengajuan}</div>
+                        ${data.nama_kuasa ? `
+                        <div class="border-t pt-3">
+                            <h5 class="font-medium text-gray-900 mb-2">Kuasa Pemohon:</h5>
+                            <div><span class="font-medium">Nama:</span> ${data.nama_kuasa}</div>
+                            ${data.alamat_kuasa ? `<div><span class="font-medium">Alamat:</span> ${data.alamat_kuasa}</div>` : ''}
+                            ${data.no_telp_kuasa ? `<div><span class="font-medium">No. Telepon:</span> ${data.no_telp_kuasa}</div>` : ''}
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            document.getElementById('detailModal').classList.remove('hidden');
+        }
+
+        // Quick status update function for keberatan
+        function updateStatusKeberatanQuick(backendId) {
+            const item = allData.find(data => data.__backendId === backendId);
+            if (item) {
+                currentDetailKeberatanData = item;
+                document.getElementById('statusKeberatanModal').classList.remove('hidden');
+            }
+        }
+
+        // Update status keberatan from modal
+        async function updateStatusKeberatanFromModal(newStatus) {
+            if (currentDetailKeberatanData && window.dataSdk) {
+                currentDetailKeberatanData.status = newStatus;
+                const result = await window.dataSdk.update(currentDetailKeberatanData);
+                if (result.isOk) {
+                    showToast(`Status keberatan berhasil diubah menjadi ${newStatus}`);
+                    document.getElementById('statusKeberatanModal').classList.add('hidden');
+                    document.getElementById('detailModal').classList.add('hidden');
+                } else {
+                    showToast('Gagal mengubah status keberatan', true);
+                }
+            }
+        }
+
+        // Download keberatan PDF function
+        function downloadKeberatanPDF(backendId) {
+            const item = allData.find(data => data.__backendId === backendId);
+            if (item) {
+                generateKeberatanPDF(item);
+            }
+        }
+
+        // Make functions globally available
+        window.updateStatus = updateStatus;
+        window.viewDetail = viewDetail;
+        window.downloadPDF = downloadPDF;
+        window.openWhatsApp = openWhatsApp;
+        window.updateStatusFromModal = updateStatusFromModal;
+        window.updateStatusQuick = updateStatusQuick;
+        window.downloadInformasi = downloadInformasi;
+        window.cariPermohonanByRegistrasi = cariPermohonanByRegistrasi;
+        window.submitSuratPemberitahuan = submitSuratPemberitahuan;
+        window.viewKeberatanDetail = viewKeberatanDetail;
+        window.updateStatusKeberatanQuick = updateStatusKeberatanQuick;
+        window.updateStatusKeberatanFromModal = updateStatusKeberatanFromModal;
+        window.downloadKeberatanPDF = downloadKeberatanPDF;
+
+        // Initialize app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initializeApp);
     </script>
-</body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'99326eb2b7d12c28',t:'MTc2MTIzNTA3MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
-
-
-
-
