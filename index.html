@@ -227,7 +227,9 @@
        <div>
         <h2 class="text-2xl font-bold text-gray-900 mb-2">Daftar Permohonan Informasi</h2>
         <p class="text-gray-600">Daftar semua permohonan informasi yang masuk</p>
-       </div><button id="refresh-data-btn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200"> <i class="fas fa-sync-alt mr-2"></i> Refresh Data </button>
+       </div>
+       <div class="flex space-x-3"><button id="refresh-data-btn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200"> <i class="fas fa-sync-alt mr-2"></i> Refresh Data </button> <button id="debug-load-btn" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition duration-200"> <i class="fas fa-bug mr-2"></i> Debug Load </button>
+       </div>
       </div>
       <div class="bg-white rounded-lg shadow overflow-hidden">
        <div class="overflow-x-auto">
@@ -695,10 +697,51 @@ function getSheetData() {
                     try {
                         const result = JSON.parse(responseText);
                         if (result.success && result.data) {
+                            debugLog(`Raw data from Google Sheets: ${JSON.stringify(result.data)}`);
+                            
                             // Convert Google Sheets data to our format
                             const convertedData = result.data.map((row, index) => {
-                                if (row.length >= 16) {
-                                    return {
+                                debugLog(`Processing row ${index}: ${JSON.stringify(row)}`);
+                                
+                                // Check if row has data (skip empty rows)
+                                if (row && row.length > 0 && row[1]) { // Check if nama_pemohon exists
+                                    // Safe date parsing function
+                                    const parseDate = (dateValue) => {
+                                        if (!dateValue) return new Date().toISOString();
+                                        
+                                        try {
+                                            // Handle different date formats from Google Sheets
+                                            let parsedDate;
+                                            
+                                            if (typeof dateValue === 'string') {
+                                                // Try parsing as ISO string first
+                                                if (dateValue.includes('T') || dateValue.includes('Z')) {
+                                                    parsedDate = new Date(dateValue);
+                                                } else {
+                                                    // Try parsing as date string (DD/MM/YYYY or similar)
+                                                    parsedDate = new Date(dateValue);
+                                                }
+                                            } else if (typeof dateValue === 'number') {
+                                                // Excel/Google Sheets serial date number
+                                                parsedDate = new Date((dateValue - 25569) * 86400 * 1000);
+                                            } else {
+                                                parsedDate = new Date(dateValue);
+                                            }
+                                            
+                                            // Check if date is valid
+                                            if (isNaN(parsedDate.getTime())) {
+                                                debugLog(`⚠️ Invalid date value: ${dateValue}, using current date`);
+                                                return new Date().toISOString();
+                                            }
+                                            
+                                            return parsedDate.toISOString();
+                                        } catch (error) {
+                                            debugLog(`❌ Date parsing error for value "${dateValue}": ${error.message}`);
+                                            return new Date().toISOString();
+                                        }
+                                    };
+                                    
+                                    const convertedRow = {
                                         __backendId: `gs_${index}`,
                                         id: row[0] || `REQ-${Date.now()}-${index}`,
                                         nama_pemohon: row[1] || '',
@@ -713,32 +756,52 @@ function getSheetData() {
                                         bentuk_salinan: row[10] || '',
                                         cara_mendapat_salinan: row[11] || '',
                                         petugas_pelayanan: row[12] || '',
-                                        tanggal_permohonan: row[13] ? new Date(row[13]).toISOString() : new Date().toISOString(),
+                                        tanggal_permohonan: parseDate(row[13]),
                                         status: row[14] || 'Menunggu',
                                         type: row[15] || 'permohonan'
                                     };
+                                    
+                                    debugLog(`Converted row ${index}: ${JSON.stringify(convertedRow)}`);
+                                    return convertedRow;
                                 }
                                 return null;
                             }).filter(item => item !== null);
 
                             debugLog(`✅ Loaded ${convertedData.length} records from Google Sheets`);
+                            debugLog(`Converted data: ${JSON.stringify(convertedData, null, 2)}`);
                             
                             // Update local data
                             allData = convertedData;
                             currentRecordCount = convertedData.length;
                             
-                            // Update UI
+                            // Force update UI immediately
+                            debugLog('Updating UI with loaded data...');
                             updateStatistics();
                             updatePermohonanTable();
+                            
+                            // Also trigger Data SDK update if available
+                            if (window.dataSdk && dataHandler.onDataChanged) {
+                                debugLog('Triggering Data SDK onDataChanged...');
+                                dataHandler.onDataChanged(convertedData);
+                            }
                             
                             showNotification(`${convertedData.length} data berhasil dimuat dari Google Sheets`, 'success');
                             return convertedData;
                         } else {
                             debugLog(`❌ Load failed: ${result.error || 'No data returned'}`);
+                            debugLog(`Result object: ${JSON.stringify(result)}`);
+                            
+                            // Show empty state
+                            allData = [];
+                            currentRecordCount = 0;
+                            updateStatistics();
+                            updatePermohonanTable();
+                            
                             return [];
                         }
                     } catch (parseError) {
                         debugLog(`❌ JSON parse error: ${parseError.message}`);
+                        debugLog(`Response text that failed to parse: ${responseText}`);
                         return [];
                     }
                 } else {
@@ -1216,34 +1279,97 @@ function getSheetData() {
         }
 
         function updatePermohonanTable() {
+            debugLog('=== UPDATE PERMOHONAN TABLE STARTED ===');
             const tbody = document.getElementById('permohonan-table-body');
-            const permohonanData = allData.filter(item => item.type === 'permohonan');
             
+            if (!tbody) {
+                debugLog('❌ Table body element not found!');
+                return;
+            }
+            
+            debugLog(`Total allData: ${allData.length}`);
+            debugLog(`All data: ${JSON.stringify(allData, null, 2)}`);
+            
+            // Filter permohonan data (include all types for now to debug)
+            const permohonanData = allData.filter(item => {
+                const isPermohonan = !item.type || item.type === 'permohonan';
+                debugLog(`Item ${item.id}: type="${item.type}", isPermohonan=${isPermohonan}`);
+                return isPermohonan;
+            });
+            
+            debugLog(`Filtered permohonan data: ${permohonanData.length}`);
+            debugLog(`Permohonan data: ${JSON.stringify(permohonanData, null, 2)}`);
+            
+            // Clear existing content
             tbody.innerHTML = '';
             
-            permohonanData.forEach((item, index) => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${index + 1}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.nama_pemohon}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${new Date(item.tanggal_permohonan).toLocaleDateString('id-ID')}</td>
-                    <td class="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">${item.rincian_informasi}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(item.status)}">
-                            ${item.status}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button onclick="viewDetail('${item.id}')" class="text-blue-600 hover:text-blue-900 mr-2">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button onclick="editStatus('${item.id}')" class="text-green-600 hover:text-green-900">
-                            <i class="fas fa-edit"></i>
-                        </button>
+            if (permohonanData.length === 0) {
+                debugLog('No permohonan data found, showing empty message');
+                const emptyRow = document.createElement('tr');
+                emptyRow.innerHTML = `
+                    <td colspan="6" class="px-6 py-8 text-center text-gray-500">
+                        <i class="fas fa-inbox text-4xl mb-2 block"></i>
+                        Belum ada data permohonan
                     </td>
                 `;
-                tbody.appendChild(row);
-            });
+                tbody.appendChild(emptyRow);
+                debugLog('Empty message added to table');
+            } else {
+                debugLog(`Creating ${permohonanData.length} table rows...`);
+                
+                permohonanData.forEach((item, index) => {
+                    debugLog(`Creating row ${index + 1} for item: ${JSON.stringify(item)}`);
+                    
+                    try {
+                        const row = document.createElement('tr');
+                        
+                        // Safe date formatting
+                        let tanggalFormatted = 'Tidak ada tanggal';
+                        if (item.tanggal_permohonan) {
+                            try {
+                                const date = new Date(item.tanggal_permohonan);
+                                if (!isNaN(date.getTime())) {
+                                    tanggalFormatted = date.toLocaleDateString('id-ID');
+                                } else {
+                                    debugLog(`⚠️ Invalid date for item ${item.id}: ${item.tanggal_permohonan}`);
+                                }
+                            } catch (dateError) {
+                                debugLog(`❌ Date formatting error for item ${item.id}: ${dateError.message}`);
+                            }
+                        }
+                        
+                        row.innerHTML = `
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${index + 1}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.nama_pemohon || 'Tidak ada nama'}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${tanggalFormatted}</td>
+                            <td class="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">${item.rincian_informasi || 'Tidak ada rincian'}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(item.status)}">
+                                    ${item.status || 'Menunggu'}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button onclick="viewDetail('${item.id}')" class="text-blue-600 hover:text-blue-900 mr-2">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button onclick="editStatus('${item.id}')" class="text-green-600 hover:text-green-900">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                        debugLog(`Row ${index + 1} added successfully`);
+                    } catch (rowError) {
+                        debugLog(`❌ Error creating row ${index + 1}: ${rowError.message}`);
+                        // Continue with next row instead of breaking
+                    }
+                });
+                
+                debugLog(`✅ All ${permohonanData.length} rows processed`);
+            }
+            
+            debugLog(`Final table HTML length: ${tbody.innerHTML.length} characters`);
+            debugLog('=== UPDATE PERMOHONAN TABLE COMPLETED ===');
         }
 
         function getStatusColor(status) {
@@ -1340,11 +1466,48 @@ function getSheetData() {
             }
         });
 
+        // Debug load button functionality
+        document.getElementById('debug-load-btn').addEventListener('click', async function() {
+            const originalText = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Debug...';
+            this.disabled = true;
+            
+            try {
+                debugLog('=== MANUAL DEBUG LOAD STARTED ===');
+                debugLog(`Apps Script Connected: ${appsScriptConnected}`);
+                debugLog(`Current allData length: ${allData.length}`);
+                debugLog(`Current allData: ${JSON.stringify(allData, null, 2)}`);
+                
+                // Force load regardless of connection status
+                debugLog('Forcing data load from Apps Script...');
+                const loadedData = await loadDataFromAppsScript();
+                
+                debugLog(`Loaded data length: ${loadedData.length}`);
+                debugLog(`Final allData length: ${allData.length}`);
+                
+                // Force UI update
+                debugLog('Force updating UI...');
+                updateStatistics();
+                updatePermohonanTable();
+                
+                // Show current table state
+                const tableBody = document.getElementById('permohonan-table-body');
+                debugLog(`Table body HTML: ${tableBody.innerHTML}`);
+                
+                showNotification(`Debug selesai. Data: ${allData.length} records`, 'info');
+                debugLog('=== MANUAL DEBUG LOAD COMPLETED ===');
+                
+            } finally {
+                this.innerHTML = originalText;
+                this.disabled = false;
+            }
+        });
+
         // Initialize app when page loads
         document.addEventListener('DOMContentLoaded', function() {
             debugLog('DOM loaded, initializing app...');
             initializeApp();
         });
     </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9962183d7739445e',t:'MTc2MTczNDg0NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9962252e80396042',t:'MTc2MTczNTM3NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
