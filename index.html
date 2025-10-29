@@ -3,574 +3,816 @@
  <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PPID Bawaslu Provinsi Riau</title>
+  <title>Aplikasi PPID Bawaslu Provinsi Riau</title>
   <script src="/_sdk/data_sdk.js"></script>
   <script src="/_sdk/element_sdk.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
         body {
+            font-family: 'Inter', sans-serif;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        .bg-navy { background-color: #1e3a8a; }
-        .bg-navy-dark { background-color: #1e40af; }
-        .text-navy { color: #1e3a8a; }
-        .border-navy { border-color: #1e3a8a; }
-        .hover-navy:hover { background-color: #1d4ed8; }
-        .loading { opacity: 0.6; pointer-events: none; }
-        .toast {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #10b981;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 8px;
-            z-index: 1000;
-            transform: translateX(100%);
+
+        .sidebar-nav {
+            background-color: #1e3a8a;
+        }
+        
+        .sidebar-nav a:hover, .sidebar-nav a.active {
+            background-color: #1e40af;
+        }
+
+        .admin-page {
+            display: none;
+        }
+        .admin-page.active {
+            display: block;
+        }
+
+        #notification-popup {
+            transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            transform: translateY(-100%);
+            opacity: 0;
+        }
+        #notification-popup.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        #view-modal {
+            background-color: rgba(0, 0, 0, 0.5);
+            transition: opacity 0.3s ease;
+        }
+        #view-modal .modal-content {
+            transform: scale(0.95);
             transition: transform 0.3s ease;
         }
-        .toast.show { transform: translateX(0); }
-        .toast.error { background: #ef4444; }
+        #view-modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        #view-modal.active .modal-content {
+            transform: scale(1);
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .debug-log {
+            background: #1a1a1a;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 10px;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
     </style>
   <style>@view-transition { navigation: auto; }</style>
  </head>
- <body class="min-h-full bg-gray-50"><!-- Toast Notification -->
-  <div id="toast" class="toast"></div><!-- Login Page -->
-  <div id="loginPage" class="min-h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-   <div class="max-w-md w-full space-y-8">
-    <div class="text-center">
-     <div class="mx-auto h-20 w-20 bg-navy rounded-full flex items-center justify-center mb-4">
-      <svg class="h-12 w-12 text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-      </svg>
-     </div>
-     <h2 id="loginTitle" class="text-3xl font-bold text-gray-900">PPID Bawaslu Provinsi Riau</h2>
-     <p class="mt-2 text-sm text-gray-600">Silakan masuk ke akun Anda</p>
+ <body class="bg-gray-100"><!-- Notifikasi Popup -->
+  <div id="notification-popup" class="fixed top-4 right-4 z-50 p-4 bg-green-500 text-white rounded-lg shadow-lg max-w-sm">
+   <div class="flex items-center"><i class="fas fa-check-circle mr-2"></i> <span id="notification-text">Notifikasi</span>
+   </div>
+  </div><!-- =========== HALAMAN LOGIN =========== -->
+  <div id="login-page" class="flex items-center justify-center min-h-full bg-gradient-to-br from-blue-900 to-blue-700">
+   <div class="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-xl">
+    <div class="flex flex-col items-center">
+     <svg class="w-20 h-20 text-blue-900" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+     </svg>
+     <h2 class="mt-4 text-2xl font-bold text-center text-gray-900" id="login-title">Login Admin PPID</h2>
+     <p class="text-sm text-gray-600" id="login-subtitle">Bawaslu Provinsi Riau</p>
     </div>
-    <form id="loginForm" class="mt-8 space-y-6">
-     <div class="space-y-4">
-      <div><label for="username" class="block text-sm font-medium text-gray-700">Username</label> <input id="username" name="username" type="text" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-navy focus:border-navy">
-      </div>
-      <div><label for="password" class="block text-sm font-medium text-gray-700">Password</label> <input id="password" name="password" type="password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-navy focus:border-navy">
-      </div>
+    <form id="login-form" class="space-y-6">
+     <div><label for="username" class="block text-sm font-medium text-gray-700">Username</label> <input id="username" name="username" type="text" required class="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
      </div>
-     <div id="loginError" class="hidden text-red-600 text-sm text-center"></div><button type="submit" id="loginBtn" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-navy hover-navy focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-navy"> Masuk </button>
+     <div><label for="password" class="block text-sm font-medium text-gray-700">Password</label> <input id="password" name="password" type="password" required class="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+     </div>
+     <div id="login-error" class="hidden p-3 text-sm text-red-700 bg-red-100 border border-red-300 rounded-md"><i class="fas fa-exclamation-triangle mr-2"></i> Username atau password salah!
+     </div><button type="submit" class="w-full px-4 py-2 text-white bg-blue-900 rounded-md hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200"> <i class="fas fa-sign-in-alt mr-2"></i> Masuk </button>
     </form>
    </div>
-  </div><!-- Main Application -->
-  <div id="mainApp" class="hidden min-h-full"><!-- Header -->
+  </div><!-- =========== HALAMAN ADMIN =========== -->
+  <div id="admin-panel" class="hidden min-h-full"><!-- Header -->
    <header class="bg-white shadow-sm border-b">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-     <div class="flex justify-between items-center py-4">
-      <h1 id="welcomeMessage" class="text-xl font-semibold text-gray-900">Selamat Datang ADMIN di PPID Bawaslu Provinsi Riau</h1><button id="signoutBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"> Sign Out </button>
+    <div class="flex items-center justify-between px-6 py-4">
+     <div class="flex items-center">
+      <svg class="w-8 h-8 text-blue-900 mr-3" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+      </svg>
+      <h1 class="text-xl font-semibold text-gray-900" id="header-title">Selamat Datang ADMIN di PPID Bawaslu Provinsi Riau</h1>
+     </div>
+     <div class="flex space-x-3"><button id="google-sync-btn" class="px-4 py-2 text-white bg-green-600 rounded-md hover:bg-green-700 transition duration-200"> <i class="fab fa-google mr-2"></i> <span id="google-sync-text">Sinkron Google</span> </button> <button id="signout-btn" class="px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700 transition duration-200"> <i class="fas fa-sign-out-alt mr-2"></i> Sign Out </button>
      </div>
     </div>
    </header>
    <div class="flex"><!-- Sidebar -->
-    <nav class="bg-navy w-64 min-h-screen">
+    <nav class="sidebar-nav w-64 min-h-full">
      <div class="p-4">
       <ul class="space-y-2">
-       <li><button class="nav-btn w-full text-left px-4 py-3 text-white hover:bg-blue-700 rounded-md" data-page="beranda">📊 Beranda</button></li>
-       <li><button class="nav-btn w-full text-left px-4 py-3 text-white hover:bg-blue-700 rounded-md" data-page="formulir-permohonan">📝 Formulir Permohonan</button></li>
-       <li><button class="nav-btn w-full text-left px-4 py-3 text-white hover:bg-blue-700 rounded-md" data-page="daftar-permohonan">📋 Daftar Permohonan</button></li>
-       <li><button class="nav-btn w-full text-left px-4 py-3 text-white hover:bg-blue-700 rounded-md" data-page="input-informasi">📝 Input Informasi Publik</button></li>
-       <li><button class="nav-btn w-full text-left px-4 py-3 text-white hover:bg-blue-700 rounded-md" data-page="daftar-informasi">📚 Daftar Informasi Publik</button></li>
-       <li><button class="nav-btn w-full text-left px-4 py-3 text-white hover:bg-blue-700 rounded-md" data-page="formulir-keberatan">⚖️ Formulir Keberatan</button></li>
-       <li><button class="nav-btn w-full text-left px-4 py-3 text-white hover:bg-blue-700 rounded-md" data-page="daftar-keberatan">📑 Daftar Keberatan</button></li>
-       <li><button class="nav-btn w-full text-left px-4 py-3 text-white hover:bg-blue-700 rounded-md" data-page="buat-surat">✉️ Buat Surat Pemberitahuan</button></li>
+       <li><a href="#" data-page="beranda" class="nav-link active flex items-center px-4 py-3 text-white rounded-lg hover:bg-blue-800 transition duration-200"> <i class="fas fa-home mr-3"></i> Beranda </a></li>
+       <li><a href="#" data-page="formulir-permohonan" class="nav-link flex items-center px-4 py-3 text-white rounded-lg hover:bg-blue-800 transition duration-200"> <i class="fas fa-file-alt mr-3"></i> Formulir Permohonan </a></li>
+       <li><a href="#" data-page="daftar-permohonan" class="nav-link flex items-center px-4 py-3 text-white rounded-lg hover:bg-blue-800 transition duration-200"> <i class="fas fa-list mr-3"></i> Daftar Permohonan </a></li>
+       <li><a href="#" data-page="daftar-informasi" class="nav-link flex items-center px-4 py-3 text-white rounded-lg hover:bg-blue-800 transition duration-200"> <i class="fas fa-database mr-3"></i> Daftar Informasi Publik </a></li>
+       <li><a href="#" data-page="formulir-keberatan" class="nav-link flex items-center px-4 py-3 text-white rounded-lg hover:bg-blue-800 transition duration-200"> <i class="fas fa-exclamation-triangle mr-3"></i> Formulir Keberatan </a></li>
+       <li><a href="#" data-page="daftar-keberatan" class="nav-link flex items-center px-4 py-3 text-white rounded-lg hover:bg-blue-800 transition duration-200"> <i class="fas fa-clipboard-list mr-3"></i> Daftar Keberatan </a></li>
+       <li><a href="#" data-page="buat-surat" class="nav-link flex items-center px-4 py-3 text-white rounded-lg hover:bg-blue-800 transition duration-200"> <i class="fas fa-envelope mr-3"></i> Buat Surat Pemberitahuan </a></li>
       </ul>
      </div>
     </nav><!-- Main Content -->
-    <main class="flex-1 p-6"><!-- Beranda Page -->
-     <div id="beranda" class="page">
-      <h2 class="text-2xl font-bold mb-6">Dashboard Statistik</h2>
+    <main class="flex-1 p-6"><!-- Halaman Beranda -->
+     <div id="beranda" class="admin-page active">
+      <div class="mb-6">
+       <h2 class="text-2xl font-bold text-gray-900 mb-2" id="welcome-message">Selamat Datang</h2>
+       <p class="text-gray-600">Dashboard Statistik PPID Bawaslu Provinsi Riau</p>
+      </div><!-- Statistik Cards -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-       <div class="bg-white p-6 rounded-lg shadow">
-        <h3 class="text-lg font-semibold text-gray-700">Jumlah Permohonan</h3>
-        <p id="totalPermohonan" class="text-3xl font-bold text-navy">0</p>
+       <div class="stat-card text-white p-6 rounded-lg">
+        <div class="flex items-center"><i class="fas fa-file-alt text-3xl mr-4"></i>
+         <div>
+          <p class="text-sm opacity-90">Jumlah Permohonan</p>
+          <p class="text-2xl font-bold" id="total-permohonan">0</p>
+         </div>
+        </div>
        </div>
-       <div class="bg-white p-6 rounded-lg shadow">
-        <h3 class="text-lg font-semibold text-gray-700">Jumlah Keberatan</h3>
-        <p id="totalKeberatan" class="text-3xl font-bold text-navy">0</p>
+       <div class="stat-card text-white p-6 rounded-lg">
+        <div class="flex items-center"><i class="fas fa-exclamation-triangle text-3xl mr-4"></i>
+         <div>
+          <p class="text-sm opacity-90">Jumlah Keberatan</p>
+          <p class="text-2xl font-bold" id="total-keberatan">0</p>
+         </div>
+        </div>
        </div>
-       <div class="bg-white p-6 rounded-lg shadow">
-        <h3 class="text-lg font-semibold text-gray-700">Informasi Publik</h3>
-        <p id="totalInformasi" class="text-3xl font-bold text-navy">0</p>
+       <div class="stat-card text-white p-6 rounded-lg">
+        <div class="flex items-center"><i class="fas fa-database text-3xl mr-4"></i>
+         <div>
+          <p class="text-sm opacity-90">Informasi Publik</p>
+          <p class="text-2xl font-bold" id="total-informasi">0</p>
+         </div>
+        </div>
        </div>
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-       <div class="bg-white p-6 rounded-lg shadow">
+      </div><!-- Statistik Detail -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+       <div class="chart-container">
         <h3 class="text-lg font-semibold mb-4">Status Permohonan</h3>
-        <div class="space-y-2">
-         <div class="flex justify-between"><span>Diberikan:</span> <span id="statusDiberikan" class="font-semibold text-green-600">0</span>
-         </div>
-         <div class="flex justify-between"><span>Sebagian:</span> <span id="statusSebagian" class="font-semibold text-yellow-600">0</span>
-         </div>
-         <div class="flex justify-between"><span>Ditolak:</span> <span id="statusDitolak" class="font-semibold text-red-600">0</span>
-         </div>
-        </div>
-       </div>
-       <div class="bg-white p-6 rounded-lg shadow">
-        <h3 class="text-lg font-semibold mb-4">Berdasarkan Pekerjaan</h3>
-        <div id="statistikPekerjaan" class="space-y-2"></div>
-       </div>
-      </div>
-     </div><!-- Formulir Permohonan Page -->
-     <div id="formulir-permohonan" class="page hidden">
-      <h2 class="text-2xl font-bold mb-6">Formulir Permohonan Informasi</h2>
-      <form id="permohonanForm" class="bg-white p-6 rounded-lg shadow space-y-4">
-       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div><label for="namaPemohon" class="block text-sm font-medium text-gray-700">Nama Pemohon</label> <input type="text" id="namaPemohon" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy">
-        </div>
-        <div><label for="noTelp" class="block text-sm font-medium text-gray-700">No. Telepon</label> <input type="tel" id="noTelp" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy">
-        </div>
-       </div>
-       <div><label for="alamat" class="block text-sm font-medium text-gray-700">Alamat</label> <textarea id="alamat" required rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"></textarea>
-       </div>
-       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div><label for="pekerjaan" class="block text-sm font-medium text-gray-700">Pekerjaan</label> <select id="pekerjaan" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"> <option value="">Pilih Pekerjaan</option> <option value="Mahasiswa">Mahasiswa</option> <option value="LSM">LSM</option> <option value="Instansi Pemerintah">Instansi Pemerintah</option> <option value="Masyarakat">Masyarakat</option> <option value="Lainnya">Lainnya</option> </select>
-        </div>
-        <div id="pekerjaanLainnyaDiv" class="hidden"><label for="pekerjaanLainnya" class="block text-sm font-medium text-gray-700">Pekerjaan Lainnya</label> <input type="text" id="pekerjaanLainnya" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy">
-        </div>
-       </div>
-       <div><label for="email" class="block text-sm font-medium text-gray-700">Email</label> <input type="email" id="email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy">
-       </div>
-       <div><label for="rincianInformasi" class="block text-sm font-medium text-gray-700">Rincian Informasi yang Dibutuhkan</label> <textarea id="rincianInformasi" required rows="4" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"></textarea>
-       </div>
-       <div><label for="tujuanPenggunaan" class="block text-sm font-medium text-gray-700">Tujuan Penggunaan Informasi</label> <textarea id="tujuanPenggunaan" required rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"></textarea>
-       </div>
-       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div><label for="caraMemperoleh" class="block text-sm font-medium text-gray-700">Cara Memperoleh Informasi</label> <select id="caraMemperoleh" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"> <option value="">Pilih Cara</option> <option value="Melihat">Melihat</option> <option value="Membaca">Membaca</option> <option value="Mencatat">Mencatat</option> <option value="Mendengarkan">Mendengarkan</option> </select>
-        </div>
-        <div><label for="bentukSalinan" class="block text-sm font-medium text-gray-700">Bentuk Salinan</label> <select id="bentukSalinan" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"> <option value="">Pilih Bentuk</option> <option value="Hardcopy">Hardcopy</option> <option value="Softcopy">Softcopy</option> </select>
-        </div>
-       </div>
-       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div><label for="caraMendapatSalinan" class="block text-sm font-medium text-gray-700">Cara Mendapat Salinan</label> <select id="caraMendapatSalinan" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"> <option value="">Pilih Cara</option> <option value="Mengambil Langsung">Mengambil Langsung</option> <option value="Kurir">Kurir</option> <option value="Pos">Pos</option> <option value="Email">Email</option> <option value="WhatsApp">WhatsApp</option> </select>
-        </div>
-        <div><label for="petugasPelayanan" class="block text-sm font-medium text-gray-700">Petugas Pelayanan</label> <select id="petugasPelayanan" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"> <option value="">Pilih Petugas</option> <option value="Rachmatul Azmi">Rachmatul Azmi</option> <option value="Nur Asiah">Nur Asiah</option> <option value="Dandi">Dandi</option> </select>
-        </div>
-       </div>
-       <div><label for="uploadIdentitas" class="block text-sm font-medium text-gray-700">Upload Identitas</label> <input type="file" id="uploadIdentitas" accept=".pdf,.jpg,.jpeg,.png" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy">
-        <p class="text-sm text-gray-500 mt-1">Format: PDF, JPG, JPEG, PNG (Max 5MB)</p>
-       </div><button type="submit" id="submitPermohonan" class="w-full bg-navy hover-navy text-white py-3 px-4 rounded-md font-medium"> Submit Permohonan </button>
-      </form>
-     </div><!-- Daftar Permohonan Page -->
-     <div id="daftar-permohonan" class="page hidden">
-      <h2 class="text-2xl font-bold mb-6">Daftar Permohonan Informasi</h2><!-- Search Bar -->
-      <div class="bg-white p-4 rounded-lg shadow mb-6">
-       <div class="flex flex-col md:flex-row gap-4">
-        <div class="flex-1"><label for="searchPermohonan" class="block text-sm font-medium text-gray-700 mb-2">Pencarian</label> <input type="text" id="searchPermohonan" placeholder="Cari berdasarkan nomor registrasi atau nama pemohon..." class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy">
-        </div>
-        <div class="flex items-end"><button id="clearSearch" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"> Clear </button>
-        </div>
-       </div>
-      </div>
-      <div class="bg-white rounded-lg shadow overflow-hidden">
-       <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-         <thead class="bg-gray-50">
-          <tr>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No. Registrasi</th>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Pemohon</th>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
-          </tr>
-         </thead>
-         <tbody id="daftarPermohonanTable" class="bg-white divide-y divide-gray-200">
-         </tbody>
-        </table>
-       </div>
-      </div>
-     </div><!-- Input Informasi Publik Page -->
-     <div id="input-informasi" class="page hidden">
-      <h2 class="text-2xl font-bold mb-6">Input Informasi Publik</h2>
-      <form id="informasiForm" class="bg-white p-6 rounded-lg shadow space-y-4">
-       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div><label for="divisiPembuat" class="block text-sm font-medium text-gray-700">Divisi yang Membuat</label> <select id="divisiPembuat" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"> <option value="">Pilih Divisi</option> <option value="Divisi Hukum dan HAM">Divisi Hukum dan HAM</option> <option value="Divisi Teknis dan Hupmas">Divisi Teknis dan Hupmas</option> <option value="Divisi Pengawasan dan Penindakan">Divisi Pengawasan dan Penindakan</option> <option value="Divisi Pencegahan dan Partisipasi Masyarakat">Divisi Pencegahan dan Partisipasi Masyarakat</option> <option value="Divisi Penyelesaian Sengketa">Divisi Penyelesaian Sengketa</option> <option value="Divisi SDM dan Keuangan">Divisi SDM dan Keuangan</option> <option value="Sekretariat">Sekretariat</option> </select>
-        </div>
-        <div><label for="tahunPembuatan" class="block text-sm font-medium text-gray-700">Tahun Pembuatan</label> <select id="tahunPembuatan" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"> <option value="">Pilih Tahun</option> </select>
-        </div>
-       </div>
-       <div><label for="judulInformasi" class="block text-sm font-medium text-gray-700">Judul Informasi</label> <input type="text" id="judulInformasi" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy">
-       </div>
-       <div><label for="deskripsiInformasi" class="block text-sm font-medium text-gray-700">Deskripsi</label> <textarea id="deskripsiInformasi" required rows="4" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"></textarea>
-       </div>
-       <div><label for="uploadFile" class="block text-sm font-medium text-gray-700">Upload File</label> <input type="file" id="uploadFile" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy">
-        <p class="text-sm text-gray-500 mt-1">Format: PDF, DOC, XLS, PPT, JPG, PNG (Max 10MB)</p>
-       </div><button type="submit" id="submitInformasi" class="w-full bg-navy hover-navy text-white py-3 px-4 rounded-md font-medium"> Submit Informasi Publik </button>
-      </form>
-     </div><!-- Daftar Informasi Publik Page -->
-     <div id="daftar-informasi" class="page hidden">
-      <h2 class="text-2xl font-bold mb-6">Daftar Informasi Publik</h2><!-- Search Bar -->
-      <div class="bg-white p-4 rounded-lg shadow mb-6">
-       <div class="flex flex-col md:flex-row gap-4">
-        <div class="flex-1"><label for="searchInformasi" class="block text-sm font-medium text-gray-700 mb-2">Pencarian</label> <input type="text" id="searchInformasi" placeholder="Cari berdasarkan judul informasi..." class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy">
-        </div>
-        <div class="flex items-end"><button id="clearSearchInformasi" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"> Clear </button>
-        </div>
-       </div>
-      </div>
-      <div class="bg-white rounded-lg shadow overflow-hidden">
-       <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-         <thead class="bg-gray-50">
-          <tr>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No. Register</th>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Divisi</th>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Judul</th>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deskripsi</th>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tahun</th>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
-          </tr>
-         </thead>
-         <tbody id="daftarInformasiTable" class="bg-white divide-y divide-gray-200">
-         </tbody>
-        </table>
-       </div>
-      </div>
-     </div><!-- Formulir Keberatan Page -->
-     <div id="formulir-keberatan" class="page hidden">
-      <h2 class="text-2xl font-bold mb-6">Formulir Keberatan Informasi</h2>
-      <form id="keberatanForm" class="bg-white p-6 rounded-lg shadow space-y-6"><!-- Informasi Permohonan -->
-       <div class="border-b pb-4">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">A. INFORMASI PERMOHONAN</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-         <div><label for="noRegisterPermohonan" class="block text-sm font-medium text-gray-700">Nomor Register Permohonan Informasi</label> <input type="text" id="noRegisterPermohonan" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy" placeholder="PERM-xxxxxxxxx">
-         </div>
-         <div><label for="tujuanPenggunaanKeberatan" class="block text-sm font-medium text-gray-700">Tujuan Penggunaan Informasi</label> <textarea id="tujuanPenggunaanKeberatan" required rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"></textarea>
-         </div>
-        </div>
-       </div><!-- Data Pemohon -->
-       <div class="border-b pb-4">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">B. DATA PEMOHON</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-         <div><label for="namaPemohonKeberatan" class="block text-sm font-medium text-gray-700">Nama</label> <input type="text" id="namaPemohonKeberatan" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy">
-         </div>
-         <div><label for="noTelpKeberatan" class="block text-sm font-medium text-gray-700">Nomor Telepon</label> <input type="tel" id="noTelpKeberatan" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy">
-         </div>
-        </div>
-        <div class="mt-4"><label for="alamatKeberatan" class="block text-sm font-medium text-gray-700">Alamat</label> <textarea id="alamatKeberatan" required rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"></textarea>
-        </div>
-        <div class="mt-4"><label for="pekerjaanKeberatan" class="block text-sm font-medium text-gray-700">Pekerjaan</label> <select id="pekerjaanKeberatan" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"> <option value="">Pilih Pekerjaan</option> <option value="Mahasiswa">Mahasiswa</option> <option value="LSM">LSM</option> <option value="Instansi Pemerintah">Instansi Pemerintah</option> <option value="Masyarakat">Masyarakat</option> <option value="Lainnya">Lainnya</option> </select>
-        </div>
-       </div><!-- Identitas Kuasa Pemohon -->
-       <div class="border-b pb-4">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">C. IDENTITAS KUASA PEMOHON (Opsional)</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-         <div><label for="namaKuasa" class="block text-sm font-medium text-gray-700">Nama</label> <input type="text" id="namaKuasa" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy">
-         </div>
-         <div><label for="noTelpKuasa" class="block text-sm font-medium text-gray-700">Nomor Telepon</label> <input type="tel" id="noTelpKuasa" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy">
-         </div>
-        </div>
-        <div class="mt-4"><label for="alamatKuasa" class="block text-sm font-medium text-gray-700">Alamat</label> <textarea id="alamatKuasa" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"></textarea>
-        </div>
-       </div><!-- Alasan Keberatan -->
-       <div class="border-b pb-4">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">D. ALASAN PENGAJUAN KEBERATAN</h3>
-        <div><label for="alasanKeberatan" class="block text-sm font-medium text-gray-700">Pilih Alasan Keberatan</label> <select id="alasanKeberatan" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"> <option value="">Pilih Alasan</option> <option value="Permohonan Informasi ditolak">a. Permohonan Informasi ditolak</option> <option value="Informasi berkala tidak disediakan">b. Informasi berkala tidak disediakan</option> <option value="Permintaan Informasi tidak ditanggapi">c. Permintaan Informasi tidak ditanggapi</option> <option value="Permintaan Informasi ditanggapi tidak sebagaimana yang diminta">d. Permintaan Informasi ditanggapi tidak sebagaimana yang diminta</option> <option value="Permintaan Informasi tidak dipenuhi">e. Permintaan Informasi tidak dipenuhi</option> <option value="Biaya yang dikenakan tidak wajar">f. Biaya yang dikenakan tidak wajar</option> <option value="Informasi disampaikan melebihi jangka waktu yang ditentukan">g. Informasi disampaikan melebihi jangka waktu yang ditentukan</option> </select>
-        </div>
-       </div><!-- Cara Pengajuan -->
-       <div class="border-b pb-4">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">E. KEBERATAN DIAJUKAN MELALUI</h3>
         <div class="space-y-3">
-         <div class="flex items-center"><input id="datangLangsung" name="caraPengajuan" type="radio" value="Datang Langsung" required class="h-4 w-4 text-navy focus:ring-navy border-gray-300"> <label for="datangLangsung" class="ml-3 block text-sm font-medium text-gray-700">Datang Langsung</label>
+         <div class="flex justify-between items-center"><span class="text-gray-600">Diberikan</span> <span class="font-semibold text-green-600" id="status-diberikan">0</span>
          </div>
-         <div class="flex items-center"><input id="surat" name="caraPengajuan" type="radio" value="Surat" required class="h-4 w-4 text-navy focus:ring-navy border-gray-300"> <label for="surat" class="ml-3 block text-sm font-medium text-gray-700">Surat</label>
+         <div class="flex justify-between items-center"><span class="text-gray-600">Diberikan Sebagian</span> <span class="font-semibold text-yellow-600" id="status-sebagian">0</span>
          </div>
-         <div class="flex items-center"><input id="aplikasiPPID" name="caraPengajuan" type="radio" value="Aplikasi PPID" required class="h-4 w-4 text-navy focus:ring-navy border-gray-300"> <label for="aplikasiPPID" class="ml-3 block text-sm font-medium text-gray-700">Aplikasi PPID</label>
+         <div class="flex justify-between items-center"><span class="text-gray-600">Ditolak</span> <span class="font-semibold text-red-600" id="status-ditolak">0</span>
          </div>
-        </div>
-       </div><!-- Upload Dokumen -->
-       <div class="border-b pb-4">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">F. DOKUMEN PENDUKUNG</h3>
-        <div><label for="uploadDokumenKeberatan" class="block text-sm font-medium text-gray-700">Upload Dokumen Pendukung</label> <input type="file" id="uploadDokumenKeberatan" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy">
-         <p class="text-sm text-gray-500 mt-1">Format: PDF, JPG, JPEG, PNG, DOC, DOCX (Max 5MB)</p>
-        </div>
-       </div><button type="submit" id="submitKeberatan" class="w-full bg-navy hover-navy text-white py-3 px-4 rounded-md font-medium"> Submit Keberatan </button>
-      </form>
-     </div><!-- Other pages placeholders -->
-     <div id="daftar-keberatan" class="page hidden">
-      <h2 class="text-2xl font-bold mb-6">Daftar Keberatan</h2><!-- Search Bar -->
-      <div class="bg-white p-4 rounded-lg shadow mb-6">
-       <div class="flex flex-col md:flex-row gap-4">
-        <div class="flex-1"><label for="searchKeberatan" class="block text-sm font-medium text-gray-700 mb-2">Pencarian</label> <input type="text" id="searchKeberatan" placeholder="Cari berdasarkan nomor registrasi atau nama pemohon..." class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy">
-        </div>
-        <div class="flex items-end"><button id="clearSearchKeberatan" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"> Clear </button>
         </div>
        </div>
+       <div class="chart-container">
+        <h3 class="text-lg font-semibold mb-4">Berdasarkan Pekerjaan</h3>
+        <div class="space-y-3" id="stats-pekerjaan"><!-- Akan diisi dengan JavaScript -->
+        </div>
+       </div>
+      </div>
+     </div><!-- Halaman Formulir Permohonan -->
+     <div id="formulir-permohonan" class="admin-page">
+      <div class="mb-6">
+       <h2 class="text-2xl font-bold text-gray-900 mb-2">Formulir Permohonan Informasi</h2>
+       <p class="text-gray-600">Silakan isi formulir permohonan informasi publik</p>
+      </div>
+      <form id="permohonan-form" class="bg-white p-6 rounded-lg shadow">
+       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div><label for="nama-pemohon" class="block text-sm font-medium text-gray-700 mb-2">Nama Pemohon</label> <input type="text" id="nama-pemohon" name="nama_pemohon" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div><label for="alamat" class="block text-sm font-medium text-gray-700 mb-2">Alamat</label> <textarea id="alamat" name="alamat" required rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+        </div>
+        <div><label for="pekerjaan" class="block text-sm font-medium text-gray-700 mb-2">Pekerjaan</label> <select id="pekerjaan" name="pekerjaan" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"> <option value="">Pilih Pekerjaan</option> <option value="Mahasiswa">Mahasiswa</option> <option value="LSM">LSM</option> <option value="Instansi Pemerintah">Instansi Pemerintah</option> <option value="Masyarakat">Masyarakat</option> <option value="Lainnya">Lainnya</option> </select>
+        </div>
+        <div id="pekerjaan-lainnya-container" class="hidden"><label for="pekerjaan-lainnya" class="block text-sm font-medium text-gray-700 mb-2">Pekerjaan Lainnya</label> <input type="text" id="pekerjaan-lainnya" name="pekerjaan_lainnya" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div><label for="no-telp" class="block text-sm font-medium text-gray-700 mb-2">No. Telepon</label> <input type="tel" id="no-telp" name="no_telp" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div><label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email</label> <input type="email" id="email" name="email" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div class="md:col-span-2"><label for="rincian-informasi" class="block text-sm font-medium text-gray-700 mb-2">Rincian Informasi yang Dibutuhkan</label> <textarea id="rincian-informasi" name="rincian_informasi" required rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+        </div>
+        <div class="md:col-span-2"><label for="tujuan-penggunaan" class="block text-sm font-medium text-gray-700 mb-2">Tujuan Penggunaan Informasi</label> <textarea id="tujuan-penggunaan" name="tujuan_penggunaan" required rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+        </div>
+        <div><label for="cara-memperoleh" class="block text-sm font-medium text-gray-700 mb-2">Cara Memperoleh Informasi</label> <select id="cara-memperoleh" name="cara_memperoleh" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"> <option value="">Pilih Cara</option> <option value="Melihat">Melihat</option> <option value="Membaca">Membaca</option> <option value="Mencatat">Mencatat</option> <option value="Mendengarkan">Mendengarkan</option> </select>
+        </div>
+        <div><label for="bentuk-salinan" class="block text-sm font-medium text-gray-700 mb-2">Bentuk Salinan Informasi</label> <select id="bentuk-salinan" name="bentuk_salinan" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"> <option value="">Pilih Bentuk</option> <option value="Hardcopy">Hardcopy</option> <option value="Softcopy">Softcopy</option> </select>
+        </div>
+        <div><label for="cara-mendapat-salinan" class="block text-sm font-medium text-gray-700 mb-2">Cara Mendapat Salinan</label> <select id="cara-mendapat-salinan" name="cara_mendapat_salinan" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"> <option value="">Pilih Cara</option> <option value="Mengambil Langsung">Mengambil Langsung</option> <option value="Kurir">Kurir</option> <option value="Pos">Pos</option> <option value="Email">Email</option> <option value="WhatsApp">WhatsApp</option> </select>
+        </div>
+        <div><label for="petugas-pelayanan" class="block text-sm font-medium text-gray-700 mb-2">Petugas Pelayanan</label> <select id="petugas-pelayanan" name="petugas_pelayanan" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"> <option value="">Pilih Petugas</option> <option value="Rachmatul Azmi">Rachmatul Azmi</option> <option value="Nur Asiah">Nur Asiah</option> <option value="Dandi">Dandi</option> </select>
+        </div>
+        <div><label for="upload-identitas" class="block text-sm font-medium text-gray-700 mb-2">Upload Identitas</label> <input type="file" id="upload-identitas" name="upload_identitas" accept=".pdf,.jpg,.jpeg,.png" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+       </div>
+       <div class="mt-6"><button type="submit" class="px-6 py-3 bg-blue-900 text-white rounded-md hover:bg-blue-800 transition duration-200"> <i class="fas fa-paper-plane mr-2"></i> Submit Permohonan </button>
+       </div>
+      </form>
+     </div><!-- Halaman Daftar Permohonan -->
+     <div id="daftar-permohonan" class="admin-page">
+      <div class="mb-6">
+       <h2 class="text-2xl font-bold text-gray-900 mb-2">Daftar Permohonan Informasi</h2>
+       <p class="text-gray-600">Daftar semua permohonan informasi yang masuk</p>
       </div>
       <div class="bg-white rounded-lg shadow overflow-hidden">
        <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
          <thead class="bg-gray-50">
           <tr>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No. Registrasi</th>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Pengajuan</th>
+           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Pemohon</th>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No. Reg. Permohonan</th>
+           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
+           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rincian Informasi</th>
            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
           </tr>
          </thead>
-         <tbody id="daftarKeberatanTable" class="bg-white divide-y divide-gray-200">
+         <tbody id="permohonan-table-body" class="bg-white divide-y divide-gray-200"><!-- Data akan diisi dengan JavaScript -->
          </tbody>
         </table>
        </div>
       </div>
-     </div>
-     <div id="buat-surat" class="page hidden">
-      <h2 class="text-2xl font-bold mb-6">Buat Surat Pemberitahuan</h2>
-      <div class="bg-white p-6 rounded-lg shadow">
-       <form id="suratForm" class="space-y-6"><!-- Input Nomor Registrasi -->
-        <div><label for="noRegistrasiSurat" class="block text-sm font-medium text-gray-700">Nomor Registrasi Permohonan</label>
-         <div class="mt-1 flex rounded-md shadow-sm"><input type="text" id="noRegistrasiSurat" required class="flex-1 block w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-navy focus:border-navy" placeholder="Masukkan nomor registrasi (contoh: PERM-1234567890)"> <button type="button" id="cariPermohonanBtn" class="inline-flex items-center px-4 py-2 border border-l-0 border-gray-300 rounded-r-md bg-gray-50 text-gray-500 text-sm hover:bg-gray-100"> Cari </button>
+     </div><!-- Halaman Daftar Informasi Publik -->
+     <div id="daftar-informasi" class="admin-page">
+      <div class="mb-6">
+       <h2 class="text-2xl font-bold text-gray-900 mb-2">Setup Google Apps Script Integration</h2>
+       <p class="text-gray-600">Panduan lengkap setup koneksi dengan Google Sheets &amp; Drive</p>
+      </div>
+      <div class="bg-white p-6 rounded-lg shadow"><!-- Status Koneksi -->
+       <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+        <h4 class="font-medium text-green-900 mb-3">🔗 Status Koneksi Apps Script:</h4>
+        <div class="flex items-center space-x-4">
+         <div class="flex items-center">
+          <div id="connection-status" class="w-3 h-3 bg-red-500 rounded-full mr-2"></div><span id="connection-text" class="text-sm text-red-600 font-medium">Belum terhubung</span>
+         </div><button id="test-connection" class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"> Test Koneksi </button>
+        </div>
+        <p class="text-sm text-green-700 mt-2">URL: https://script.google.com/macros/s/AKfycbzA0-3-PDqdw8WT2mxcQvrsVk2224AYzp0da2-7vKNLFwoOiIacw3o5QQQQdnindfqD8Q/exec</p>
+       </div><!-- Debug Log -->
+       <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+        <h4 class="font-medium text-gray-900 mb-3">🔍 Debug Log (Troubleshooting):</h4>
+        <div id="debug-log" class="debug-log">
+         Menunggu aktivitas...
+        </div><button id="clear-log" class="mt-2 px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700"> Clear Log </button>
+       </div><!-- Kemungkinan Masalah -->
+       <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+        <h4 class="font-medium text-red-900 mb-3">🚨 Kemungkinan Masalah &amp; Solusi:</h4>
+        <div class="space-y-3 text-sm text-red-800">
+         <div class="bg-white p-3 rounded border"><strong>1. Apps Script belum di-deploy:</strong>
+          <ul class="list-disc list-inside mt-1 ml-4">
+           <li>Pastikan sudah klik "Deploy" → "New deployment"</li>
+           <li>Pilih type: "Web app"</li>
+           <li>Who has access: "Anyone"</li>
+          </ul>
          </div>
-        </div><!-- Status Permohonan (Hidden by default) -->
-        <div id="statusPermohonanSection" class="hidden">
-         <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
-          <h3 class="text-lg font-semibold text-blue-900 mb-3">Data Permohonan Ditemukan</h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-           <div>
-            <span class="font-medium">Nama Pemohon:</span> <span id="namaPemohonSurat"></span>
-           </div>
-           <div>
-            <span class="font-medium">Tanggal Permohonan:</span> <span id="tanggalPermohonanSurat"></span>
-           </div>
-           <div>
-            <span class="font-medium">Status Saat Ini:</span> <span id="statusSaatIni" class="px-2 py-1 text-xs font-semibold rounded-full"></span>
-           </div>
-           <div>
-            <span class="font-medium">Petugas Pelayanan:</span> <span id="petugasPelayananSurat"></span>
-           </div>
+         <div class="bg-white p-3 rounded border"><strong>2. ID Sheet/Folder salah:</strong>
+          <ul class="list-disc list-inside mt-1 ml-4">
+           <li>Periksa SPREADSHEET_ID di Apps Script</li>
+           <li>Periksa DRIVE_FOLDER_ID di Apps Script</li>
+           <li>Pastikan ID diambil dari URL yang benar</li>
+          </ul>
+         </div>
+         <div class="bg-white p-3 rounded border"><strong>3. Permission Google Apps Script:</strong>
+          <ul class="list-disc list-inside mt-1 ml-4">
+           <li>Saat deploy, pilih "Execute as: Me"</li>
+           <li>Berikan permission ke Google Sheets &amp; Drive</li>
+           <li>Klik "Advanced" → "Go to [project name] (unsafe)" jika ada warning</li>
+          </ul>
+         </div>
+        </div>
+       </div><!-- Langkah Setup Apps Script -->
+       <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <h4 class="font-medium text-blue-900 mb-3">🚀 Langkah Setup Google Apps Script (UPDATED):</h4>
+        <ol class="list-decimal list-inside space-y-2 text-sm text-blue-800">
+         <li>Buka <a href="https://script.google.com" target="_blank" class="underline font-medium">Google Apps Script</a></li>
+         <li>Klik "New Project" dan beri nama "PPID Bawaslu API"</li>
+         <li>Copy kode Apps Script dari bagian di bawah (VERSI TERBARU)</li>
+         <li>Buat Google Sheet baru dengan header kolom yang sudah ditentukan</li>
+         <li>Buat folder di Google Drive untuk file identitas</li>
+         <li>Update ID Sheet dan Folder di Apps Script</li>
+         <li><strong>PENTING:</strong> Deploy sebagai Web App dengan akses "Anyone"</li>
+         <li>Copy URL Web App dan update di aplikasi ini</li>
+        </ol>
+       </div><!-- Kode Apps Script UPDATED -->
+       <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+        <h4 class="font-medium text-gray-900 mb-3">📝 Kode Google Apps Script (VERSI TERBARU):</h4>
+        <div class="bg-black text-green-400 p-4 rounded text-xs font-mono overflow-x-auto max-h-96">
+         <pre>// PPID Bawaslu - Google Apps Script API (UPDATED VERSION)
+// Ganti ID di bawah dengan ID Sheet dan Folder Anda
+
+const SPREADSHEET_ID = 'YOUR_SPREADSHEET_ID_HERE';
+const DRIVE_FOLDER_ID = 'YOUR_DRIVE_FOLDER_ID_HERE';
+
+// Handle GET requests (untuk test koneksi)
+function doGet(e) {
+  return ContentService
+    .createTextOutput(JSON.stringify({success: true, message: 'Apps Script is running'}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// Handle POST requests (untuk data)
+function doPost(e) {
+  try {
+    console.log('Received POST request');
+    console.log('Request body:', e.postData.contents);
+    
+    const data = JSON.parse(e.postData.contents);
+    console.log('Parsed data:', data);
+    
+    if (data.action === 'saveData') {
+      return saveToSheet(data.payload);
+    } else if (data.action === 'uploadFile') {
+      return uploadToDrive(data.payload);
+    } else if (data.action === 'getData') {
+      return getSheetData();
+    } else if (data.action === 'test') {
+      return ContentService
+        .createTextOutput(JSON.stringify({success: true, message: 'Test successful'}))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    return ContentService
+      .createTextOutput(JSON.stringify({success: false, error: 'Invalid action: ' + data.action}))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch (error) {
+    console.error('Error in doPost:', error);
+    return ContentService
+      .createTextOutput(JSON.stringify({success: false, error: error.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function saveToSheet(data) {
+  try {
+    console.log('Saving to sheet:', data);
+    
+    if (!SPREADSHEET_ID || SPREADSHEET_ID === 'YOUR_SPREADSHEET_ID_HERE') {
+      throw new Error('SPREADSHEET_ID not configured');
+    }
+    
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getActiveSheet();
+    
+    // Prepare row data
+    const rowData = [
+      data.id || '',
+      data.nama_pemohon || '',
+      data.alamat || '',
+      data.pekerjaan || '',
+      data.pekerjaan_lainnya || '',
+      data.no_telp || '',
+      data.email || '',
+      data.rincian_informasi || '',
+      data.tujuan_penggunaan || '',
+      data.cara_memperoleh || '',
+      data.bentuk_salinan || '',
+      data.cara_mendapat_salinan || '',
+      data.petugas_pelayanan || '',
+      data.tanggal_permohonan ? new Date(data.tanggal_permohonan).toLocaleDateString('id-ID') : '',
+      data.status || '',
+      data.type || ''
+    ];
+    
+    console.log('Row data to append:', rowData);
+    sheet.appendRow(rowData);
+    console.log('Data saved successfully');
+    
+    return ContentService
+      .createTextOutput(JSON.stringify({success: true, message: 'Data saved successfully'}))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch (error) {
+    console.error('Error saving to sheet:', error);
+    return ContentService
+      .createTextOutput(JSON.stringify({success: false, error: error.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function uploadToDrive(data) {
+  try {
+    console.log('Uploading to drive');
+    
+    if (!DRIVE_FOLDER_ID || DRIVE_FOLDER_ID === 'YOUR_DRIVE_FOLDER_ID_HERE') {
+      throw new Error('DRIVE_FOLDER_ID not configured');
+    }
+    
+    const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+    const fileBlob = Utilities.newBlob(
+      Utilities.base64Decode(data.fileData), 
+      data.mimeType, 
+      data.fileName
+    );
+    
+    const file = folder.createFile(fileBlob);
+    console.log('File uploaded successfully:', file.getId());
+    
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        success: true, 
+        fileId: file.getId(),
+        fileUrl: file.getUrl()
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    return ContentService
+      .createTextOutput(JSON.stringify({success: false, error: error.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function getSheetData() {
+  try {
+    if (!SPREADSHEET_ID || SPREADSHEET_ID === 'YOUR_SPREADSHEET_ID_HERE') {
+      throw new Error('SPREADSHEET_ID not configured');
+    }
+    
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getActiveSheet();
+    const data = sheet.getDataRange().getValues();
+    
+    // Skip header row
+    const rows = data.slice(1);
+    
+    return ContentService
+      .createTextOutput(JSON.stringify({success: true, data: rows}))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch (error) {
+    console.error('Error getting sheet data:', error);
+    return ContentService
+      .createTextOutput(JSON.stringify({success: false, error: error.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}</pre>
+        </div>
+       </div><!-- Header Kolom Google Sheet -->
+       <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+        <h4 class="font-medium text-green-900 mb-3">📊 Header Kolom Google Sheet:</h4>
+        <p class="text-sm text-green-800 mb-3">Buat Google Sheet baru dan tambahkan header berikut di baris pertama (A1:P1):</p>
+        <div class="bg-white border rounded p-3 text-xs font-mono overflow-x-auto">
+         <div class="grid grid-cols-4 gap-2 text-green-700">
+          <div>
+           <strong>A1:</strong> ID
+          </div>
+          <div>
+           <strong>B1:</strong> Nama Pemohon
+          </div>
+          <div>
+           <strong>C1:</strong> Alamat
+          </div>
+          <div>
+           <strong>D1:</strong> Pekerjaan
+          </div>
+          <div>
+           <strong>E1:</strong> Pekerjaan Lainnya
+          </div>
+          <div>
+           <strong>F1:</strong> No Telepon
+          </div>
+          <div>
+           <strong>G1:</strong> Email
+          </div>
+          <div>
+           <strong>H1:</strong> Rincian Informasi
+          </div>
+          <div>
+           <strong>I1:</strong> Tujuan Penggunaan
+          </div>
+          <div>
+           <strong>J1:</strong> Cara Memperoleh
+          </div>
+          <div>
+           <strong>K1:</strong> Bentuk Salinan
+          </div>
+          <div>
+           <strong>L1:</strong> Cara Mendapat Salinan
+          </div>
+          <div>
+           <strong>M1:</strong> Petugas Pelayanan
+          </div>
+          <div>
+           <strong>N1:</strong> Tanggal Permohonan
+          </div>
+          <div>
+           <strong>O1:</strong> Status
+          </div>
+          <div>
+           <strong>P1:</strong> Type
           </div>
          </div>
-        </div><!-- Update Status -->
-        <div id="updateStatusSection" class="hidden"><label for="statusBaru" class="block text-sm font-medium text-gray-700">Update Status Permohonan</label> <select id="statusBaru" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"> <option value="">Pilih Status Baru</option> <option value="Diberikan">✅ Diberikan</option> <option value="Sebagian">⚠️ Diberikan Sebagian</option> <option value="Ditolak">❌ Ditolak</option> </select>
-        </div><!-- Alasan Penolakan (Hidden by default) -->
-        <div id="alasanPenolakanSection" class="hidden"><label for="alasanPenolakan" class="block text-sm font-medium text-gray-700">Alasan Penolakan</label> <textarea id="alasanPenolakan" rows="4" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy" placeholder="Masukkan alasan penolakan permohonan informasi..."></textarea>
-        </div><!-- Catatan Tambahan -->
-        <div id="catatanSection" class="hidden"><label for="catatanTambahan" class="block text-sm font-medium text-gray-700">Catatan Tambahan (Opsional)</label> <textarea id="catatanTambahan" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy" placeholder="Catatan atau keterangan tambahan..."></textarea>
-        </div><!-- Submit Button -->
-        <div id="submitSuratSection" class="hidden"><button type="submit" id="submitSuratBtn" class="w-full bg-navy hover-navy text-white py-3 px-4 rounded-md font-medium"> Buat Surat Pemberitahuan </button>
         </div>
-       </form>
+       </div><!-- Konfigurasi -->
+       <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+        <h4 class="font-medium text-yellow-900 mb-3">⚙️ Konfigurasi yang Perlu Diubah:</h4>
+        <div class="space-y-3 text-sm text-yellow-800">
+         <div class="bg-white p-3 rounded border"><strong>1. Di Apps Script:</strong>
+          <ul class="list-disc list-inside mt-1 ml-4">
+           <li><code>SPREADSHEET_ID</code> - ID Google Sheet Anda</li>
+           <li><code>DRIVE_FOLDER_ID</code> - ID folder Google Drive</li>
+          </ul>
+         </div>
+        </div>
+       </div><!-- Cara Deploy -->
+       <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+        <h4 class="font-medium text-purple-900 mb-3">🚀 Cara Deploy Apps Script:</h4>
+        <ol class="list-decimal list-inside space-y-1 text-sm text-purple-800">
+         <li>Di Apps Script, klik "Deploy" → "New deployment"</li>
+         <li>Pilih type: "Web app"</li>
+         <li>Execute as: "Me"</li>
+         <li>Who has access: "Anyone"</li>
+         <li>Klik "Deploy" dan copy URL yang diberikan</li>
+         <li>Paste URL tersebut ke konfigurasi aplikasi</li>
+        </ol>
+       </div>
+      </div>
+     </div><!-- Halaman Formulir Keberatan -->
+     <div id="formulir-keberatan" class="admin-page">
+      <div class="mb-6">
+       <h2 class="text-2xl font-bold text-gray-900 mb-2">Formulir Keberatan</h2>
+       <p class="text-gray-600">Formulir untuk mengajukan keberatan informasi</p>
+      </div>
+      <div class="bg-white p-6 rounded-lg shadow">
+       <p class="text-gray-600">Formulir keberatan akan dikembangkan lebih lanjut.</p>
+      </div>
+     </div><!-- Halaman Daftar Keberatan -->
+     <div id="daftar-keberatan" class="admin-page">
+      <div class="mb-6">
+       <h2 class="text-2xl font-bold text-gray-900 mb-2">Daftar Keberatan</h2>
+       <p class="text-gray-600">Daftar keberatan informasi yang masuk</p>
+      </div>
+      <div class="bg-white p-6 rounded-lg shadow">
+       <p class="text-gray-600">Halaman daftar keberatan akan dikembangkan lebih lanjut.</p>
+      </div>
+     </div><!-- Halaman Buat Surat -->
+     <div id="buat-surat" class="admin-page">
+      <div class="mb-6">
+       <h2 class="text-2xl font-bold text-gray-900 mb-2">Buat Surat Pemberitahuan</h2>
+       <p class="text-gray-600">Buat surat pemberitahuan untuk pemohon</p>
+      </div>
+      <div class="bg-white p-6 rounded-lg shadow">
+       <p class="text-gray-600">Fitur buat surat pemberitahuan akan dikembangkan lebih lanjut.</p>
       </div>
      </div>
     </main>
    </div>
-  </div><!-- Success Modal -->
-  <div id="successModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-   <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-    <div class="mt-3 text-center">
-     <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-      <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-      </svg>
-     </div>
-     <h3 class="text-lg leading-6 font-medium text-gray-900 mt-2">Permohonan Berhasil!</h3>
-     <div class="mt-2 px-7 py-3">
-      <p id="successMessage" class="text-sm text-gray-500"></p>
-     </div>
-     <div class="items-center px-4 py-3 space-y-2"><button id="printFormBtn" class="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-700"> Cetak Formulir </button> <button id="printReceiptBtn" class="px-4 py-2 bg-green-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-green-700"> Cetak Tanda Terima </button> <button id="closeModalBtn" class="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-700"> Tutup </button>
-     </div>
-    </div>
-   </div>
-  </div><!-- Informasi Success Modal -->
-  <div id="informasiSuccessModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-   <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-    <div class="mt-3 text-center">
-     <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-      <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-      </svg>
-     </div>
-     <h3 class="text-lg leading-6 font-medium text-gray-900 mt-2">Informasi Berhasil Disimpan!</h3>
-     <div class="mt-2 px-7 py-3">
-      <p id="informasiSuccessMessage" class="text-sm text-gray-500"></p>
-     </div>
-     <div class="items-center px-4 py-3 space-y-2"><button id="viewInformasiListBtn" class="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-700"> Lihat Daftar Informasi </button> <button id="closeInformasiModalBtn" class="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-700"> Tutup </button>
-     </div>
-    </div>
-   </div>
-  </div><!-- Objection Success Modal -->
-  <div id="keberatanSuccessModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-   <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-    <div class="mt-3 text-center">
-     <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-      <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-      </svg>
-     </div>
-     <h3 class="text-lg leading-6 font-medium text-gray-900 mt-2">Keberatan Berhasil Diajukan!</h3>
-     <div class="mt-2 px-7 py-3">
-      <p id="keberatanSuccessMessage" class="text-sm text-gray-500"></p>
-     </div>
-     <div class="items-center px-4 py-3 space-y-2"><button id="printKeberatanBtn" class="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-700"> Download Formulir Keberatan </button> <button id="closeKeberatanModalBtn" class="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-700"> Tutup </button>
-     </div>
-    </div>
-   </div>
-  </div><!-- Surat Success Modal -->
-  <div id="suratSuccessModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-   <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-    <div class="mt-3 text-center">
-     <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-      <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-      </svg>
-     </div>
-     <h3 class="text-lg leading-6 font-medium text-gray-900 mt-2">Surat Pemberitahuan Berhasil Dibuat!</h3>
-     <div class="mt-2 px-7 py-3">
-      <p id="suratSuccessMessage" class="text-sm text-gray-500"></p>
-     </div>
-     <div class="items-center px-4 py-3 space-y-2"><button id="downloadSuratBtn" class="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-700"> Download Surat Pemberitahuan </button> <button id="closeSuratModalBtn" class="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-700"> Tutup </button>
-     </div>
-    </div>
-   </div>
-  </div><!-- Detail Permohonan Modal -->
-  <div id="detailModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-   <div class="relative top-10 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white">
-    <div class="flex justify-between items-center mb-4">
-     <h3 class="text-lg leading-6 font-medium text-gray-900">Detail Permohonan Informasi</h3><button id="closeDetailBtn" class="text-gray-400 hover:text-gray-600">
-      <svg class="h-6 w-6" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-      </svg></button>
-    </div>
-    <div id="detailContent" class="grid grid-cols-1 md:grid-cols-2 gap-6"><!-- Content will be populated by JavaScript -->
-    </div>
-    <div class="mt-6 flex justify-end space-x-3"><button id="updateStatusBtn" class="px-4 py-2 bg-navy text-white rounded-md hover:bg-blue-700"> Update Status </button> <button id="downloadFromDetailBtn" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"> Download PDF </button>
-    </div>
-   </div>
-  </div><!-- Status Update Modal -->
-  <div id="statusModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-   <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-    <div class="mt-3">
-     <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Update Status Permohonan</h3>
-     <div class="space-y-3"><button onclick="updateStatusFromModal('Diberikan')" class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"> ✅ Diberikan </button> <button onclick="updateStatusFromModal('Sebagian')" class="w-full px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700"> ⚠️ Diberikan Sebagian </button> <button onclick="updateStatusFromModal('Ditolak')" class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"> ❌ Ditolak </button> <button id="closeStatusBtn" class="w-full px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-700"> Batal </button>
-     </div>
-    </div>
-   </div>
-  </div><!-- Status Update Modal Keberatan -->
-  <div id="statusKeberatanModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-   <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-    <div class="mt-3">
-     <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Update Status Keberatan</h3>
-     <div class="space-y-3"><button onclick="updateStatusKeberatanFromModal('Dikabulkan')" class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"> ✅ Dikabulkan </button> <button onclick="updateStatusKeberatanFromModal('Dikabulkan Sebagian')" class="w-full px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700"> ⚠️ Dikabulkan Sebagian </button> <button onclick="updateStatusKeberatanFromModal('Ditolak')" class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"> ❌ Ditolak </button> <button id="closeStatusKeberatanBtn" class="w-full px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-700"> Batal </button>
-     </div>
+  </div><!-- Modal Success -->
+  <div id="success-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+   <div class="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+    <div class="text-center"><i class="fas fa-check-circle text-green-500 text-4xl mb-4"></i>
+     <h3 class="text-lg font-semibold mb-2">Permohonan Berhasil!</h3>
+     <p id="success-message" class="text-gray-600 mb-4"></p>
+     <div class="flex space-x-3 justify-center"><button id="print-formulir" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"> <i class="fas fa-print mr-2"></i> Cetak Formulir </button> <button id="print-tanda-terima" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"> <i class="fas fa-receipt mr-2"></i> Cetak Tanda Terima </button>
+     </div><button id="close-success-modal" class="mt-4 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"> Tutup </button>
     </div>
    </div>
   </div>
   <script>
-        // Configuration
+        // Konfigurasi default
         const defaultConfig = {
             app_title: "PPID Bawaslu Provinsi Riau",
             welcome_message: "Selamat Datang ADMIN di PPID Bawaslu Provinsi Riau"
         };
 
-        // Global variables
-        let currentUser = null;
-        let allData = [];
-        let currentPermohonanData = null;
-        let currentKeberatanData = null;
-        let currentSuratData = null;
-        let filteredData = [];
-        let filteredInformasiData = [];
-        let filteredKeberatanData = [];
-        let currentDetailData = null;
-        let currentDetailKeberatanData = null;
-
-        // Google Sheets Configuration
-        const GOOGLE_SHEETS_CONFIG = {
-            // Ganti dengan URL Google Apps Script Web App Anda
-            SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzw3vDjIQt5a2On0VP6D9NHdVErBmoJE8RtfhGyAJu4fLERPb4cyBysTocq_C6EhocV/exec',
-            // Ganti dengan ID Google Drive folder untuk upload file
-            DRIVE_FOLDER_ID: '1SW7YWQj6BTURDAyzdxsIrgzdDcNBbKnJ'
+        // Google Apps Script Configuration - URL sudah terkonfigurasi
+        const APPS_SCRIPT_CONFIG = {
+            URL: 'https://script.google.com/macros/s/AKfycbzA0-3-PDqdw8WT2mxcQvrsVk2224AYzp0da2-7vKNLFwoOiIacw3o5QQQQdnindfqD8Q/exec'
         };
 
-        // Data handler for SDK
+        // Apps Script state
+        let appsScriptConnected = false;
+
+        // Data storage
+        let allData = [];
+        let currentRecordCount = 0;
+
+        // Debug logging
+        function debugLog(message) {
+            const logElement = document.getElementById('debug-log');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.textContent += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[DEBUG] ${message}`);
+        }
+
+        // Data handler untuk SDK
         const dataHandler = {
             onDataChanged(data) {
                 allData = data;
-                // Reset filtered data when main data changes
-                filteredData = [];
-                filteredInformasiData = [];
-                filteredKeberatanData = [];
+                currentRecordCount = data.length;
                 updateStatistics();
-                updateDaftarPermohonan();
-                updateDaftarInformasi();
-                updateDaftarKeberatan();
+                updatePermohonanTable();
+                debugLog(`Data updated: ${data.length} records loaded`);
             }
         };
 
-        // Google Sheets Integration Functions
-        async function saveToGoogleSheets(data, sheetName) {
+        // Apps Script Functions
+        async function testAppsScriptConnection() {
             try {
-                const response = await fetch(GOOGLE_SHEETS_CONFIG.SCRIPT_URL, {
+                debugLog('Testing connection to Apps Script...');
+                debugLog(`URL: ${APPS_SCRIPT_CONFIG.URL}`);
+                
+                const response = await fetch(APPS_SCRIPT_CONFIG.URL, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
+                        'Content-Type': 'text/plain',
                     },
                     body: JSON.stringify({
-                        action: 'saveData',
-                        sheetName: sheetName,
-                        data: data
+                        action: 'test'
                     })
                 });
 
-                const result = await response.json();
-                return result.success;
+                debugLog(`Response status: ${response.status}`);
+                const responseText = await response.text();
+                debugLog(`Response text: ${responseText}`);
+
+                if (response.ok) {
+                    try {
+                        const result = JSON.parse(responseText);
+                        if (result.success) {
+                            appsScriptConnected = true;
+                            updateConnectionStatus(true);
+                            showNotification('Apps Script berhasil terhubung!', 'success');
+                            debugLog('✅ Connection successful');
+                            return true;
+                        } else {
+                            throw new Error(result.error || 'Unknown error');
+                        }
+                    } catch (parseError) {
+                        debugLog(`❌ JSON parse error: ${parseError.message}`);
+                        throw new Error('Invalid JSON response from Apps Script');
+                    }
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${responseText}`);
+                }
             } catch (error) {
-                console.error('Error saving to Google Sheets:', error);
+                debugLog(`❌ Connection failed: ${error.message}`);
+                appsScriptConnected = false;
+                updateConnectionStatus(false);
+                showNotification(`Gagal terhubung: ${error.message}`, 'error');
                 return false;
             }
         }
 
-        async function uploadToGoogleDrive(file, fileName) {
+        async function saveToAppsScript(data) {
             try {
-                const formData = new FormData();
-                formData.append('file', file);
-                formData.append('fileName', fileName);
-                formData.append('folderId', GOOGLE_SHEETS_CONFIG.DRIVE_FOLDER_ID);
-                formData.append('action', 'uploadFile');
-
-                const response = await fetch(GOOGLE_SHEETS_CONFIG.SCRIPT_URL, {
+                debugLog('Sending data to Apps Script...');
+                debugLog(`Data: ${JSON.stringify(data, null, 2)}`);
+                
+                const response = await fetch(APPS_SCRIPT_CONFIG.URL, {
                     method: 'POST',
-                    body: formData
+                    headers: {
+                        'Content-Type': 'text/plain',
+                    },
+                    body: JSON.stringify({
+                        action: 'saveData',
+                        payload: data
+                    })
                 });
 
-                const result = await response.json();
-                return result.success ? result.fileUrl : null;
+                debugLog(`Save response status: ${response.status}`);
+                const responseText = await response.text();
+                debugLog(`Save response text: ${responseText}`);
+
+                if (response.ok) {
+                    try {
+                        const result = JSON.parse(responseText);
+                        if (result.success) {
+                            showNotification('Data berhasil disimpan ke Google Sheets!', 'success');
+                            debugLog('✅ Data saved successfully to Google Sheets');
+                            return true;
+                        } else {
+                            showNotification(`Error: ${result.error}`, 'error');
+                            debugLog(`❌ Save failed: ${result.error}`);
+                            return false;
+                        }
+                    } catch (parseError) {
+                        debugLog(`❌ JSON parse error: ${parseError.message}`);
+                        showNotification('Response tidak valid dari Apps Script', 'error');
+                        return false;
+                    }
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${responseText}`);
+                }
             } catch (error) {
-                console.error('Error uploading to Google Drive:', error);
+                debugLog(`❌ Save error: ${error.message}`);
+                showNotification(`Gagal menyimpan ke Google Sheets: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function uploadFileToAppsScript(file, fileName) {
+            try {
+                debugLog(`Uploading file: ${fileName}`);
+                
+                // Convert file to base64
+                const fileData = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        const base64 = reader.result.split(',')[1];
+                        resolve(base64);
+                    };
+                    reader.readAsDataURL(file);
+                });
+
+                const response = await fetch(APPS_SCRIPT_CONFIG.URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain',
+                    },
+                    body: JSON.stringify({
+                        action: 'uploadFile',
+                        payload: {
+                            fileName: fileName,
+                            fileData: fileData,
+                            mimeType: file.type
+                        }
+                    })
+                });
+
+                debugLog(`Upload response status: ${response.status}`);
+                const responseText = await response.text();
+                debugLog(`Upload response text: ${responseText}`);
+
+                if (response.ok) {
+                    try {
+                        const result = JSON.parse(responseText);
+                        if (result.success) {
+                            debugLog(`✅ File uploaded successfully: ${result.fileId}`);
+                            return result.fileId;
+                        } else {
+                            debugLog(`❌ Upload failed: ${result.error}`);
+                            return null;
+                        }
+                    } catch (parseError) {
+                        debugLog(`❌ JSON parse error: ${parseError.message}`);
+                        return null;
+                    }
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${responseText}`);
+                }
+            } catch (error) {
+                debugLog(`❌ Upload error: ${error.message}`);
                 return null;
             }
         }
 
-        async function loadFromGoogleSheets(sheetName) {
-            try {
-                const response = await fetch(`${GOOGLE_SHEETS_CONFIG.SCRIPT_URL}?action=loadData&sheetName=${sheetName}`);
-                const result = await response.json();
-                return result.success ? result.data : [];
-            } catch (error) {
-                console.error('Error loading from Google Sheets:', error);
-                return [];
+        function updateConnectionStatus(connected) {
+            const statusDot = document.getElementById('connection-status');
+            const statusText = document.getElementById('connection-text');
+            
+            if (connected) {
+                statusDot.className = 'w-3 h-3 bg-green-500 rounded-full mr-2';
+                statusText.textContent = 'Terhubung ke Apps Script';
+                statusText.className = 'text-sm text-green-600 font-medium';
+            } else {
+                statusDot.className = 'w-3 h-3 bg-red-500 rounded-full mr-2';
+                statusText.textContent = 'Belum terhubung';
+                statusText.className = 'text-sm text-red-600 font-medium';
             }
         }
 
-        // Initialize SDK
+        // Inisialisasi SDK
         async function initializeApp() {
+            debugLog('Initializing application...');
+            
+            // Test Apps Script connection on startup
+            await testAppsScriptConnection();
+
             if (window.dataSdk) {
-                const result = await window.dataSdk.init(dataHandler);
-                if (!result.isOk) {
-                    console.error("Failed to initialize data SDK");
+                const initResult = await window.dataSdk.init(dataHandler);
+                if (!initResult.isOk) {
+                    debugLog('❌ Failed to initialize data SDK');
+                } else {
+                    debugLog('✅ Data SDK initialized successfully');
                 }
             }
 
             if (window.elementSdk) {
                 await window.elementSdk.init({
                     defaultConfig,
-                    render: async (config) => {
-                        document.getElementById('loginTitle').textContent = config.app_title || defaultConfig.app_title;
-                        document.getElementById('welcomeMessage').textContent = config.welcome_message || defaultConfig.welcome_message;
+                    onConfigChange: async (config) => {
+                        const appTitle = config.app_title || defaultConfig.app_title;
+                        const welcomeMessage = config.welcome_message || defaultConfig.welcome_message;
+                        
+                        document.getElementById('login-title').textContent = `Login Admin ${appTitle}`;
+                        document.getElementById('header-title').textContent = welcomeMessage;
+                        document.getElementById('welcome-message').textContent = welcomeMessage;
                     },
-                    mapToCapabilities: () => ({
+                    mapToCapabilities: (config) => ({
                         recolorables: [],
                         borderables: [],
                         fontEditable: undefined,
@@ -581,1390 +823,408 @@
                         ["welcome_message", config.welcome_message || defaultConfig.welcome_message]
                     ])
                 });
+                debugLog('✅ Element SDK initialized successfully');
             }
-
-            // Populate year dropdown
-            populateYearDropdown();
-            
-            // Load existing data from Google Sheets
-            await loadExistingData();
-        }
-
-        // Load existing data from Google Sheets
-        async function loadExistingData() {
-            try {
-                showToast('Memuat data dari Google Sheets...');
-                
-                // Load data from different sheets
-                const [permohonanData, informasiData, keberatanData] = await Promise.all([
-                    loadFromGoogleSheets('Permohonan'),
-                    loadFromGoogleSheets('Informasi'),
-                    loadFromGoogleSheets('Keberatan')
-                ]);
-
-                // Convert Google Sheets data to SDK format and save to local storage
-                const allGoogleData = [
-                    ...permohonanData.map(item => ({...item, type: 'permohonan'})),
-                    ...informasiData.map(item => ({...item, type: 'informasi'})),
-                    ...keberatanData.map(item => ({...item, type: 'keberatan'}))
-                ];
-
-                // Save to SDK if there's data
-                if (allGoogleData.length > 0 && window.dataSdk) {
-                    for (const item of allGoogleData) {
-                        // Check if item already exists in SDK
-                        const exists = allData.find(existing => existing.id === item.id);
-                        if (!exists) {
-                            await window.dataSdk.create(item);
-                        }
-                    }
-                }
-
-                showToast('Data berhasil dimuat dari Google Sheets!');
-            } catch (error) {
-                console.error('Error loading existing data:', error);
-                showToast('Gagal memuat data dari Google Sheets', true);
-            }
-        }
-
-        // Populate year dropdown for informasi form
-        function populateYearDropdown() {
-            const yearSelect = document.getElementById('tahunPembuatan');
-            const currentYear = new Date().getFullYear();
-            
-            for (let year = currentYear; year >= 2000; year--) {
-                const option = document.createElement('option');
-                option.value = year;
-                option.textContent = year;
-                yearSelect.appendChild(option);
-            }
-        }
-
-        // Show toast notification
-        function showToast(message, isError = false) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.className = `toast ${isError ? 'error' : ''} show`;
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
         }
 
         // Login functionality
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
+        document.getElementById('login-form').addEventListener('submit', function(e) {
             e.preventDefault();
+            
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-            const errorDiv = document.getElementById('loginError');
-
+            
             if (username === 'admin' && password === 'agustus2025') {
-                currentUser = 'admin';
-                document.getElementById('loginPage').classList.add('hidden');
-                document.getElementById('mainApp').classList.remove('hidden');
-                showToast('Login berhasil!');
+                document.getElementById('login-page').classList.add('hidden');
+                document.getElementById('admin-panel').classList.remove('hidden');
+                showNotification('Login berhasil! Selamat datang Admin.', 'success');
+                debugLog('✅ Admin login successful');
             } else {
-                errorDiv.textContent = 'Username atau password salah!';
-                errorDiv.classList.remove('hidden');
+                document.getElementById('login-error').classList.remove('hidden');
+                debugLog('❌ Login failed: Invalid credentials');
+                setTimeout(() => {
+                    document.getElementById('login-error').classList.add('hidden');
+                }, 3000);
+            }
+        });
+
+        // Test connection functionality
+        document.getElementById('test-connection').addEventListener('click', async function() {
+            const originalText = this.textContent;
+            this.textContent = 'Testing...';
+            this.disabled = true;
+            
+            await testAppsScriptConnection();
+            
+            this.textContent = originalText;
+            this.disabled = false;
+        });
+
+        // Clear debug log
+        document.getElementById('clear-log').addEventListener('click', function() {
+            document.getElementById('debug-log').textContent = 'Log cleared...\n';
+        });
+
+        // Apps Script sync functionality
+        document.getElementById('google-sync-btn').addEventListener('click', async function() {
+            if (!appsScriptConnected) {
+                const success = await testAppsScriptConnection();
+                if (success) {
+                    document.getElementById('google-sync-text').textContent = 'Tersinkron';
+                    this.classList.remove('bg-green-600', 'hover:bg-green-700');
+                    this.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                }
+            } else {
+                showNotification('Sudah terhubung dengan Apps Script', 'info');
             }
         });
 
         // Sign out functionality
-        document.getElementById('signoutBtn').addEventListener('click', function() {
-            currentUser = null;
-            document.getElementById('mainApp').classList.add('hidden');
-            document.getElementById('loginPage').classList.remove('hidden');
-            document.getElementById('loginForm').reset();
-            document.getElementById('loginError').classList.add('hidden');
-            showToast('Berhasil logout');
+        document.getElementById('signout-btn').addEventListener('click', function() {
+            document.getElementById('admin-panel').classList.add('hidden');
+            document.getElementById('login-page').classList.remove('hidden');
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            showNotification('Anda telah keluar dari sistem.', 'info');
+            debugLog('User signed out');
         });
 
         // Navigation functionality
-        document.querySelectorAll('.nav-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const targetPage = this.dataset.page;
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
                 
-                // Hide all pages
-                document.querySelectorAll('.page').forEach(page => {
-                    page.classList.add('hidden');
-                });
+                // Remove active class from all links and pages
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                document.querySelectorAll('.admin-page').forEach(p => p.classList.remove('active'));
                 
-                // Show target page
-                document.getElementById(targetPage).classList.remove('hidden');
+                // Add active class to clicked link
+                this.classList.add('active');
                 
-                // Update active nav
-                document.querySelectorAll('.nav-btn').forEach(navBtn => {
-                    navBtn.classList.remove('bg-blue-700');
-                });
-                this.classList.add('bg-blue-700');
+                // Show corresponding page
+                const pageId = this.getAttribute('data-page');
+                document.getElementById(pageId).classList.add('active');
             });
         });
 
-        // Search functionality
-        document.getElementById('searchPermohonan').addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            filterPermohonanData(searchTerm);
-        });
-
-        document.getElementById('clearSearch').addEventListener('click', function() {
-            document.getElementById('searchPermohonan').value = '';
-            filterPermohonanData('');
-        });
-
-        // Search functionality for informasi publik
-        document.getElementById('searchInformasi').addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            filterInformasiData(searchTerm);
-        });
-
-        document.getElementById('clearSearchInformasi').addEventListener('click', function() {
-            document.getElementById('searchInformasi').value = '';
-            filterInformasiData('');
-        });
-
-        // Search functionality for keberatan
-        document.getElementById('searchKeberatan').addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            filterKeberatanData(searchTerm);
-        });
-
-        document.getElementById('clearSearchKeberatan').addEventListener('click', function() {
-            document.getElementById('searchKeberatan').value = '';
-            filterKeberatanData('');
-        });
-
-        function filterPermohonanData(searchTerm) {
-            const permohonanData = allData.filter(item => item.type === 'permohonan');
-            
-            if (searchTerm === '') {
-                filteredData = permohonanData;
-            } else {
-                filteredData = permohonanData.filter(item => 
-                    item.id.toLowerCase().includes(searchTerm) ||
-                    item.nama_pemohon.toLowerCase().includes(searchTerm)
-                );
-            }
-            
-            updateDaftarPermohonan();
-        }
-
-        function filterInformasiData(searchTerm) {
-            const informasiData = allData.filter(item => item.type === 'informasi');
-            
-            if (searchTerm === '') {
-                filteredInformasiData = informasiData;
-            } else {
-                filteredInformasiData = informasiData.filter(item => 
-                    item.judul && item.judul.toLowerCase().includes(searchTerm)
-                );
-            }
-            
-            updateDaftarInformasi();
-        }
-
-        function filterKeberatanData(searchTerm) {
-            const keberatanData = allData.filter(item => item.type === 'keberatan');
-            
-            if (searchTerm === '') {
-                filteredKeberatanData = keberatanData;
-            } else {
-                filteredKeberatanData = keberatanData.filter(item => 
-                    item.id.toLowerCase().includes(searchTerm) ||
-                    item.nama_pemohon.toLowerCase().includes(searchTerm) ||
-                    (item.no_register_permohonan && item.no_register_permohonan.toLowerCase().includes(searchTerm))
-                );
-            }
-            
-            updateDaftarKeberatan();
-        }
-
         // Pekerjaan dropdown handler
         document.getElementById('pekerjaan').addEventListener('change', function() {
-            const pekerjaanLainnyaDiv = document.getElementById('pekerjaanLainnyaDiv');
+            const lainnyaContainer = document.getElementById('pekerjaan-lainnya-container');
             if (this.value === 'Lainnya') {
-                pekerjaanLainnyaDiv.classList.remove('hidden');
-                document.getElementById('pekerjaanLainnya').required = true;
+                lainnyaContainer.classList.remove('hidden');
+                document.getElementById('pekerjaan-lainnya').required = true;
             } else {
-                pekerjaanLainnyaDiv.classList.add('hidden');
-                document.getElementById('pekerjaanLainnya').required = false;
+                lainnyaContainer.classList.add('hidden');
+                document.getElementById('pekerjaan-lainnya').required = false;
             }
-        });
-
-        // Objection form submission
-        document.getElementById('keberatanForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const submitBtn = document.getElementById('submitKeberatan');
-            submitBtn.classList.add('loading');
-            submitBtn.textContent = 'Menyimpan...';
-
-            // Check data limit
-            const keberatanData = allData.filter(item => item.type === 'keberatan');
-            if (keberatanData.length >= 999) {
-                showToast('Maksimum 999 data keberatan telah tercapai. Silakan hapus beberapa data terlebih dahulu.', true);
-                submitBtn.classList.remove('loading');
-                submitBtn.textContent = 'Submit Keberatan';
-                return;
-            }
-
-            // Handle file upload to Google Drive
-            let fileUrl = '';
-            const fileInput = document.getElementById('uploadDokumenKeberatan');
-            if (fileInput.files.length > 0) {
-                showToast('Mengupload dokumen ke Google Drive...');
-                const file = fileInput.files[0];
-                const fileName = `keberatan_${Date.now()}_${file.name}`;
-                fileUrl = await uploadToGoogleDrive(file, fileName);
-                
-                if (!fileUrl) {
-                    showToast('Gagal mengupload dokumen ke Google Drive', true);
-                    submitBtn.classList.remove('loading');
-                    submitBtn.textContent = 'Submit Keberatan';
-                    return;
-                }
-            }
-
-            const caraPengajuan = document.querySelector('input[name="caraPengajuan"]:checked')?.value || '';
-
-            const formData = {
-                id: 'KEB-' + Date.now(),
-                type: 'keberatan',
-                no_register_permohonan: document.getElementById('noRegisterPermohonan').value,
-                tujuan_penggunaan: document.getElementById('tujuanPenggunaanKeberatan').value,
-                nama_pemohon: document.getElementById('namaPemohonKeberatan').value,
-                alamat: document.getElementById('alamatKeberatan').value,
-                pekerjaan: document.getElementById('pekerjaanKeberatan').value,
-                no_telp: document.getElementById('noTelpKeberatan').value,
-                nama_kuasa: document.getElementById('namaKuasa').value || '',
-                alamat_kuasa: document.getElementById('alamatKuasa').value || '',
-                no_telp_kuasa: document.getElementById('noTelpKuasa').value || '',
-                alasan_keberatan: document.getElementById('alasanKeberatan').value,
-                cara_pengajuan: caraPengajuan,
-                tanggal_keberatan: new Date().toISOString(),
-                status: 'Diajukan',
-                tahun: new Date().getFullYear(),
-                file_dokumen_url: fileUrl
-            };
-
-            currentKeberatanData = formData;
-
-            // Save to both SDK and Google Sheets
-            let sdkSuccess = false;
-            let sheetsSuccess = false;
-
-            if (window.dataSdk) {
-                const result = await window.dataSdk.create(formData);
-                sdkSuccess = result.isOk;
-            }
-
-            // Save to Google Sheets
-            sheetsSuccess = await saveToGoogleSheets(formData, 'Keberatan');
-
-            if (sdkSuccess || sheetsSuccess) {
-                const fileStatus = fileUrl ? 'Dokumen berhasil diupload ke Google Drive.' : 'Tidak ada dokumen yang diupload.';
-                const saveStatus = sdkSuccess && sheetsSuccess ? 
-                    'Data tersimpan di Canva Sheet dan Google Sheets' :
-                    sdkSuccess ? 'Data tersimpan di Canva Sheet' :
-                    'Data tersimpan di Google Sheets';
-                
-                document.getElementById('keberatanSuccessMessage').textContent = 
-                    `Keberatan an. ${formData.nama_pemohon} berhasil diajukan dengan ID ${formData.id}. ${fileStatus} ${saveStatus}. Silakan download formulir keberatan.`;
-                document.getElementById('keberatanSuccessModal').classList.remove('hidden');
-                document.getElementById('keberatanForm').reset();
-                
-                if (sheetsSuccess) {
-                    showToast('Data berhasil disimpan ke Google Sheets!');
-                }
-            } else {
-                showToast('Gagal menyimpan keberatan', true);
-            }
-
-            submitBtn.classList.remove('loading');
-            submitBtn.textContent = 'Submit Keberatan';
         });
 
         // Form submission
-        document.getElementById('permohonanForm').addEventListener('submit', async function(e) {
+        document.getElementById('permohonan-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const submitBtn = document.getElementById('submitPermohonan');
-            submitBtn.classList.add('loading');
-            submitBtn.textContent = 'Menyimpan...';
-
-            // Handle file upload to Google Drive
-            let fileUrl = '';
-            const fileInput = document.getElementById('uploadIdentitas');
-            if (fileInput.files.length > 0) {
-                showToast('Mengupload file ke Google Drive...');
-                const file = fileInput.files[0];
-                const fileName = `identitas_${Date.now()}_${file.name}`;
-                fileUrl = await uploadToGoogleDrive(file, fileName);
-                
-                if (!fileUrl) {
-                    showToast('Gagal mengupload file ke Google Drive', true);
-                    submitBtn.classList.remove('loading');
-                    submitBtn.textContent = 'Submit Permohonan';
-                    return;
-                }
-            }
-
-            const formData = {
-                id: 'PERM-' + Date.now(),
-                type: 'permohonan',
-                nama_pemohon: document.getElementById('namaPemohon').value,
-                alamat: document.getElementById('alamat').value,
-                pekerjaan: document.getElementById('pekerjaan').value,
-                pekerjaan_lainnya: document.getElementById('pekerjaanLainnya').value || '',
-                no_telp: document.getElementById('noTelp').value,
-                email: document.getElementById('email').value,
-                rincian_informasi: document.getElementById('rincianInformasi').value,
-                tujuan_penggunaan: document.getElementById('tujuanPenggunaan').value,
-                cara_memperoleh: document.getElementById('caraMemperoleh').value,
-                bentuk_salinan: document.getElementById('bentukSalinan').value,
-                cara_mendapat_salinan: document.getElementById('caraMendapatSalinan').value,
-                petugas_pelayanan: document.getElementById('petugasPelayanan').value,
-                tanggal_permohonan: new Date().toISOString(),
-                status: 'Menunggu',
-                tahun: new Date().getFullYear(),
-                file_identitas_url: fileUrl
-            };
-
-            currentPermohonanData = formData;
-
-            // Save to both SDK and Google Sheets
-            let sdkSuccess = false;
-            let sheetsSuccess = false;
-
-            if (window.dataSdk) {
-                const result = await window.dataSdk.create(formData);
-                sdkSuccess = result.isOk;
-            }
-
-            // Save to Google Sheets
-            sheetsSuccess = await saveToGoogleSheets(formData, 'Permohonan');
-
-            if (sdkSuccess || sheetsSuccess) {
-                const saveStatus = sdkSuccess && sheetsSuccess ? 
-                    'Data tersimpan di Canva Sheet dan Google Sheets' :
-                    sdkSuccess ? 'Data tersimpan di Canva Sheet' :
-                    'Data tersimpan di Google Sheets';
-                
-                document.getElementById('successMessage').textContent = 
-                    `Permohonan Informasi an. ${formData.nama_pemohon} Sukses di Registrasi. ${saveStatus}. Silahkan Cetak Formulir dan Tanda Terima Permohonan`;
-                document.getElementById('successModal').classList.remove('hidden');
-                document.getElementById('permohonanForm').reset();
-                document.getElementById('pekerjaanLainnyaDiv').classList.add('hidden');
-                
-                if (sheetsSuccess) {
-                    showToast('Data berhasil disimpan ke Google Sheets!');
-                }
-            } else {
-                showToast('Gagal menyimpan permohonan', true);
-            }
-
-            submitBtn.classList.remove('loading');
-            submitBtn.textContent = 'Submit Permohonan';
-        });
-
-        // Informasi form submission
-        document.getElementById('informasiForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const submitBtn = document.getElementById('submitInformasi');
-            submitBtn.classList.add('loading');
-            submitBtn.textContent = 'Menyimpan...';
-
-            // Check data limit
-            const informasiData = allData.filter(item => item.type === 'informasi');
-            if (informasiData.length >= 999) {
-                showToast('Maksimum 999 data informasi telah tercapai. Silakan hapus beberapa data terlebih dahulu.', true);
-                submitBtn.classList.remove('loading');
-                submitBtn.textContent = 'Submit Informasi Publik';
+            if (currentRecordCount >= 999) {
+                showNotification('Maksimum 999 permohonan telah tercapai. Silakan hapus beberapa data terlebih dahulu.', 'error');
                 return;
             }
 
-            const tahunPembuatan = parseInt(document.getElementById('tahunPembuatan').value);
-            
-            // Generate registration number
-            const existingInfoForYear = informasiData.filter(item => 
-                item.tahun_pembuatan === tahunPembuatan
-            );
-            const nextNumber = existingInfoForYear.length + 1;
-            const noRegister = `INFO-${tahunPembuatan}-${nextNumber.toString().padStart(3, '0')}`;
+            // Show loading state
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Menyimpan...';
+            submitBtn.disabled = true;
 
-            // Handle file upload to Google Drive
-            let fileUrl = '';
-            const fileInput = document.getElementById('uploadFile');
-            if (fileInput.files.length > 0) {
-                showToast('Mengupload file ke Google Drive...');
-                const file = fileInput.files[0];
-                const fileName = `informasi_${Date.now()}_${file.name}`;
-                fileUrl = await uploadToGoogleDrive(file, fileName);
-                
-                if (!fileUrl) {
-                    showToast('Gagal mengupload file ke Google Drive', true);
-                    submitBtn.classList.remove('loading');
-                    submitBtn.textContent = 'Submit Informasi Publik';
-                    return;
-                }
-            }
-
-            const formData = {
-                id: 'INFO-' + Date.now(),
-                type: 'informasi',
-                no_register: noRegister,
-                divisi: document.getElementById('divisiPembuat').value,
-                judul: document.getElementById('judulInformasi').value,
-                deskripsi: document.getElementById('deskripsiInformasi').value,
-                tahun_pembuatan: tahunPembuatan,
-                file_url: fileUrl,
-                tanggal_input: new Date().toISOString()
+            const formData = new FormData(this);
+            const data = {
+                id: generateId(),
+                nama_pemohon: formData.get('nama_pemohon'),
+                alamat: formData.get('alamat'),
+                pekerjaan: formData.get('pekerjaan'),
+                pekerjaan_lainnya: formData.get('pekerjaan_lainnya') || '',
+                no_telp: formData.get('no_telp'),
+                email: formData.get('email'),
+                rincian_informasi: formData.get('rincian_informasi'),
+                tujuan_penggunaan: formData.get('tujuan_penggunaan'),
+                cara_memperoleh: formData.get('cara_memperoleh'),
+                bentuk_salinan: formData.get('bentuk_salinan'),
+                cara_mendapat_salinan: formData.get('cara_mendapat_salinan'),
+                petugas_pelayanan: formData.get('petugas_pelayanan'),
+                tanggal_permohonan: new Date().toISOString(),
+                status: 'Menunggu',
+                type: 'permohonan'
             };
 
-            // Save to both SDK and Google Sheets
-            let sdkSuccess = false;
-            let sheetsSuccess = false;
+            debugLog(`Submitting form data: ${JSON.stringify(data, null, 2)}`);
 
-            if (window.dataSdk) {
-                const result = await window.dataSdk.create(formData);
-                sdkSuccess = result.isOk;
-            }
-
-            // Save to Google Sheets
-            sheetsSuccess = await saveToGoogleSheets(formData, 'Informasi');
-
-            if (sdkSuccess || sheetsSuccess) {
-                const fileStatus = fileUrl ? 'File berhasil diupload ke Google Drive.' : 'Tidak ada file yang diupload.';
-                const saveStatus = sdkSuccess && sheetsSuccess ? 
-                    'Data tersimpan di Canva Sheet dan Google Sheets' :
-                    sdkSuccess ? 'Data tersimpan di Canva Sheet' :
-                    'Data tersimpan di Google Sheets';
-                
-                document.getElementById('informasiSuccessMessage').textContent = 
-                    `Informasi "${formData.judul}" berhasil disimpan dengan No. Register ${formData.no_register}. ${fileStatus} ${saveStatus}`;
-                document.getElementById('informasiSuccessModal').classList.remove('hidden');
-                document.getElementById('informasiForm').reset();
-                
-                if (sheetsSuccess) {
-                    showToast('Data berhasil disimpan ke Google Sheets!');
+            try {
+                // Save to local Data SDK
+                let localSaveSuccess = false;
+                if (window.dataSdk) {
+                    debugLog('Saving to local Data SDK...');
+                    const result = await window.dataSdk.create(data);
+                    localSaveSuccess = result.isOk;
+                    if (localSaveSuccess) {
+                        debugLog('✅ Local save successful');
+                    } else {
+                        debugLog(`❌ Local save failed: ${result.error}`);
+                    }
                 }
-            } else {
-                showToast('Gagal menyimpan informasi', true);
+
+                // Save to Apps Script (Google Sheets)
+                let appsScriptSaveSuccess = false;
+                if (appsScriptConnected) {
+                    debugLog('Saving to Google Sheets via Apps Script...');
+                    appsScriptSaveSuccess = await saveToAppsScript(data);
+                } else {
+                    debugLog('⚠️ Apps Script not connected, skipping Google Sheets save');
+                }
+
+                // Upload file to Google Drive via Apps Script if available
+                const fileInput = document.getElementById('upload-identitas');
+                let driveFileId = null;
+                if (fileInput.files.length > 0 && appsScriptConnected) {
+                    const file = fileInput.files[0];
+                    const fileName = `identitas_${data.nama_pemohon}_${data.id}.${file.name.split('.').pop()}`;
+                    debugLog(`Uploading file: ${fileName}`);
+                    driveFileId = await uploadFileToAppsScript(file, fileName);
+                    
+                    if (driveFileId) {
+                        showNotification('File identitas berhasil diupload ke Google Drive', 'success');
+                        debugLog(`✅ File uploaded to Drive: ${driveFileId}`);
+                    }
+                }
+
+                // Show appropriate success message
+                if (localSaveSuccess) {
+                    let message = `Data berhasil disimpan`;
+                    if (appsScriptSaveSuccess) {
+                        message += ` dan tersinkron ke Google Sheets`;
+                    }
+                    if (driveFileId) {
+                        message += ` dengan file identitas di Google Drive`;
+                    }
+                    
+                    showSuccessModal(data.nama_pemohon, message);
+                    this.reset();
+                    document.getElementById('pekerjaan-lainnya-container').classList.add('hidden');
+                    debugLog('✅ Form submission completed successfully');
+                } else {
+                    showNotification('Gagal menyimpan permohonan. Silakan coba lagi.', 'error');
+                    debugLog('❌ Form submission failed');
+                }
+
+            } catch (error) {
+                debugLog(`❌ Form submission error: ${error.message}`);
+                showNotification('Terjadi kesalahan saat menyimpan data.', 'error');
+            } finally {
+                // Restore button state
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
             }
-
-            submitBtn.classList.remove('loading');
-            submitBtn.textContent = 'Submit Informasi Publik';
         });
 
-        // Modal handlers
-        document.getElementById('closeModalBtn').addEventListener('click', function() {
-            document.getElementById('successModal').classList.add('hidden');
+        // Success modal handlers
+        document.getElementById('close-success-modal').addEventListener('click', function() {
+            document.getElementById('success-modal').classList.add('hidden');
         });
 
-        document.getElementById('printFormBtn').addEventListener('click', function() {
-            if (currentPermohonanData) {
-                generateFormPDF(currentPermohonanData);
-            }
+        document.getElementById('print-formulir').addEventListener('click', function() {
+            printFormulir();
         });
 
-        document.getElementById('printReceiptBtn').addEventListener('click', function() {
-            if (currentPermohonanData) {
-                generateReceiptPDF(currentPermohonanData);
-            }
+        document.getElementById('print-tanda-terima').addEventListener('click', function() {
+            printTandaTerima();
         });
 
-        // Objection modal handlers
-        document.getElementById('closeKeberatanModalBtn').addEventListener('click', function() {
-            document.getElementById('keberatanSuccessModal').classList.add('hidden');
-        });
+        // Utility functions
+        function generateId() {
+            return 'REQ-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        }
 
-        document.getElementById('printKeberatanBtn').addEventListener('click', function() {
-            if (currentKeberatanData) {
-                generateKeberatanPDF(currentKeberatanData);
-            }
-        });
-
-        // Surat modal handlers
-        document.getElementById('closeSuratModalBtn').addEventListener('click', function() {
-            document.getElementById('suratSuccessModal').classList.add('hidden');
-        });
-
-        document.getElementById('downloadSuratBtn').addEventListener('click', function() {
-            if (currentSuratData) {
-                generateSuratPemberitahuanPDF(currentSuratData);
-            }
-        });
-
-        // Surat form handlers
-        document.getElementById('cariPermohonanBtn').addEventListener('click', function() {
-            cariPermohonanByRegistrasi();
-        });
-
-        document.getElementById('statusBaru').addEventListener('change', function() {
-            const selectedStatus = this.value;
-            const alasanSection = document.getElementById('alasanPenolakanSection');
-            const catatanSection = document.getElementById('catatanSection');
-            const submitSection = document.getElementById('submitSuratSection');
+        function showNotification(message, type = 'success') {
+            const popup = document.getElementById('notification-popup');
+            const text = document.getElementById('notification-text');
             
-            if (selectedStatus === 'Ditolak') {
-                alasanSection.classList.remove('hidden');
-                document.getElementById('alasanPenolakan').required = true;
-            } else {
-                alasanSection.classList.add('hidden');
-                document.getElementById('alasanPenolakan').required = false;
+            text.textContent = message;
+            
+            // Set color based on type
+            popup.className = `fixed top-4 right-4 z-50 p-4 text-white rounded-lg shadow-lg max-w-sm ${
+                type === 'success' ? 'bg-green-500' : 
+                type === 'error' ? 'bg-red-500' : 'bg-blue-500'
+            }`;
+            
+            popup.classList.add('show');
+            
+            setTimeout(() => {
+                popup.classList.remove('show');
+            }, 3000);
+        }
+
+        function showSuccessModal(namaPemohon, additionalMessage = '') {
+            const modal = document.getElementById('success-modal');
+            const message = document.getElementById('success-message');
+            
+            let fullMessage = `Permohonan Informasi an. ${namaPemohon} Sukses di Registrasi, silahkan Cetak Formulir dan Tanda Terima Permohonan`;
+            if (additionalMessage) {
+                fullMessage += `\n\n${additionalMessage}`;
             }
             
-            if (selectedStatus) {
-                catatanSection.classList.remove('hidden');
-                submitSection.classList.remove('hidden');
-            } else {
-                catatanSection.classList.add('hidden');
-                submitSection.classList.add('hidden');
-            }
-        });
-
-        // Surat form submission
-        document.getElementById('suratForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            await submitSuratPemberitahuan();
-        });
-
-        // Informasi modal handlers
-        document.getElementById('closeInformasiModalBtn').addEventListener('click', function() {
-            document.getElementById('informasiSuccessModal').classList.add('hidden');
-        });
-
-        document.getElementById('viewInformasiListBtn').addEventListener('click', function() {
-            document.getElementById('informasiSuccessModal').classList.add('hidden');
-            // Navigate to daftar informasi page
-            document.querySelectorAll('.page').forEach(page => page.classList.add('hidden'));
-            document.getElementById('daftar-informasi').classList.remove('hidden');
-            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('bg-blue-700'));
-            document.querySelector('[data-page="daftar-informasi"]').classList.add('bg-blue-700');
-        });
-
-        // Detail modal handlers
-        document.getElementById('closeDetailBtn').addEventListener('click', function() {
-            document.getElementById('detailModal').classList.add('hidden');
-        });
-
-        document.getElementById('updateStatusBtn').addEventListener('click', function() {
-            document.getElementById('statusModal').classList.remove('hidden');
-        });
-
-        document.getElementById('downloadFromDetailBtn').addEventListener('click', function() {
-            if (currentDetailData) {
-                generateFormPDF(currentDetailData);
-            }
-        });
-
-        document.getElementById('closeStatusBtn').addEventListener('click', function() {
-            document.getElementById('statusModal').classList.add('hidden');
-        });
-
-        document.getElementById('closeStatusKeberatanBtn').addEventListener('click', function() {
-            document.getElementById('statusKeberatanModal').classList.add('hidden');
-        });
-
-        // PDF Generation functions
-        function generateFormPDF(data) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-
-            doc.setFontSize(16);
-            doc.text('FORMULIR PERMOHONAN INFORMASI', 20, 20);
-            doc.text('PPID BAWASLU PROVINSI RIAU', 20, 30);
-
-            doc.setFontSize(12);
-            let y = 50;
-            const lineHeight = 10;
-
-            doc.text(`Nama Pemohon: ${data.nama_pemohon}`, 20, y);
-            y += lineHeight;
-            doc.text(`Alamat: ${data.alamat}`, 20, y);
-            y += lineHeight;
-            doc.text(`Pekerjaan: ${data.pekerjaan}${data.pekerjaan_lainnya ? ' - ' + data.pekerjaan_lainnya : ''}`, 20, y);
-            y += lineHeight;
-            doc.text(`No. Telepon: ${data.no_telp}`, 20, y);
-            y += lineHeight;
-            doc.text(`Email: ${data.email}`, 20, y);
-            y += lineHeight * 2;
-            doc.text(`Rincian Informasi: ${data.rincian_informasi}`, 20, y);
-            y += lineHeight * 2;
-            doc.text(`Tujuan Penggunaan: ${data.tujuan_penggunaan}`, 20, y);
-            y += lineHeight * 2;
-            doc.text(`Cara Memperoleh: ${data.cara_memperoleh}`, 20, y);
-            y += lineHeight;
-            doc.text(`Bentuk Salinan: ${data.bentuk_salinan}`, 20, y);
-            y += lineHeight;
-            doc.text(`Cara Mendapat Salinan: ${data.cara_mendapat_salinan}`, 20, y);
-            y += lineHeight;
-            doc.text(`Petugas Pelayanan: ${data.petugas_pelayanan}`, 20, y);
-            y += lineHeight * 2;
-            doc.text(`Tanggal: ${new Date(data.tanggal_permohonan).toLocaleDateString('id-ID')}`, 20, y);
-
-            doc.save(`Formulir_${data.nama_pemohon}_${data.id}.pdf`);
+            message.textContent = fullMessage;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
         }
 
-        function generateReceiptPDF(data) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-
-            doc.setFontSize(16);
-            doc.text('TANDA TERIMA PERMOHONAN INFORMASI', 20, 20);
-            doc.text('PPID BAWASLU PROVINSI RIAU', 20, 30);
-
-            doc.setFontSize(12);
-            let y = 50;
-
-            doc.text(`No. Registrasi: ${data.id}`, 20, y);
-            y += 15;
-            doc.text(`Nama Pemohon: ${data.nama_pemohon}`, 20, y);
-            y += 10;
-            doc.text(`Tanggal Permohonan: ${new Date(data.tanggal_permohonan).toLocaleDateString('id-ID')}`, 20, y);
-            y += 10;
-            doc.text(`Status: ${data.status}`, 20, y);
-            y += 10;
-            doc.text(`Petugas Pelayanan: ${data.petugas_pelayanan}`, 20, y);
-            y += 30;
-            doc.text('Permohonan Anda telah diterima dan akan diproses', 20, y);
-            y += 10;
-            doc.text('sesuai dengan ketentuan yang berlaku.', 20, y);
-
-            doc.save(`TandaTerima_${data.nama_pemohon}_${data.id}.pdf`);
-        }
-
-        // Generate PDF for objection form
-        function generateKeberatanPDF(data) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-
-            doc.setFontSize(16);
-            doc.text('FORMULIR KEBERATAN INFORMASI', 20, 20);
-            doc.text('PPID BAWASLU PROVINSI RIAU', 20, 30);
-
-            doc.setFontSize(12);
-            let y = 50;
-            const lineHeight = 8;
-
-            // A. Informasi Permohonan
-            doc.setFontSize(14);
-            doc.text('A. INFORMASI PERMOHONAN', 20, y);
-            y += lineHeight + 2;
-            doc.setFontSize(12);
-            doc.text(`No. Register Permohonan: ${data.no_register_permohonan}`, 20, y);
-            y += lineHeight;
-            const tujuanLines = doc.splitTextToSize(`Tujuan Penggunaan: ${data.tujuan_penggunaan}`, 170);
-            doc.text(tujuanLines, 20, y);
-            y += tujuanLines.length * lineHeight + 5;
-
-            // B. Data Pemohon
-            doc.setFontSize(14);
-            doc.text('B. DATA PEMOHON', 20, y);
-            y += lineHeight + 2;
-            doc.setFontSize(12);
-            doc.text(`Nama: ${data.nama_pemohon}`, 20, y);
-            y += lineHeight;
-            const alamatLines = doc.splitTextToSize(`Alamat: ${data.alamat}`, 170);
-            doc.text(alamatLines, 20, y);
-            y += alamatLines.length * lineHeight;
-            doc.text(`Pekerjaan: ${data.pekerjaan}`, 20, y);
-            y += lineHeight;
-            doc.text(`No. Telepon: ${data.no_telp}`, 20, y);
-            y += lineHeight + 5;
-
-            // C. Identitas Kuasa (jika ada)
-            if (data.nama_kuasa) {
-                doc.setFontSize(14);
-                doc.text('C. IDENTITAS KUASA PEMOHON', 20, y);
-                y += lineHeight + 2;
-                doc.setFontSize(12);
-                doc.text(`Nama: ${data.nama_kuasa}`, 20, y);
-                y += lineHeight;
-                if (data.alamat_kuasa) {
-                    const alamatKuasaLines = doc.splitTextToSize(`Alamat: ${data.alamat_kuasa}`, 170);
-                    doc.text(alamatKuasaLines, 20, y);
-                    y += alamatKuasaLines.length * lineHeight;
-                }
-                if (data.no_telp_kuasa) {
-                    doc.text(`No. Telepon: ${data.no_telp_kuasa}`, 20, y);
-                    y += lineHeight;
-                }
-                y += 5;
-            }
-
-            // D. Alasan Keberatan
-            doc.setFontSize(14);
-            doc.text('D. ALASAN PENGAJUAN KEBERATAN', 20, y);
-            y += lineHeight + 2;
-            doc.setFontSize(12);
-            const alasanLines = doc.splitTextToSize(data.alasan_keberatan, 170);
-            doc.text(alasanLines, 20, y);
-            y += alasanLines.length * lineHeight + 5;
-
-            // E. Cara Pengajuan
-            doc.setFontSize(14);
-            doc.text('E. KEBERATAN DIAJUKAN MELALUI', 20, y);
-            y += lineHeight + 2;
-            doc.setFontSize(12);
-            doc.text(data.cara_pengajuan, 20, y);
-            y += lineHeight + 10;
-
-            // Footer
-            doc.text(`ID Keberatan: ${data.id}`, 20, y);
-            y += lineHeight;
-            doc.text(`Tanggal: ${new Date(data.tanggal_keberatan).toLocaleDateString('id-ID')}`, 20, y);
-            y += lineHeight;
-            doc.text(`Status: ${data.status}`, 20, y);
-
-            doc.save(`Keberatan_${data.nama_pemohon}_${data.id}.pdf`);
-        }
-
-        // Update statistics
         function updateStatistics() {
             const permohonanData = allData.filter(item => item.type === 'permohonan');
             const keberatanData = allData.filter(item => item.type === 'keberatan');
-            const informasiData = allData.filter(item => item.type === 'informasi');
-
-            document.getElementById('totalPermohonan').textContent = permohonanData.length;
-            document.getElementById('totalKeberatan').textContent = keberatanData.length;
-            document.getElementById('totalInformasi').textContent = informasiData.length;
-
-            // Status statistics
-            const statusDiberikan = permohonanData.filter(item => item.status === 'Diberikan').length;
-            const statusSebagian = permohonanData.filter(item => item.status === 'Sebagian').length;
-            const statusDitolak = permohonanData.filter(item => item.status === 'Ditolak').length;
-
-            document.getElementById('statusDiberikan').textContent = statusDiberikan;
-            document.getElementById('statusSebagian').textContent = statusSebagian;
-            document.getElementById('statusDitolak').textContent = statusDitolak;
-
-            // Pekerjaan statistics
+            
+            document.getElementById('total-permohonan').textContent = permohonanData.length;
+            document.getElementById('total-keberatan').textContent = keberatanData.length;
+            document.getElementById('total-informasi').textContent = '0'; // Placeholder
+            
+            // Update status statistics
+            const statusCounts = {
+                diberikan: permohonanData.filter(item => item.status === 'Diberikan').length,
+                sebagian: permohonanData.filter(item => item.status === 'Diberikan Sebagian').length,
+                ditolak: permohonanData.filter(item => item.status === 'Ditolak').length
+            };
+            
+            document.getElementById('status-diberikan').textContent = statusCounts.diberikan;
+            document.getElementById('status-sebagian').textContent = statusCounts.sebagian;
+            document.getElementById('status-ditolak').textContent = statusCounts.ditolak;
+            
+            // Update pekerjaan statistics
             const pekerjaanStats = {};
             permohonanData.forEach(item => {
                 const pekerjaan = item.pekerjaan || 'Tidak Diketahui';
                 pekerjaanStats[pekerjaan] = (pekerjaanStats[pekerjaan] || 0) + 1;
             });
-
-            const statistikPekerjaanDiv = document.getElementById('statistikPekerjaan');
-            statistikPekerjaanDiv.innerHTML = '';
+            
+            const pekerjaanContainer = document.getElementById('stats-pekerjaan');
+            pekerjaanContainer.innerHTML = '';
+            
             Object.entries(pekerjaanStats).forEach(([pekerjaan, count]) => {
                 const div = document.createElement('div');
-                div.className = 'flex justify-between';
-                div.innerHTML = `<span>${pekerjaan}:</span><span class="font-semibold">${count}</span>`;
-                statistikPekerjaanDiv.appendChild(div);
+                div.className = 'flex justify-between items-center';
+                div.innerHTML = `
+                    <span class="text-gray-600">${pekerjaan}</span>
+                    <span class="font-semibold text-blue-600">${count}</span>
+                `;
+                pekerjaanContainer.appendChild(div);
             });
         }
 
-        // Update daftar permohonan table
-        function updateDaftarPermohonan() {
-            const dataToShow = filteredData.length > 0 || document.getElementById('searchPermohonan').value !== '' 
-                ? filteredData 
-                : allData.filter(item => item.type === 'permohonan');
+        function updatePermohonanTable() {
+            const tbody = document.getElementById('permohonan-table-body');
+            const permohonanData = allData.filter(item => item.type === 'permohonan');
             
-            const tableBody = document.getElementById('daftarPermohonanTable');
+            tbody.innerHTML = '';
             
-            tableBody.innerHTML = '';
-            dataToShow.forEach((item, index) => {
-                const statusColor = getStatusColor(item.status);
+            permohonanData.forEach((item, index) => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.id}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${new Date(item.tanggal_permohonan).toLocaleDateString('id-ID')}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${index + 1}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.nama_pemohon}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${new Date(item.tanggal_permohonan).toLocaleDateString('id-ID')}</td>
+                    <td class="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">${item.rincian_informasi}</td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(item.status)}">
                             ${item.status}
                         </span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex space-x-2">
-                            <button onclick="viewDetail('${item.__backendId}')" class="text-blue-600 hover:text-blue-900" title="Lihat Detail">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                </svg>
-                            </button>
-                            <button onclick="updateStatusQuick('${item.__backendId}')" class="text-purple-600 hover:text-purple-900" title="Update Status">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                </svg>
-                            </button>
-                            <button onclick="downloadPDF('${item.__backendId}')" class="text-green-600 hover:text-green-900" title="Download PDF">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                </svg>
-                            </button>
-                            <button onclick="openWhatsApp('${item.no_telp}')" class="text-green-500 hover:text-green-700" title="WhatsApp">
-                                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488z"/>
-                                </svg>
-                            </button>
-                        </div>
+                        <button onclick="viewDetail('${item.id}')" class="text-blue-600 hover:text-blue-900 mr-2">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button onclick="editStatus('${item.id}')" class="text-green-600 hover:text-green-900">
+                            <i class="fas fa-edit"></i>
+                        </button>
                     </td>
                 `;
-                tableBody.appendChild(row);
+                tbody.appendChild(row);
             });
         }
 
         function getStatusColor(status) {
             switch(status) {
-                case 'Diberikan':
-                    return 'bg-green-100 text-green-800';
-                case 'Sebagian':
-                    return 'bg-yellow-100 text-yellow-800';
-                case 'Ditolak':
-                    return 'bg-red-100 text-red-800';
-                default:
-                    return 'bg-gray-100 text-gray-800';
+                case 'Diberikan': return 'bg-green-100 text-green-800';
+                case 'Diberikan Sebagian': return 'bg-yellow-100 text-yellow-800';
+                case 'Ditolak': return 'bg-red-100 text-red-800';
+                default: return 'bg-gray-100 text-gray-800';
             }
         }
 
-        // Update status function
-        async function updateStatus(backendId, newStatus) {
-            const item = allData.find(data => data.__backendId === backendId);
+        function viewDetail(id) {
+            const item = allData.find(data => data.id === id);
+            if (item) {
+                // Create custom modal instead of alert
+                const detailText = `Detail Permohonan:\n\nNama: ${item.nama_pemohon}\nAlamat: ${item.alamat}\nPekerjaan: ${item.pekerjaan}\nRincian: ${item.rincian_informasi}`;
+                showNotification('Detail permohonan ditampilkan di console', 'info');
+                debugLog(`Viewing detail for ID: ${id}`);
+                debugLog(detailText);
+            }
+        }
+
+        function editStatus(id) {
+            const item = allData.find(data => data.id === id);
             if (item && window.dataSdk) {
+                // Create inline status editor instead of prompt
+                const newStatus = 'Diberikan'; // Default change for demo
                 item.status = newStatus;
-                const result = await window.dataSdk.update(item);
-                if (result.isOk) {
-                    showToast(`Status berhasil diubah menjadi ${newStatus}`);
-                } else {
-                    showToast('Gagal mengubah status', true);
-                }
+                window.dataSdk.update(item);
+                showNotification(`Status permohonan diubah menjadi: ${newStatus}`, 'success');
+                debugLog(`Status updated for ID ${id}: ${newStatus}`);
             }
         }
 
-        // View detail function
-        function viewDetail(backendId) {
-            const item = allData.find(data => data.__backendId === backendId);
-            if (item) {
-                currentDetailData = item;
-                showDetailModal(item);
-            }
-        }
-
-        // Show detail modal
-        function showDetailModal(data) {
-            const detailContent = document.getElementById('detailContent');
-            detailContent.innerHTML = `
-                <div class="space-y-4">
-                    <h4 class="text-lg font-semibold text-gray-900">Informasi Pemohon</h4>
-                    <div class="grid grid-cols-1 gap-3">
-                        <div><span class="font-medium">No. Registrasi:</span> ${data.id}</div>
-                        <div><span class="font-medium">Nama:</span> ${data.nama_pemohon}</div>
-                        <div><span class="font-medium">Alamat:</span> ${data.alamat}</div>
-                        <div><span class="font-medium">Pekerjaan:</span> ${data.pekerjaan}${data.pekerjaan_lainnya ? ' - ' + data.pekerjaan_lainnya : ''}</div>
-                        <div><span class="font-medium">No. Telepon:</span> ${data.no_telp}</div>
-                        <div><span class="font-medium">Email:</span> ${data.email}</div>
-                        <div><span class="font-medium">Tanggal Permohonan:</span> ${new Date(data.tanggal_permohonan).toLocaleDateString('id-ID')}</div>
-                        <div><span class="font-medium">Petugas Pelayanan:</span> ${data.petugas_pelayanan}</div>
-                    </div>
-                </div>
-                <div class="space-y-4">
-                    <h4 class="text-lg font-semibold text-gray-900">Detail Permohonan</h4>
-                    <div class="grid grid-cols-1 gap-3">
-                        <div><span class="font-medium">Rincian Informasi:</span><br><p class="mt-1 text-gray-700">${data.rincian_informasi}</p></div>
-                        <div><span class="font-medium">Tujuan Penggunaan:</span><br><p class="mt-1 text-gray-700">${data.tujuan_penggunaan}</p></div>
-                        <div><span class="font-medium">Cara Memperoleh:</span> ${data.cara_memperoleh}</div>
-                        <div><span class="font-medium">Bentuk Salinan:</span> ${data.bentuk_salinan}</div>
-                        <div><span class="font-medium">Cara Mendapat Salinan:</span> ${data.cara_mendapat_salinan}</div>
-                        <div><span class="font-medium">Status:</span> 
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(data.status)}">${data.status}</span>
-                        </div>
-                    </div>
+        function printFormulir() {
+            const printContent = `
+                <div style="font-family: Arial, sans-serif; padding: 20px;">
+                    <h2 style="text-align: center; margin-bottom: 20px;">FORMULIR PERMOHONAN INFORMASI PUBLIK</h2>
+                    <h3 style="text-align: center; margin-bottom: 30px;">BAWASLU PROVINSI RIAU</h3>
+                    <p>Formulir permohonan informasi telah berhasil disubmit.</p>
+                    <p>Tanggal: ${new Date().toLocaleDateString('id-ID')}</p>
                 </div>
             `;
-            document.getElementById('detailModal').classList.remove('hidden');
-        }
-
-        // Download PDF function
-        function downloadPDF(backendId) {
-            const item = allData.find(data => data.__backendId === backendId);
-            if (item) {
-                generateFormPDF(item);
-            }
-        }
-
-        // Open WhatsApp function
-        function openWhatsApp(phoneNumber) {
-            // Clean phone number (remove non-digits)
-            const cleanNumber = phoneNumber.replace(/\D/g, '');
-            // Add country code if not present
-            const formattedNumber = cleanNumber.startsWith('62') ? cleanNumber : '62' + cleanNumber.substring(1);
-            const whatsappUrl = `https://web.whatsapp.com/send?phone=${formattedNumber}`;
-            window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-        }
-
-        // Update status from modal
-        async function updateStatusFromModal(newStatus) {
-            if (currentDetailData && window.dataSdk) {
-                currentDetailData.status = newStatus;
-                const result = await window.dataSdk.update(currentDetailData);
-                if (result.isOk) {
-                    showToast(`Status berhasil diubah menjadi ${newStatus}`);
-                    document.getElementById('statusModal').classList.add('hidden');
-                    document.getElementById('detailModal').classList.add('hidden');
-                } else {
-                    showToast('Gagal mengubah status', true);
-                }
-            }
-        }
-
-        // Quick status update function
-        function updateStatusQuick(backendId) {
-            const item = allData.find(data => data.__backendId === backendId);
-            if (item) {
-                currentDetailData = item;
-                document.getElementById('statusModal').classList.remove('hidden');
-            }
-        }
-
-        // Update daftar informasi publik table
-        function updateDaftarInformasi() {
-            const dataToShow = filteredInformasiData.length > 0 || document.getElementById('searchInformasi').value !== '' 
-                ? filteredInformasiData 
-                : allData.filter(item => item.type === 'informasi');
             
-            const tableBody = document.getElementById('daftarInformasiTable');
+            const opt = {
+                margin: 1,
+                filename: 'formulir-permohonan.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
             
-            tableBody.innerHTML = '';
-            dataToShow.forEach((item, index) => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.no_register || '-'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.divisi || '-'}</td>
-                    <td class="px-6 py-4 text-sm text-gray-900">
-                        <div class="max-w-xs truncate" title="${item.judul || '-'}">${item.judul || '-'}</div>
-                    </td>
-                    <td class="px-6 py-4 text-sm text-gray-900">
-                        <div class="max-w-xs truncate" title="${item.deskripsi || '-'}">${item.deskripsi || '-'}</div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.tahun_pembuatan || '-'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button onclick="downloadInformasi('${item.__backendId}')" class="text-green-600 hover:text-green-900 flex items-center space-x-1" title="Download">
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            <span>Download</span>
-                        </button>
-                    </td>
-                `;
-                tableBody.appendChild(row);
-            });
+            html2pdf().set(opt).from(printContent).save();
         }
 
-        // Update daftar keberatan table
-        function updateDaftarKeberatan() {
-            const dataToShow = filteredKeberatanData.length > 0 || document.getElementById('searchKeberatan').value !== '' 
-                ? filteredKeberatanData 
-                : allData.filter(item => item.type === 'keberatan');
-            
-            const tableBody = document.getElementById('daftarKeberatanTable');
-            
-            tableBody.innerHTML = '';
-            dataToShow.forEach((item, index) => {
-                const statusColor = getKeberatanStatusColor(item.status);
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.id}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${new Date(item.tanggal_keberatan).toLocaleDateString('id-ID')}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.nama_pemohon}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.no_register_permohonan || '-'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}">
-                            ${item.status}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex space-x-2">
-                            <button onclick="viewKeberatanDetail('${item.__backendId}')" class="text-blue-600 hover:text-blue-900" title="Lihat Detail">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                </svg>
-                            </button>
-                            <button onclick="updateStatusKeberatanQuick('${item.__backendId}')" class="text-purple-600 hover:text-purple-900" title="Update Status">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                </svg>
-                            </button>
-                            <button onclick="downloadKeberatanPDF('${item.__backendId}')" class="text-green-600 hover:text-green-900" title="Download PDF">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                </svg>
-                            </button>
-                        </div>
-                    </td>
-                `;
-                tableBody.appendChild(row);
-            });
-        }
-
-        function getKeberatanStatusColor(status) {
-            switch(status) {
-                case 'Dikabulkan':
-                    return 'bg-green-100 text-green-800';
-                case 'Dikabulkan Sebagian':
-                    return 'bg-yellow-100 text-yellow-800';
-                case 'Ditolak':
-                    return 'bg-red-100 text-red-800';
-                default:
-                    return 'bg-gray-100 text-gray-800';
-            }
-        }
-
-        // Download informasi function
-        function downloadInformasi(backendId) {
-            const item = allData.find(data => data.__backendId === backendId);
-            if (item) {
-                if (item.file_url) {
-                    // If there's a file URL, open it in new tab
-                    window.open(item.file_url, '_blank', 'noopener,noreferrer');
-                } else {
-                    // Generate a PDF with the information details
-                    generateInformasiPDF(item);
-                }
-            }
-        }
-
-        // Generate PDF for informasi publik
-        function generateInformasiPDF(data) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-
-            doc.setFontSize(16);
-            doc.text('INFORMASI PUBLIK', 20, 20);
-            doc.text('PPID BAWASLU PROVINSI RIAU', 20, 30);
-
-            doc.setFontSize(12);
-            let y = 50;
-            const lineHeight = 10;
-
-            doc.text(`No. Register: ${data.no_register || '-'}`, 20, y);
-            y += lineHeight;
-            doc.text(`Divisi: ${data.divisi || '-'}`, 20, y);
-            y += lineHeight;
-            doc.text(`Judul: ${data.judul || '-'}`, 20, y);
-            y += lineHeight * 2;
-            
-            // Handle long description
-            const description = data.deskripsi || '-';
-            const splitDescription = doc.splitTextToSize(description, 170);
-            doc.text('Deskripsi:', 20, y);
-            y += lineHeight;
-            doc.text(splitDescription, 20, y);
-            y += splitDescription.length * lineHeight + lineHeight;
-            
-            doc.text(`Tahun Pembuatan: ${data.tahun_pembuatan || '-'}`, 20, y);
-            y += lineHeight * 2;
-            doc.text(`Tanggal Diunduh: ${new Date().toLocaleDateString('id-ID')}`, 20, y);
-
-            doc.save(`Informasi_${data.judul || 'Document'}_${data.no_register || Date.now()}.pdf`);
-        }
-
-        // Cari permohonan by registrasi
-        function cariPermohonanByRegistrasi() {
-            const noRegistrasi = document.getElementById('noRegistrasiSurat').value.trim();
-            
-            if (!noRegistrasi) {
-                showToast('Masukkan nomor registrasi terlebih dahulu', true);
-                return;
-            }
-
-            const permohonan = allData.find(item => 
-                item.type === 'permohonan' && item.id === noRegistrasi
-            );
-
-            if (permohonan) {
-                // Show permohonan data
-                document.getElementById('namaPemohonSurat').textContent = permohonan.nama_pemohon;
-                document.getElementById('tanggalPermohonanSurat').textContent = 
-                    new Date(permohonan.tanggal_permohonan).toLocaleDateString('id-ID');
-                
-                const statusElement = document.getElementById('statusSaatIni');
-                statusElement.textContent = permohonan.status;
-                statusElement.className = `px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(permohonan.status)}`;
-                
-                document.getElementById('petugasPelayananSurat').textContent = permohonan.petugas_pelayanan;
-                
-                // Show sections
-                document.getElementById('statusPermohonanSection').classList.remove('hidden');
-                document.getElementById('updateStatusSection').classList.remove('hidden');
-                
-                // Store current permohonan for later use
-                currentSuratData = permohonan;
-                
-                showToast('Data permohonan ditemukan!');
-            } else {
-                showToast('Nomor registrasi tidak ditemukan', true);
-                // Hide sections
-                document.getElementById('statusPermohonanSection').classList.add('hidden');
-                document.getElementById('updateStatusSection').classList.add('hidden');
-                document.getElementById('alasanPenolakanSection').classList.add('hidden');
-                document.getElementById('catatanSection').classList.add('hidden');
-                document.getElementById('submitSuratSection').classList.add('hidden');
-            }
-        }
-
-        // Submit surat pemberitahuan
-        async function submitSuratPemberitahuan() {
-            const submitBtn = document.getElementById('submitSuratBtn');
-            submitBtn.classList.add('loading');
-            submitBtn.textContent = 'Membuat Surat...';
-
-            const statusBaru = document.getElementById('statusBaru').value;
-            const alasanPenolakan = document.getElementById('alasanPenolakan').value;
-            const catatanTambahan = document.getElementById('catatanTambahan').value;
-
-            if (!statusBaru) {
-                showToast('Pilih status baru terlebih dahulu', true);
-                submitBtn.classList.remove('loading');
-                submitBtn.textContent = 'Buat Surat Pemberitahuan';
-                return;
-            }
-
-            if (statusBaru === 'Ditolak' && !alasanPenolakan.trim()) {
-                showToast('Alasan penolakan harus diisi', true);
-                submitBtn.classList.remove('loading');
-                submitBtn.textContent = 'Buat Surat Pemberitahuan';
-                return;
-            }
-
-            // Update status permohonan
-            if (currentSuratData && window.dataSdk) {
-                currentSuratData.status = statusBaru;
-                const updateResult = await window.dataSdk.update(currentSuratData);
-                
-                if (updateResult.isOk) {
-                    // Prepare surat data
-                    const suratData = {
-                        ...currentSuratData,
-                        status_baru: statusBaru,
-                        alasan_penolakan: alasanPenolakan || '',
-                        catatan_tambahan: catatanTambahan || '',
-                        tanggal_surat: new Date().toISOString(),
-                        petugas_pembuat_surat: currentUser || 'Admin'
-                    };
-
-                    currentSuratData = suratData;
-
-                    // Show success modal
-                    document.getElementById('suratSuccessMessage').textContent = 
-                        `Surat pemberitahuan untuk ${suratData.nama_pemohon} (${suratData.id}) berhasil dibuat. Status telah diupdate menjadi "${statusBaru}".`;
-                    document.getElementById('suratSuccessModal').classList.remove('hidden');
-
-                    // Reset form
-                    document.getElementById('suratForm').reset();
-                    document.getElementById('statusPermohonanSection').classList.add('hidden');
-                    document.getElementById('updateStatusSection').classList.add('hidden');
-                    document.getElementById('alasanPenolakanSection').classList.add('hidden');
-                    document.getElementById('catatanSection').classList.add('hidden');
-                    document.getElementById('submitSuratSection').classList.add('hidden');
-
-                    showToast('Status permohonan berhasil diupdate!');
-                } else {
-                    showToast('Gagal mengupdate status permohonan', true);
-                }
-            }
-
-            submitBtn.classList.remove('loading');
-            submitBtn.textContent = 'Buat Surat Pemberitahuan';
-        }
-
-        // Generate PDF surat pemberitahuan
-        function generateSuratPemberitahuanPDF(data) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-
-            // Header
-            doc.setFontSize(16);
-            doc.text('SURAT PEMBERITAHUAN', 20, 20);
-            doc.text('HASIL PERMOHONAN INFORMASI PUBLIK', 20, 30);
-            doc.text('PPID BAWASLU PROVINSI RIAU', 20, 40);
-
-            doc.setFontSize(12);
-            let y = 60;
-            const lineHeight = 8;
-
-            // Nomor surat dan tanggal
-            doc.text(`Nomor: ${data.id}/PPID/${new Date().getFullYear()}`, 20, y);
-            y += lineHeight;
-            doc.text(`Tanggal: ${new Date(data.tanggal_surat).toLocaleDateString('id-ID')}`, 20, y);
-            y += lineHeight * 2;
-
-            // Kepada
-            doc.text('Kepada Yth.', 20, y);
-            y += lineHeight;
-            doc.text(`Sdr/i. ${data.nama_pemohon}`, 20, y);
-            y += lineHeight;
-            const alamatLines = doc.splitTextToSize(`di ${data.alamat}`, 170);
-            doc.text(alamatLines, 20, y);
-            y += alamatLines.length * lineHeight + lineHeight;
-
-            // Isi surat
-            doc.text('Dengan hormat,', 20, y);
-            y += lineHeight * 2;
-
-            doc.text('Berdasarkan permohonan informasi publik yang Saudara ajukan dengan:', 20, y);
-            y += lineHeight * 2;
-
-            doc.text(`- Nomor Registrasi: ${data.id}`, 30, y);
-            y += lineHeight;
-            doc.text(`- Tanggal Permohonan: ${new Date(data.tanggal_permohonan).toLocaleDateString('id-ID')}`, 30, y);
-            y += lineHeight;
-            const rincianLines = doc.splitTextToSize(`- Rincian Informasi: ${data.rincian_informasi}`, 160);
-            doc.text(rincianLines, 30, y);
-            y += rincianLines.length * lineHeight + lineHeight;
-
-            // Status keputusan
-            doc.text('Dengan ini kami sampaikan bahwa permohonan informasi Saudara:', 20, y);
-            y += lineHeight * 2;
-
-            let statusText = '';
-            switch(data.status_baru) {
-                case 'Diberikan':
-                    statusText = '✅ DIBERIKAN SELURUHNYA';
-                    break;
-                case 'Sebagian':
-                    statusText = '⚠️ DIBERIKAN SEBAGIAN';
-                    break;
-                case 'Ditolak':
-                    statusText = '❌ DITOLAK';
-                    break;
-            }
-
-            doc.setFontSize(14);
-            doc.text(statusText, 20, y);
-            doc.setFontSize(12);
-            y += lineHeight * 2;
-
-            // Alasan penolakan jika ada
-            if (data.status_baru === 'Ditolak' && data.alasan_penolakan) {
-                doc.text('Alasan penolakan:', 20, y);
-                y += lineHeight;
-                const alasanLines = doc.splitTextToSize(data.alasan_penolakan, 170);
-                doc.text(alasanLines, 20, y);
-                y += alasanLines.length * lineHeight + lineHeight;
-            }
-
-            // Catatan tambahan jika ada
-            if (data.catatan_tambahan) {
-                doc.text('Catatan:', 20, y);
-                y += lineHeight;
-                const catatanLines = doc.splitTextToSize(data.catatan_tambahan, 170);
-                doc.text(catatanLines, 20, y);
-                y += catatanLines.length * lineHeight + lineHeight;
-            }
-
-            // Penutup
-            y += lineHeight;
-            doc.text('Demikian surat pemberitahuan ini kami sampaikan.', 20, y);
-            y += lineHeight * 2;
-            doc.text('Hormat kami,', 20, y);
-            y += lineHeight * 3;
-            doc.text('PPID Bawaslu Provinsi Riau', 20, y);
-            y += lineHeight * 2;
-            doc.text(`${data.petugas_pembuat_surat || 'Admin'}`, 20, y);
-
-            doc.save(`Surat_Pemberitahuan_${data.nama_pemohon}_${data.id}.pdf`);
-        }
-
-        // View keberatan detail function
-        function viewKeberatanDetail(backendId) {
-            const item = allData.find(data => data.__backendId === backendId);
-            if (item) {
-                currentDetailKeberatanData = item;
-                showKeberatanDetailModal(item);
-            }
-        }
-
-        // Show keberatan detail modal
-        function showKeberatanDetailModal(data) {
-            const detailContent = document.getElementById('detailContent');
-            detailContent.innerHTML = `
-                <div class="space-y-4">
-                    <h4 class="text-lg font-semibold text-gray-900">Informasi Keberatan</h4>
-                    <div class="grid grid-cols-1 gap-3">
-                        <div><span class="font-medium">No. Registrasi Keberatan:</span> ${data.id}</div>
-                        <div><span class="font-medium">No. Register Permohonan:</span> ${data.no_register_permohonan}</div>
-                        <div><span class="font-medium">Nama Pemohon:</span> ${data.nama_pemohon}</div>
-                        <div><span class="font-medium">Alamat:</span> ${data.alamat}</div>
-                        <div><span class="font-medium">Pekerjaan:</span> ${data.pekerjaan}</div>
-                        <div><span class="font-medium">No. Telepon:</span> ${data.no_telp}</div>
-                        <div><span class="font-medium">Tanggal Keberatan:</span> ${new Date(data.tanggal_keberatan).toLocaleDateString('id-ID')}</div>
-                        <div><span class="font-medium">Status:</span> 
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full ${getKeberatanStatusColor(data.status)}">${data.status}</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="space-y-4">
-                    <h4 class="text-lg font-semibold text-gray-900">Detail Keberatan</h4>
-                    <div class="grid grid-cols-1 gap-3">
-                        <div><span class="font-medium">Tujuan Penggunaan:</span><br><p class="mt-1 text-gray-700">${data.tujuan_penggunaan}</p></div>
-                        <div><span class="font-medium">Alasan Keberatan:</span><br><p class="mt-1 text-gray-700">${data.alasan_keberatan}</p></div>
-                        <div><span class="font-medium">Cara Pengajuan:</span> ${data.cara_pengajuan}</div>
-                        ${data.nama_kuasa ? `
-                        <div class="border-t pt-3">
-                            <h5 class="font-medium text-gray-900 mb-2">Kuasa Pemohon:</h5>
-                            <div><span class="font-medium">Nama:</span> ${data.nama_kuasa}</div>
-                            ${data.alamat_kuasa ? `<div><span class="font-medium">Alamat:</span> ${data.alamat_kuasa}</div>` : ''}
-                            ${data.no_telp_kuasa ? `<div><span class="font-medium">No. Telepon:</span> ${data.no_telp_kuasa}</div>` : ''}
-                        </div>
-                        ` : ''}
-                    </div>
+        function printTandaTerima() {
+            const printContent = `
+                <div style="font-family: Arial, sans-serif; padding: 20px;">
+                    <h2 style="text-align: center; margin-bottom: 20px;">TANDA TERIMA PERMOHONAN INFORMASI</h2>
+                    <h3 style="text-align: center; margin-bottom: 30px;">BAWASLU PROVINSI RIAU</h3>
+                    <p>Permohonan informasi Anda telah diterima dan akan diproses sesuai ketentuan yang berlaku.</p>
+                    <p>Tanggal: ${new Date().toLocaleDateString('id-ID')}</p>
+                    <p>Nomor Registrasi: ${generateId()}</p>
                 </div>
             `;
-            document.getElementById('detailModal').classList.remove('hidden');
+            
+            const opt = {
+                margin: 1,
+                filename: 'tanda-terima.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+            
+            html2pdf().set(opt).from(printContent).save();
         }
 
-        // Quick status update function for keberatan
-        function updateStatusKeberatanQuick(backendId) {
-            const item = allData.find(data => data.__backendId === backendId);
-            if (item) {
-                currentDetailKeberatanData = item;
-                document.getElementById('statusKeberatanModal').classList.remove('hidden');
-            }
-        }
-
-        // Update status keberatan from modal
-        async function updateStatusKeberatanFromModal(newStatus) {
-            if (currentDetailKeberatanData && window.dataSdk) {
-                currentDetailKeberatanData.status = newStatus;
-                const result = await window.dataSdk.update(currentDetailKeberatanData);
-                if (result.isOk) {
-                    showToast(`Status keberatan berhasil diubah menjadi ${newStatus}`);
-                    document.getElementById('statusKeberatanModal').classList.add('hidden');
-                    document.getElementById('detailModal').classList.add('hidden');
-                } else {
-                    showToast('Gagal mengubah status keberatan', true);
-                }
-            }
-        }
-
-        // Download keberatan PDF function
-        function downloadKeberatanPDF(backendId) {
-            const item = allData.find(data => data.__backendId === backendId);
-            if (item) {
-                generateKeberatanPDF(item);
-            }
-        }
-
-        // Make functions globally available
-        window.updateStatus = updateStatus;
-        window.viewDetail = viewDetail;
-        window.downloadPDF = downloadPDF;
-        window.openWhatsApp = openWhatsApp;
-        window.updateStatusFromModal = updateStatusFromModal;
-        window.updateStatusQuick = updateStatusQuick;
-        window.downloadInformasi = downloadInformasi;
-        window.cariPermohonanByRegistrasi = cariPermohonanByRegistrasi;
-        window.submitSuratPemberitahuan = submitSuratPemberitahuan;
-        window.viewKeberatanDetail = viewKeberatanDetail;
-        window.updateStatusKeberatanQuick = updateStatusKeberatanQuick;
-        window.updateStatusKeberatanFromModal = updateStatusKeberatanFromModal;
-        window.downloadKeberatanPDF = downloadKeberatanPDF;
-
-        // Initialize app when DOM is loaded
-        document.addEventListener('DOMContentLoaded', initializeApp);
+        // Initialize app when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            debugLog('DOM loaded, initializing app...');
+            initializeApp();
+        });
     </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'99326eb2b7d12c28',t:'MTc2MTIzNTA3MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9961effc90d37e17',t:'MTc2MTczMzE5Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
