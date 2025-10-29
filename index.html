@@ -995,11 +995,17 @@ function getSheetData() {
                 }
 
                 // Show appropriate success message
-                if (localSaveSuccess) {
+                if (localSaveSuccess || appsScriptSaveSuccess) {
                     let message = `Data berhasil disimpan`;
-                    if (appsScriptSaveSuccess) {
-                        message += ` dan tersinkron ke Google Sheets`;
+                    
+                    if (localSaveSuccess && appsScriptSaveSuccess) {
+                        message += ` ke sistem lokal dan Google Sheets`;
+                    } else if (appsScriptSaveSuccess) {
+                        message += ` ke Google Sheets`;
+                    } else if (localSaveSuccess) {
+                        message += ` ke sistem lokal`;
                     }
+                    
                     if (driveFileId) {
                         message += ` dengan file identitas di Google Drive`;
                     }
@@ -1009,8 +1015,8 @@ function getSheetData() {
                     document.getElementById('pekerjaan-lainnya-container').classList.add('hidden');
                     debugLog('✅ Form submission completed successfully');
                 } else {
-                    showNotification('Gagal menyimpan permohonan. Silakan coba lagi.', 'error');
-                    debugLog('❌ Form submission failed');
+                    showNotification('Gagal menyimpan permohonan ke semua sistem. Silakan coba lagi.', 'error');
+                    debugLog('❌ Form submission failed - no successful saves');
                 }
 
             } catch (error) {
@@ -1226,5 +1232,5 @@ function getSheetData() {
             initializeApp();
         });
     </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9961effc90d37e17',t:'MTc2MTczMzE5Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9962057cf356fd68',t:'MTc2MTczNDA3Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
