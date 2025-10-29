@@ -223,9 +223,11 @@
       </form>
      </div><!-- Halaman Daftar Permohonan -->
      <div id="daftar-permohonan" class="admin-page">
-      <div class="mb-6">
-       <h2 class="text-2xl font-bold text-gray-900 mb-2">Daftar Permohonan Informasi</h2>
-       <p class="text-gray-600">Daftar semua permohonan informasi yang masuk</p>
+      <div class="mb-6 flex justify-between items-center">
+       <div>
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">Daftar Permohonan Informasi</h2>
+        <p class="text-gray-600">Daftar semua permohonan informasi yang masuk</p>
+       </div><button id="refresh-data-btn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200"> <i class="fas fa-sync-alt mr-2"></i> Refresh Data </button>
       </div>
       <div class="bg-white rounded-lg shadow overflow-hidden">
        <div class="overflow-x-auto">
@@ -647,6 +649,10 @@ function getSheetData() {
                             updateConnectionStatus(true);
                             showNotification('Apps Script berhasil terhubung!', 'success');
                             debugLog('✅ Connection successful');
+                            
+                            // Auto-load data from Google Sheets when connection is successful
+                            await loadDataFromAppsScript();
+                            
                             return true;
                         } else {
                             throw new Error(result.error || 'Unknown error');
@@ -664,6 +670,84 @@ function getSheetData() {
                 updateConnectionStatus(false);
                 showNotification(`Gagal terhubung: ${error.message}`, 'error');
                 return false;
+            }
+        }
+
+        async function loadDataFromAppsScript() {
+            try {
+                debugLog('Loading data from Google Sheets...');
+                
+                const response = await fetch(APPS_SCRIPT_CONFIG.URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain',
+                    },
+                    body: JSON.stringify({
+                        action: 'getData'
+                    })
+                });
+
+                debugLog(`Load data response status: ${response.status}`);
+                const responseText = await response.text();
+                debugLog(`Load data response text: ${responseText}`);
+
+                if (response.ok) {
+                    try {
+                        const result = JSON.parse(responseText);
+                        if (result.success && result.data) {
+                            // Convert Google Sheets data to our format
+                            const convertedData = result.data.map((row, index) => {
+                                if (row.length >= 16) {
+                                    return {
+                                        __backendId: `gs_${index}`,
+                                        id: row[0] || `REQ-${Date.now()}-${index}`,
+                                        nama_pemohon: row[1] || '',
+                                        alamat: row[2] || '',
+                                        pekerjaan: row[3] || '',
+                                        pekerjaan_lainnya: row[4] || '',
+                                        no_telp: row[5] || '',
+                                        email: row[6] || '',
+                                        rincian_informasi: row[7] || '',
+                                        tujuan_penggunaan: row[8] || '',
+                                        cara_memperoleh: row[9] || '',
+                                        bentuk_salinan: row[10] || '',
+                                        cara_mendapat_salinan: row[11] || '',
+                                        petugas_pelayanan: row[12] || '',
+                                        tanggal_permohonan: row[13] ? new Date(row[13]).toISOString() : new Date().toISOString(),
+                                        status: row[14] || 'Menunggu',
+                                        type: row[15] || 'permohonan'
+                                    };
+                                }
+                                return null;
+                            }).filter(item => item !== null);
+
+                            debugLog(`✅ Loaded ${convertedData.length} records from Google Sheets`);
+                            
+                            // Update local data
+                            allData = convertedData;
+                            currentRecordCount = convertedData.length;
+                            
+                            // Update UI
+                            updateStatistics();
+                            updatePermohonanTable();
+                            
+                            showNotification(`${convertedData.length} data berhasil dimuat dari Google Sheets`, 'success');
+                            return convertedData;
+                        } else {
+                            debugLog(`❌ Load failed: ${result.error || 'No data returned'}`);
+                            return [];
+                        }
+                    } catch (parseError) {
+                        debugLog(`❌ JSON parse error: ${parseError.message}`);
+                        return [];
+                    }
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${responseText}`);
+                }
+            } catch (error) {
+                debugLog(`❌ Load data error: ${error.message}`);
+                showNotification(`Gagal memuat data dari Google Sheets: ${error.message}`, 'error');
+                return [];
             }
         }
 
@@ -867,15 +951,26 @@ function getSheetData() {
 
         // Apps Script sync functionality
         document.getElementById('google-sync-btn').addEventListener('click', async function() {
-            if (!appsScriptConnected) {
-                const success = await testAppsScriptConnection();
-                if (success) {
-                    document.getElementById('google-sync-text').textContent = 'Tersinkron';
-                    this.classList.remove('bg-green-600', 'hover:bg-green-700');
-                    this.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            const originalText = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Memuat Data...';
+            this.disabled = true;
+            
+            try {
+                if (!appsScriptConnected) {
+                    const success = await testAppsScriptConnection();
+                    if (success) {
+                        document.getElementById('google-sync-text').textContent = 'Tersinkron';
+                        this.classList.remove('bg-green-600', 'hover:bg-green-700');
+                        this.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                    }
+                } else {
+                    // Refresh data from Google Sheets
+                    await loadDataFromAppsScript();
+                    showNotification('Data berhasil dimuat ulang dari Google Sheets', 'success');
                 }
-            } else {
-                showNotification('Sudah terhubung dengan Apps Script', 'info');
+            } finally {
+                this.innerHTML = originalText;
+                this.disabled = false;
             }
         });
 
@@ -1226,11 +1321,30 @@ function getSheetData() {
             html2pdf().set(opt).from(printContent).save();
         }
 
+        // Refresh data button functionality
+        document.getElementById('refresh-data-btn').addEventListener('click', async function() {
+            const originalText = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Memuat...';
+            this.disabled = true;
+            
+            try {
+                if (appsScriptConnected) {
+                    await loadDataFromAppsScript();
+                    showNotification('Data berhasil dimuat ulang dari Google Sheets', 'success');
+                } else {
+                    showNotification('Belum terhubung ke Apps Script. Klik tombol "Sinkron Google" terlebih dahulu.', 'error');
+                }
+            } finally {
+                this.innerHTML = originalText;
+                this.disabled = false;
+            }
+        });
+
         // Initialize app when page loads
         document.addEventListener('DOMContentLoaded', function() {
             debugLog('DOM loaded, initializing app...');
             initializeApp();
         });
     </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9962057cf356fd68',t:'MTc2MTczNDA3Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9962183d7739445e',t:'MTc2MTczNDg0NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
