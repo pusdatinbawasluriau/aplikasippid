@@ -3,397 +3,364 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Usaha perbaikan untuk Permissions Policy -->
-    <meta http-equiv="Permissions-Policy" content="geolocation=*">
     <title>Absensi Bawaslu Riau</title>
     <!-- Memuat Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Menggunakan font Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Menggunakan font Inter */
         body {
             font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* bg-gray-100 */
         }
-        /* Style untuk loading spinner sederhana */
-        .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            border-left-color: #3b82f6; /* blue-600 */
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
+        /* Style untuk Loading Overlay */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9998;
+            transition: opacity 0.3s ease-in-out;
         }
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
+        /* Style untuk Modal Notifikasi */
+        #notif-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease-in-out;
+        }
+        #notif-modal.visible {
+            opacity: 1;
+            pointer-events: auto;
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+<body class="min-h-screen flex items-center justify-center p-4">
 
-    <div class="bg-white w-full max-w-lg p-8 rounded-xl shadow-lg">
-        
-        <header class="text-center mb-6">
-            <img src="https://placehold.co/100x100/e0e0e0/333?text=Logo" alt="Logo Bawaslu" class="mx-auto mb-4 w-20 h-20 rounded-full object-cover" onerror="this.src='https://placehold.co/100x100/e0e0e0/333?text=Logo'"/>
-            <h1 class="text-2xl font-bold text-gray-800">
-                Selamat Datang di Aplikasi Absensi
-            </h1>
-            <p class="text-lg text-gray-600">Bawaslu Provinsi Riau</p>
-        </header>
+    <!-- =========== HALAMAN ABSENSI =========== -->
+    <div class="w-full max-w-md p-8 space-y-6 bg-white shadow-xl rounded-2xl">
+        <h2 class="text-2xl font-bold text-center text-gray-800">
+            Selamat Datang di Aplikasi Absensi
+            <span class="block text-xl text-blue-600">Bawaslu Provinsi Riau</span>
+        </h2>
 
-        <form id="absensiForm">
-            <!-- Pilihan Kabupaten/Kota -->
-            <div class="mb-4">
-                <label for="kabupatenSelect" class="block text-sm font-medium text-gray-700 mb-2">Pilih Kabupaten/Kota:</label>
-                <select id="kabupatenSelect" name="kabupaten" class="w-full p-3 border border-gray-300 rounded-md bg-white focus:ring-blue-500 focus:border-blue-500">
-                    <option value="pekanbaru">Pekanbaru</option>
-                    <option value="dumai">Dumai</option>
-                    <option value="kuansing">Kuansing</option>
+        <form id="absen-form" class="space-y-5">
+            <div>
+                <label for="kabupaten" class="block text-sm font-medium text-gray-700">Pilih Kabupaten</label>
+                <select id="kabupaten" name="kabupaten" required
+                        class="w-full px-4 py-3 mt-1 text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200">
+                    <option value="">-- Pilih Kabupaten --</option>
+                    <option value="Pekanbaru">Pekanbaru</option>
+                    <option value="Dumai">Dumai</option>
+                    <option value="Kuansing">Kuansing</option>
                 </select>
             </div>
 
-            <!-- Pilihan Nama Pimpinan -->
-            <div class="mb-4">
-                <label for="namaSelect" class="block text-sm font-medium text-gray-700 mb-2">Pilih Nama Pimpinan:</label>
-                <select id="namaSelect" name="nama" class="w-full p-3 border border-gray-300 rounded-md bg-white focus:ring-blue-500 focus:border-blue-500">
-                    <!-- Opsi nama akan diisi oleh JavaScript -->
+            <div>
+                <label for="nama" class="block text-sm font-medium text-gray-700">Pilih Nama Pimpinan</label>
+                <select id="nama" name="nama" required
+                        class="w-full px-4 py-3 mt-1 text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200" disabled>
+                    <option value="">-- Pilih Kabupaten Dulu --</option>
                 </select>
             </div>
 
-            <!-- Pilihan Jenis Presensi -->
-            <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Presensi:</label>
-                <div class="flex flex-col sm:flex-row sm:gap-6">
-                    <label class="flex items-center p-3 border rounded-md has-[:checked]:bg-blue-50 has-[:checked]:border-blue-400">
-                        <input type="radio" name="presensiType" value="Presensi Masuk" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500" required>
-                        <span class="ml-3 text-gray-700">Presensi Masuk</span>
-                    </label>
-                    <label class="flex items-center mt-2 sm:mt-0 p-3 border rounded-md has-[:checked]:bg-blue-50 has-[:checked]:border-blue-400">
-                        <input type="radio" name="presensiType" value="Presensi Pulang" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500" required>
-                        <span class="ml-3 text-gray-700">Presensi Pulang</span>
-                    </label>
-                </div>
+            <div>
+                <label for="jenis-presensi" class="block text-sm font-medium text-gray-700">Jenis Presensi</label>
+                <select id="jenis-presensi" name="jenis-presensi" required
+                        class="w-full px-4 py-3 mt-1 text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200">
+                    <option value="Presensi Masuk">Presensi Masuk</option>
+                    <option value="Presensi Pulang">Presensi Pulang</option>
+                </select>
             </div>
 
-            <!-- Tombol Cek Koordinat -->
-            <button id="checkCoordButton" type="button" class="w-full bg-green-600 text-white p-3 rounded-md font-semibold hover:bg-green-700 transition-colors duration-200 disabled:bg-gray-400 flex items-center justify-center gap-2 mb-3">
-                Cek Koordinat Saya
-            </button>
-
-            <!-- Tombol Kirim -->
-            <button id="submitButton" type="submit" class="w-full bg-blue-600 text-white p-3 rounded-md font-semibold hover:bg-blue-700 transition-colors duration-200 disabled:bg-gray-400 flex items-center justify-center gap-2">
+            <button type="submit" id="btn-kirim"
+                    class="w-full px-4 py-3 font-semibold text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200 ease-in-out">
                 Kirim Absensi
             </button>
-
-            <!-- Status Message -->
-            <div id="statusMessage" role="alert" class="mt-4 text-center p-3 rounded-md text-sm" aria-live="assertive">
-                <!-- Pesan sukses atau error akan muncul di sini -->
-            </div>
-
-            <!-- Loading Indicator (hidden by default) -->
-            <div id="loadingIndicator" class="hidden items-center justify-center mt-4 gap-2 text-gray-600">
-                <div class="spinner"></div>
-                <span>Mencari lokasi Anda...</span>
-            </div>
-
         </form>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
+    <!-- =========== LOADING OVERLAY =========== -->
+    <div id="loading-overlay" class="hidden">
+        <div class="text-white text-center">
+            <!-- Spinner -->
+            <svg class="animate-spin h-10 w-10 text-white mx-auto mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p id="loading-text" class="text-lg font-medium">Mengecek lokasi GPS...</p>
+        </div>
+    </div>
+
+    <!-- =========== MODAL NOTIFIKASI =========== -->
+    <div id="notif-modal" class="hidden">
+        <div class="w-full max-w-sm p-6 bg-white shadow-xl rounded-2xl text-center">
+            <h3 id="notif-title" class="text-xl font-bold text-gray-800 mb-3">Notifikasi</h3>
+            <p id="notif-message" class="text-gray-600 mb-5">Ini adalah pesan notifikasi.</p>
+            <button id="btn-close-modal"
+                    class="w-full px-4 py-2 font-semibold text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200">
+                Tutup
+            </button>
+        </div>
+    </div>
+
+
+    <script type="module">
+        // =======================================================================
+        //                       PENGATURAN PENTING
+        // =======================================================================
+        // 
+        // TEMPELKAN URL WEB APP GOOGLE APPS SCRIPT ANDA DI SINI
+        // Ganti string di bawah dengan URL yang Anda dapatkan setelah mendeploy
+        // Google Apps Script Anda.
+        //
+        // INI HARUS URL YANG SAMA DENGAN YANG ADA DI 'index.html'
+        //
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw9qQ_KjR6RFcAgTNG6O_PY-eo6EH7-PSPkhXT5bAM3oWNzrHWoj6ZjAwPin0asj4o/exec";
+        //
+        // =======================================================================
+        
+        // --- PENGATURAN LOKASI ---
+        // Koordinat Target (Bawaslu Riau dari Google Maps link)
+        const TARGET_LAT = 0.49162;
+        const TARGET_LON = 101.43285;
+        const MAX_DISTANCE_METERS = 100; // Jarak toleransi 100 meter
+
+        // --- Data Pimpinan ---
+        const pimpinanData = {
+            "Pekanbaru": ["Verdi", "Reni Purba", "Misbah Ibrahim", "Raja Inal", "Taufiq"],
+            "Dumai": ["Yeni", "Adi", "Badu"],
+            "Kuansing": ["Susi", "Adi", "Iqbal"]
+        };
+
+        // --- Referensi Elemen DOM ---
+        const absenForm = document.getElementById('absen-form');
+        const kabupatenSelect = document.getElementById('kabupaten');
+        const namaSelect = document.getElementById('nama');
+        const jenisPresensiSelect = document.getElementById('jenis-presensi');
+        const btnKirim = document.getElementById('btn-kirim');
+        
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const loadingText = document.getElementById('loading-text');
+        
+        const notifModal = document.getElementById('notif-modal');
+        const notifTitle = document.getElementById('notif-title');
+        const notifMessage = document.getElementById('notif-message');
+        const btnCloseModal = document.getElementById('btn-close-modal');
+
+
+        // --- FUNGSI TAMPILKAN/SEMBUNYIKAN MODAL ---
+        function showModal(title, message, isSuccess = true) {
+            notifTitle.textContent = title;
+            notifMessage.textContent = message;
             
-            // --- DATA SIMULASI ---
-            // Data pimpinan berdasarkan kabupaten
-            const pimpinanData = {
-                pekanbaru: ["Verdi", "Reni Purba", "Misbah Ibrahim", "Raja Inal", "Taufiq"],
-                dumai: ["Yeni", "Adi", "Badu"],
-                kuansing: ["Susi", "Adi", "Iqbal"]
-            };
-
-            // Data simulasi koordinat kantor (admin-defined)
-            // Titik Bawaslu Riau dari link: 0.4918, 101.4449
-            const kantorCoordinates = {
-                // GANTI KOORDINAT DI BAWAH INI DENGAN TITIK GPS YANG SEHARUSNYA
-                pekanbaru: { lat: 0.4997292239084584, lon: 101.44501239532684 }, // <-- Ganti nilai lat/lon ini
-                dumai: { lat: 1.6740, lon: 101.4450 }, // <-- Ganti nilai lat/lon ini
-                kuansing: { lat: -0.5180, lon: 101.5360 } // <-- Ganti nilai lat/lon ini
-            };
-            const MAX_DISTANCE_METERS = 1000; // Jarak toleransi diubah ke 1000 meter
-
-            // --- PENGATURAN SIMULASI (UBAH UNTUK PENGUJIAN) ---
-            // Atur ke 'true' untuk melewati GPS asli & menggunakan koordinat simulasi di bawah.
-            // Atur ke 'false' untuk menggunakan GPS asli (AKAN GAGAL di mode 'Preview').
-            const SIMULATE_LOCATION = true; 
-
-            // Koordinat simulasi pengguna. Ubah ini untuk menguji jarak.
-            const simulatedUserCoords = {
-                // Kasus SUKSES (dekat kantor Pekanbaru, ~1 meter)
-                sukses: { lat: 0.499729, lon: 101.44501 }, 
-                // Kasus GAGAL (jauh dari kantor, > 1000 meter)
-                gagal: { lat: 0.5193, lon: 101.4475 } 
-            };
-            // --- AKHIR PENGATURAN SIMULASI ---
-
-
-            // --- REFERENSI ELEMEN ---
-            const kabupatenSelect = document.getElementById('kabupatenSelect');
-            const namaSelect = document.getElementById('namaSelect');
-            const absensiForm = document.getElementById('absensiForm');
-            const submitButton = document.getElementById('submitButton');
-            const checkCoordButton = document.getElementById('checkCoordButton'); // Tombol baru
-            const statusMessage = document.getElementById('statusMessage');
-            const loadingIndicator = document.getElementById('loadingIndicator');
-
-            // --- FUNGSI ---
-
-            /**
-             * Memperbarui daftar nama pimpinan berdasarkan kabupaten yang dipilih.
-             */
-            function updateNamaPimpinan() {
-                const selectedKabupaten = kabupatenSelect.value;
-                const pimpinanList = pimpinanData[selectedKabupaten] || [];
-                
-                // Kosongkan select nama
-                namaSelect.innerHTML = ''; 
-
-                // Isi dengan nama yang baru
-                if (pimpinanList.length > 0) {
-                    pimpinanList.forEach(nama => {
-                        const option = document.createElement('option');
-                        option.value = nama.toLowerCase().replace(' ', '-');
-                        option.textContent = nama;
-                        namaSelect.appendChild(option);
-                    });
-                    namaSelect.disabled = false;
-                } else {
-                    const option = document.createElement('option');
-                    option.textContent = 'Tidak ada data';
-                    namaSelect.appendChild(option);
-                    namaSelect.disabled = true;
-                }
+            // Ubah warna tombol berdasarkan sukses/error
+            if (isSuccess) {
+                notifTitle.classList.remove('text-red-600');
+                notifTitle.classList.add('text-gray-800');
+                btnCloseModal.classList.remove('bg-red-600', 'hover:bg-red-700', 'focus:ring-red-500');
+                btnCloseModal.classList.add('bg-blue-600', 'hover:bg-blue-700', 'focus:ring-blue-500');
+            } else {
+                notifTitle.classList.add('text-red-600');
+                notifTitle.classList.remove('text-gray-800');
+                btnCloseModal.classList.add('bg-red-600', 'hover:bg-red-700', 'focus:ring-red-500');
+                btnCloseModal.classList.remove('bg-blue-600', 'hover:bg-blue-700', 'focus:ring-blue-500');
             }
+            
+            notifModal.classList.add('visible');
+            notifModal.classList.remove('hidden');
+        }
 
-            /**
-             * Menampilkan pesan status kepada pengguna.
-             * @param {string} message - Pesan yang akan ditampilkan.
-             * @param {('success'|'error'|'info')} type - Jenis pesan.
-             */
-            function showMessage(message, type = 'info') {
-                statusMessage.textContent = message;
-                statusMessage.className = 'mt-4 text-center p-3 rounded-md text-sm'; // Reset
-                
-                if (type === 'success') {
-                    statusMessage.classList.add('bg-green-100', 'text-green-800');
-                } else if (type === 'error') {
-                    statusMessage.classList.add('bg-red-100', 'text-red-800');
-                } else {
-                    statusMessage.classList.add('bg-blue-100', 'text-blue-800');
-                }
-            }
-
-            /**
-             * Mengatur status loading
-             * @param {boolean} isLoading - true jika sedang loading.
-             */
-            function setLoading(isLoading) {
-                if (isLoading) {
-                    submitButton.disabled = true;
-                    checkCoordButton.disabled = true; // Nonaktifkan tombol cek juga
-                    submitButton.classList.add('disabled:bg-gray-400');
-                    checkCoordButton.classList.add('disabled:bg-gray-400'); // Style nonaktif
-                    loadingIndicator.classList.remove('hidden');
-                    loadingIndicator.classList.add('flex');
-                    statusMessage.innerHTML = ''; // Hapus pesan lama
-                } else {
-                    submitButton.disabled = false;
-                    checkCoordButton.disabled = false; // Aktifkan tombol cek juga
-                    loadingIndicator.classList.add('hidden');
-                    loadingIndicator.classList.remove('flex');
-                }
-            }
-
-            /**
-             * Menghitung jarak Haversine antara dua titik GPS dalam meter.
-             */
-            function haversineDistance(lat1, lon1, lat2, lon2) {
-                const R = 6371e3; // Radius Bumi dalam meter
-                const phi1 = lat1 * Math.PI / 180;
-                const phi2 = lat2 * Math.PI / 180;
-                const deltaPhi = (lat2 - lat1) * Math.PI / 180;
-                const deltaLambda = (lon2 - lon1) * Math.PI / 180;
-
-                const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
-                          Math.cos(phi1) * Math.cos(phi2) *
-                          Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
-                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-                
-                return R * c; // Jarak dalam meter
-            }
-
-            /**
-             * Mendapatkan lokasi GPS pengguna, baik asli atau simulasi.
-             * @returns {Promise<{userLat: number, userLon: number}>}
-             */
-            function getCurrentLocation() {
-                return new Promise(async (resolve, reject) => {
-                    if (SIMULATE_LOCATION) {
-                        // --- MODE SIMULASI AKTIF ---
-                        showMessage("MODE SIMULASI AKTIF. Menggunakan lokasi palsu.", 'info');
-                        
-                        // Ganti 'sukses' atau 'gagal' untuk menguji
-                        const simCoords = simulatedUserCoords.sukses; 
-                        
-                        // Beri jeda 1 detik untuk meniru proses loading GPS
-                        await new Promise(res => setTimeout(res, 1000));
-                        
-                        resolve({ userLat: simCoords.lat, userLon: simCoords.lon });
-
-                    } else {
-                        // --- MODE GPS ASLI ---
-                        navigator.geolocation.getCurrentPosition(
-                            (position) => {
-                                resolve({
-                                    userLat: position.coords.latitude,
-                                    userLon: position.coords.longitude
-                                });
-                            },
-                            (error) => {
-                                reject(error); // Melempar error untuk ditangkap oleh 'catch'
-                            },
-                            {
-                                enableHighAccuracy: true, 
-                                timeout: 10000, 
-                                maximumAge: 0
-                            }
-                        );
-                    }
-                });
-            }
-
-            /**
-             * Handler untuk tombol Cek Koordinat.
-             */
-            async function handleCheckCoordinates() {
-                setLoading(true);
-                try {
-                    const { userLat, userLon } = await getCurrentLocation();
-                    // Tampilkan koordinat dengan 6 angka desimal
-                    showMessage(`Lokasi Anda Saat Ini: ${userLat.toFixed(6)}, ${userLon.toFixed(6)}`, 'success');
-                } catch (error) {
-                    // Tangani error GPS (logic disalin dari handleAbsensiSubmit)
-                    let errorMsg = "Terjadi kesalahan.";
-
-                    if (error.message && error.message.toLowerCase().includes("permissions policy")) {
-                        errorMsg = "Error: Izin Geolocation diblokir oleh 'permissions policy'. Pratinjau ini tidak mendukung GPS. Gunakan 'MODE SIMULASI' di dalam kode untuk pengujian.";
-                    } else if (error.code === 1) { // PERMISSION_DENIED
-                        errorMsg = "Izin lokasi ditolak. Anda harus mengizinkan akses lokasi di browser Anda.";
-                    } else if (error.code === 2) { // POSITION_UNAVAILABLE
-                        errorMsg = "Gagal mendapatkan lokasi. Pastikan GPS Anda aktif dan sinyal kuat.";
-                    } else if (error.code === 3) { // TIMEOUT
-                        errorMsg = "Waktu tunggu habis saat mencari lokasi. Coba lagi.";
-                    } else {
-                        errorMsg = `Gagal mendapatkan lokasi. Silakan coba lagi.`;
-                    }
-                    showMessage(errorMsg, 'error');
-                    console.error("Geolocation Error:", error.message, error);
-                } finally {
-                    setLoading(false);
-                }
-            }
-
-
-            /**
-             * Handler untuk proses submit form absensi.
-             */
-            async function handleAbsensiSubmit(event) {
-                event.preventDefault(); // Mencegah form submit
-                
-                const formData = new FormData(absensiForm);
-                const jenisPresensi = formData.get('presensiType');
-                const selectedKabupaten = formData.get('kabupaten');
-
-                if (!jenisPresensi) {
-                    showMessage('Silakan pilih jenis presensi (Masuk atau Pulang).', 'error');
-                    return;
-                }
-                
-                setLoading(true);
-
-                try {
-                    // 1. Dapatkan lokasi GPS pengguna (sekarang memanggil fungsi baru)
-                    const { userLat, userLon } = await getCurrentLocation();
-
-
-                    // 2. Dapatkan koordinat kantor tujuan
-                    const target = kantorCoordinates[selectedKabupaten];
-                    if (!target) {
-                        throw new Error("Koordinat kantor untuk kabupaten ini tidak ditemukan.");
-                    }
-
-                    // 3. Hitung jarak
-                    const distance = haversineDistance(userLat, userLon, target.lat, target.lon);
-
-                    // 4. Cek jarak
-                    if (distance > MAX_DISTANCE_METERS) {
-                        // Jarak terlalu jauh
-                        showMessage(`Anda saat ini tidak dapat melakukan absensi karena berada jauh dari lokasi kantor. (Jarak: ${distance.toFixed(0)} meter)`, 'error');
-                    } else {
-                        // Jarak sesuai, sukses absensi
-                        const tanggal = new Date().toLocaleDateString('id-ID', {
-                            day: '2-digit', month: 'long', year: 'numeric'
-                        });
-                        
-                        // Simulasi pengiriman data ke admin
-                        console.log("MENGIRIM DATA KE ADMIN (SIMULASI):", {
-                            kabupaten: selectedKabupaten,
-                            nama: formData.get('nama'),
-                            jenisPresensi: jenisPresensi,
-                            tanggal: new Date().toISOString(),
-                            lokasi: `${userLat}, ${userLon}`,
-                            jarak: distance.toFixed(2) + ' meter'
-                        });
-
-                        showMessage(`Absensi '${jenisPresensi}' pada tanggal ${tanggal} telah dikirim.`, 'success');
-                        
-                        // Reset form
-                        absensiForm.reset();
-                        updateNamaPimpinan(); // Set nama kembali ke default
-                    }
-
-                } catch (error) {
-                    // Tangani error GPS
-                    let errorMsg = "Terjadi kesalahan.";
-
-                    // Cek spesifik untuk error Permissions Policy
-                    if (error.message && error.message.toLowerCase().includes("permissions policy")) {
-                        errorMsg = "Error: Izin Geolocation diblokir oleh 'permissions policy'. Pratinjau ini tidak mendukung GPS. Gunakan 'MODE SIMULASI' di dalam kode untuk pengujian.";
-                    } else if (error.code === 1) { // PERMISSION_DENIED
-                        errorMsg = "Izin lokasi ditolak. Anda harus mengizinkan akses lokasi di browser Anda.";
-                    } else if (error.code === 2) { // POSITION_UNAVAILABLE
-                        errorMsg = "Gagal mendapatkan lokasi. Pastikan GPS Anda aktif dan sinyal kuat.";
-                    } else if (error.code === 3) { // TIMEOUT
-                        errorMsg = "Waktu tunggu habis saat mencari lokasi. Coba lagi.";
-                    } else {
-                        // Fallback untuk error lain
-                        errorMsg = `Gagal mendapatkan lokasi. Silakan coba lagi.`;
-_                    }
-                    
-                    showMessage(errorMsg, 'error');
-                    console.error("Absensi Error:", error.message, error); // Log seluruh error object
-                } finally {
-                    setLoading(false); // Selalu hentikan loading
-                }
-            }
-
-            // --- EVENT LISTENERS ---
-            kabupatenSelect.addEventListener('change', updateNamaPimpinan);
-            absensiForm.addEventListener('submit', handleAbsensiSubmit);
-            checkCoordButton.addEventListener('click', handleCheckCoordinates); // Listener untuk tombol baru
-
-            // --- INISIALISASI ---
-            updateNamaPimpinan(); // Panggil sekali saat load untuk mengisi data awal
+        btnCloseModal.addEventListener('click', () => {
+            notifModal.classList.remove('visible');
+            notifModal.classList.add('hidden');
         });
+        
+        // --- FUNGSI LOADING ---
+        function showLoading(message) {
+            loadingText.textContent = message;
+            loadingOverlay.classList.remove('hidden');
+        }
+        function hideLoading() {
+            loadingOverlay.classList.add('hidden');
+        }
+
+
+        // --- LOGIKA DROPDOWN DINAMIS ---
+        kabupatenSelect.addEventListener('change', () => {
+            const selectedKabupaten = kabupatenSelect.value;
+            
+            // Kosongkan daftar nama
+            namaSelect.innerHTML = ''; 
+            
+            if (selectedKabupaten && pimpinanData[selectedKabupaten]) {
+                namaSelect.disabled = false;
+                namaSelect.innerHTML = '<option value="">-- Pilih Nama --</option>'; // Tambah placeholder
+                
+                pimpinanData[selectedKabupaten].forEach(nama => {
+                    const option = document.createElement('option');
+                    option.value = nama;
+                    option.textContent = nama;
+                    namaSelect.appendChild(option);
+                });
+            } else {
+                namaSelect.disabled = true;
+                namaSelect.innerHTML = '<option value="">-- Pilih Kabupaten Dulu --</option>';
+            }
+        });
+
+        // --- LOGIKA UTAMA SUBMIT FORM ---
+        absenForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            if (SCRIPT_URL === "MASUKKAN_URL_GOOGLE_APPS_SCRIPT_ANDA_DI_SINI") {
+                 showModal('Error Konfigurasi', 'URL Google Apps Script belum diatur di file absen.html.', false);
+                 return;
+            }
+            
+            showLoading('Mengecek lokasi GPS...');
+            
+            const formData = {
+                kabupaten: kabupatenSelect.value,
+                nama: namaSelect.value,
+                jenis: jenisPresensiSelect.value
+            };
+            
+            // 1. Panggil fungsi Geolocation
+            if (!navigator.geolocation) {
+                hideLoading();
+                showModal('Error GPS', 'Browser Anda tidak mendukung Geolocation.', false);
+                return;
+            }
+            
+            navigator.geolocation.getCurrentPosition(
+                (position) => { // Sukses mendapatkan lokasi
+                    checkLocationAndSubmit(position, formData);
+                },
+                (error) => { // Gagal mendapatkan lokasi
+                    hideLoading();
+                    handleGPSError(error);
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        });
+
+        // 2. Fungsi Cek Lokasi dan Submit
+        function checkLocationAndSubmit(position, formData) {
+            const userLat = position.coords.latitude;
+            const userLon = position.coords.longitude;
+
+            // Hitung jarak
+            const distance = calculateDistance(userLat, userLon, TARGET_LAT, TARGET_LON);
+            
+            if (distance <= MAX_DISTANCE_METERS) {
+                // LOKASI SESUAI
+                showLoading('Lokasi terverifikasi. Mengirim data...');
+                submitToGoogleSheet(formData);
+            } else {
+                // LOKASI JAUH
+                hideLoading();
+                showModal(
+                    'Lokasi Tidak Sesuai',
+                    `Anda saat ini tidak dapat melakukan absensi karena berada ${distance.toFixed(0)} meter dari titik lokasi kantor.`,
+                    false
+                );
+            }
+        }
+
+        // 3. Fungsi Kirim Data ke Google Sheet
+        async function submitToGoogleSheet(formData) {
+            try {
+                // Menggunakan fetch dengan method POST
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'cors', // Diperlukan untuk Apps Script
+                    redirect: "follow",
+                    headers: {
+                        "Content-Type": "text/plain;charset=utf-8", // Apps Script doPost seringkali lebih mudah menerima text/plain
+                    },
+                    body: JSON.stringify(formData) // Kirim data sebagai string JSON
+                });
+
+                const result = await response.json();
+                hideLoading();
+
+                if (result.status === 'success') {
+                    const tgl = new Date().toLocaleDateString('id-ID', { dateStyle: 'long' });
+                    showModal(
+                        'Absensi Berhasil',
+                        `Absensi '${formData.jenis}' pada ${tgl} telah dikirim.`
+                    );
+                    absenForm.reset(); // Reset form
+                    // Reset dropdown nama
+                    namaSelect.disabled = true;
+                    namaSelect.innerHTML = '<option value="">-- Pilih Kabupaten Dulu --</option>';
+                } else {
+                    // Tampilkan error dari Apps Script (misal: "Sudah absen masuk")
+                    showModal('Error', result.message || 'Gagal mengirim data.', false);
+                }
+            } catch (error) {
+                hideLoading();
+                console.error('Error submitting data:', error);
+                showModal('Error Jaringan', 'Terjadi masalah saat mengirim data. Coba lagi.', false);
+            }
+        }
+        
+        // --- FUNGSI BANTUAN (HELPER) ---
+
+        // Fungsi Error GPS
+        function handleGPSError(error) {
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    showModal('Error GPS', 'Anda menolak izin lokasi. Absensi tidak dapat dilanjutkan.', false);
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    showModal('Error GPS', 'Informasi lokasi tidak tersedia.', false);
+                    break;
+                case error.TIMEOUT:
+                    showModal('Error GPS', 'Waktu permintaan lokasi habis. Coba lagi.', false);
+                    break;
+                default:
+                    showModal('Error GPS', 'Terjadi kesalahan tidak diketahui saat mengambil lokasi.', false);
+                    break;
+            }
+        }
+
+        // Fungsi Haversine untuk menghitung jarak 2 titik GPS (dalam meter)
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // Radius bumi dalam meter
+            
+            const phi1 = lat1 * Math.PI / 180; // konversi ke radian
+            const phi2 = lat2 * Math.PI / 180;
+            const deltaPhi = (lat2 - lat1) * Math.PI / 180;
+            const deltaLambda = (lon2 - lon1) * Math.PI / 180;
+
+            const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+                      Math.cos(phi1) * Math.cos(phi2) *
+                      Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+                      
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+            const d = R * c; // Jarak dalam meter
+            return d;
+        }
+
     </script>
 </body>
 </html>
-
