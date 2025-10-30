@@ -97,7 +97,8 @@
     </div>
 
     <!-- =========== LOADING OVERLAY =========== -->
-    <div id="loading-overlay" class="hidden">
+    <!-- PERBAIKAN: Menambahkan style="display: none;" untuk memaksa sembunyi saat awal -->
+    <div id="loading-overlay" class="hidden" style="display: none;">
         <div class="text-white text-center">
             <!-- Spinner -->
             <svg class="animate-spin h-10 w-10 text-white mx-auto mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -203,12 +204,15 @@
         });
         
         // --- FUNGSI LOADING ---
+        // PERBAIKAN: Mengubah fungsi untuk mengelola style inline
         function showLoading(message) {
             loadingText.textContent = message;
             loadingOverlay.classList.remove('hidden');
+            loadingOverlay.style.display = 'flex'; // 'flex' sesuai style di <head>
         }
         function hideLoading() {
             loadingOverlay.classList.add('hidden');
+            loadingOverlay.style.display = 'none'; // 'none' untuk menyembunyikan
         }
 
 
@@ -393,7 +397,23 @@
             return d;
         }
 
+        // --- FUNGSI INISIALISASI SAAT HALAMAN DIMUAT ---
+        // Tambahan untuk memastikan loading tersembunyi saat awal
+        window.addEventListener('load', () => {
+            // Memastikan loading overlay 100% tersembunyi
+            hideLoading(); 
+            
+            // Memastikan form tidak terkunci
+            kabupatenSelect.disabled = false;
+            jenisPresensiSelect.disabled = false;
+            btnKirim.disabled = false;
+            
+            // Nama select tetap disabled sampai kabupaten dipilih (ini sudah benar)
+            namaSelect.disabled = true; 
+        });
+
     </script>
 </body>
 </html>
+
 
