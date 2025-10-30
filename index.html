@@ -3,1511 +3,762 @@
  <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aplikasi PPID Bawaslu Provinsi Riau</title>
+  <title>Absensi Bawaslu Riau</title>
   <script src="/_sdk/data_sdk.js"></script>
   <script src="/_sdk/element_sdk.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            box-sizing: border-box;
-        }
-
-        .sidebar-nav {
-            background-color: #1e3a8a;
-        }
-        
-        .sidebar-nav a:hover, .sidebar-nav a.active {
-            background-color: #1e40af;
-        }
-
-        .admin-page {
-            display: none;
-        }
-        .admin-page.active {
-            display: block;
-        }
-
-        #notification-popup {
-            transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
-            transform: translateY(-100%);
-            opacity: 0;
-        }
-        #notification-popup.show {
-            transform: translateY(0);
-            opacity: 1;
-        }
-
-        #view-modal {
-            background-color: rgba(0, 0, 0, 0.5);
-            transition: opacity 0.3s ease;
-        }
-        #view-modal .modal-content {
-            transform: scale(0.95);
-            transition: transform 0.3s ease;
-        }
-        #view-modal.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-        #view-modal.active .modal-content {
-            transform: scale(1);
-        }
-
-        .stat-card {
-            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-        }
-
-        .chart-container {
-            background: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .debug-log {
-            background: #1a1a1a;
-            color: #00ff00;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            padding: 10px;
-            border-radius: 4px;
-            max-height: 200px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-        }
-    </style>
+    body {
+      box-sizing: border-box;
+    }
+    
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 16px 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 1000;
+      animation: slideIn 0.3s ease-out;
+    }
+    
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    
+    .loading-spinner {
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top: 3px solid white;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      margin-right: 8px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
   <style>@view-transition { navigation: auto; }</style>
  </head>
- <body class="bg-gray-100"><!-- Notifikasi Popup -->
-  <div id="notification-popup" class="fixed top-4 right-4 z-50 p-4 bg-green-500 text-white rounded-lg shadow-lg max-w-sm">
-   <div class="flex items-center"><i class="fas fa-check-circle mr-2"></i> <span id="notification-text">Notifikasi</span>
-   </div>
-  </div><!-- =========== HALAMAN LOGIN =========== -->
-  <div id="login-page" class="flex items-center justify-center min-h-full bg-gradient-to-br from-blue-900 to-blue-700">
-   <div class="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-xl">
-    <div class="flex flex-col items-center">
-     <svg class="w-20 h-20 text-blue-900" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-     </svg>
-     <h2 class="mt-4 text-2xl font-bold text-center text-gray-900" id="login-title">Login Admin PPID</h2>
-     <p class="text-sm text-gray-600" id="login-subtitle">Bawaslu Provinsi Riau</p>
-    </div>
-    <form id="login-form" class="space-y-6">
-     <div><label for="username" class="block text-sm font-medium text-gray-700">Username</label> <input id="username" name="username" type="text" required class="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-     </div>
-     <div><label for="password" class="block text-sm font-medium text-gray-700">Password</label> <input id="password" name="password" type="password" required class="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-     </div>
-     <div id="login-error" class="hidden p-3 text-sm text-red-700 bg-red-100 border border-red-300 rounded-md"><i class="fas fa-exclamation-triangle mr-2"></i> Username atau password salah!
-     </div><button type="submit" class="w-full px-4 py-2 text-white bg-blue-900 rounded-md hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200"> <i class="fas fa-sign-in-alt mr-2"></i> Masuk </button>
-    </form>
-   </div>
-  </div><!-- =========== HALAMAN ADMIN =========== -->
-  <div id="admin-panel" class="hidden min-h-full"><!-- Header -->
-   <header class="bg-white shadow-sm border-b">
-    <div class="flex items-center justify-between px-6 py-4">
-     <div class="flex items-center">
-      <svg class="w-8 h-8 text-blue-900 mr-3" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-      </svg>
-      <h1 class="text-xl font-semibold text-gray-900" id="header-title">Selamat Datang ADMIN di PPID Bawaslu Provinsi Riau</h1>
-     </div>
-     <div class="flex space-x-3"><button id="google-sync-btn" class="px-4 py-2 text-white bg-green-600 rounded-md hover:bg-green-700 transition duration-200"> <i class="fab fa-google mr-2"></i> <span id="google-sync-text">Sinkron Google</span> </button> <button id="signout-btn" class="px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700 transition duration-200"> <i class="fas fa-sign-out-alt mr-2"></i> Sign Out </button>
-     </div>
-    </div>
-   </header>
-   <div class="flex"><!-- Sidebar -->
-    <nav class="sidebar-nav w-64 min-h-full">
-     <div class="p-4">
-      <ul class="space-y-2">
-       <li><a href="#" data-page="beranda" class="nav-link active flex items-center px-4 py-3 text-white rounded-lg hover:bg-blue-800 transition duration-200"> <i class="fas fa-home mr-3"></i> Beranda </a></li>
-       <li><a href="#" data-page="formulir-permohonan" class="nav-link flex items-center px-4 py-3 text-white rounded-lg hover:bg-blue-800 transition duration-200"> <i class="fas fa-file-alt mr-3"></i> Formulir Permohonan </a></li>
-       <li><a href="#" data-page="daftar-permohonan" class="nav-link flex items-center px-4 py-3 text-white rounded-lg hover:bg-blue-800 transition duration-200"> <i class="fas fa-list mr-3"></i> Daftar Permohonan </a></li>
-       <li><a href="#" data-page="daftar-informasi" class="nav-link flex items-center px-4 py-3 text-white rounded-lg hover:bg-blue-800 transition duration-200"> <i class="fas fa-database mr-3"></i> Daftar Informasi Publik </a></li>
-       <li><a href="#" data-page="formulir-keberatan" class="nav-link flex items-center px-4 py-3 text-white rounded-lg hover:bg-blue-800 transition duration-200"> <i class="fas fa-exclamation-triangle mr-3"></i> Formulir Keberatan </a></li>
-       <li><a href="#" data-page="daftar-keberatan" class="nav-link flex items-center px-4 py-3 text-white rounded-lg hover:bg-blue-800 transition duration-200"> <i class="fas fa-clipboard-list mr-3"></i> Daftar Keberatan </a></li>
-       <li><a href="#" data-page="buat-surat" class="nav-link flex items-center px-4 py-3 text-white rounded-lg hover:bg-blue-800 transition duration-200"> <i class="fas fa-envelope mr-3"></i> Buat Surat Pemberitahuan </a></li>
-      </ul>
-     </div>
-    </nav><!-- Main Content -->
-    <main class="flex-1 p-6"><!-- Halaman Beranda -->
-     <div id="beranda" class="admin-page active">
-      <div class="mb-6">
-       <h2 class="text-2xl font-bold text-gray-900 mb-2" id="welcome-message">Selamat Datang</h2>
-       <p class="text-gray-600">Dashboard Statistik PPID Bawaslu Provinsi Riau</p>
-      </div><!-- Statistik Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-       <div class="stat-card text-white p-6 rounded-lg">
-        <div class="flex items-center"><i class="fas fa-file-alt text-3xl mr-4"></i>
-         <div>
-          <p class="text-sm opacity-90">Jumlah Permohonan</p>
-          <p class="text-2xl font-bold" id="total-permohonan">0</p>
-         </div>
-        </div>
-       </div>
-       <div class="stat-card text-white p-6 rounded-lg">
-        <div class="flex items-center"><i class="fas fa-exclamation-triangle text-3xl mr-4"></i>
-         <div>
-          <p class="text-sm opacity-90">Jumlah Keberatan</p>
-          <p class="text-2xl font-bold" id="total-keberatan">0</p>
-         </div>
-        </div>
-       </div>
-       <div class="stat-card text-white p-6 rounded-lg">
-        <div class="flex items-center"><i class="fas fa-database text-3xl mr-4"></i>
-         <div>
-          <p class="text-sm opacity-90">Informasi Publik</p>
-          <p class="text-2xl font-bold" id="total-informasi">0</p>
-         </div>
-        </div>
-       </div>
-      </div><!-- Statistik Detail -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-       <div class="chart-container">
-        <h3 class="text-lg font-semibold mb-4">Status Permohonan</h3>
-        <div class="space-y-3">
-         <div class="flex justify-between items-center"><span class="text-gray-600">Diberikan</span> <span class="font-semibold text-green-600" id="status-diberikan">0</span>
-         </div>
-         <div class="flex justify-between items-center"><span class="text-gray-600">Diberikan Sebagian</span> <span class="font-semibold text-yellow-600" id="status-sebagian">0</span>
-         </div>
-         <div class="flex justify-between items-center"><span class="text-gray-600">Ditolak</span> <span class="font-semibold text-red-600" id="status-ditolak">0</span>
-         </div>
-        </div>
-       </div>
-       <div class="chart-container">
-        <h3 class="text-lg font-semibold mb-4">Berdasarkan Pekerjaan</h3>
-        <div class="space-y-3" id="stats-pekerjaan"><!-- Akan diisi dengan JavaScript -->
-        </div>
-       </div>
-      </div>
-     </div><!-- Halaman Formulir Permohonan -->
-     <div id="formulir-permohonan" class="admin-page">
-      <div class="mb-6">
-       <h2 class="text-2xl font-bold text-gray-900 mb-2">Formulir Permohonan Informasi</h2>
-       <p class="text-gray-600">Silakan isi formulir permohonan informasi publik</p>
-      </div>
-      <form id="permohonan-form" class="bg-white p-6 rounded-lg shadow">
-       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div><label for="nama-pemohon" class="block text-sm font-medium text-gray-700 mb-2">Nama Pemohon</label> <input type="text" id="nama-pemohon" name="nama_pemohon" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-        </div>
-        <div><label for="alamat" class="block text-sm font-medium text-gray-700 mb-2">Alamat</label> <textarea id="alamat" name="alamat" required rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-        </div>
-        <div><label for="pekerjaan" class="block text-sm font-medium text-gray-700 mb-2">Pekerjaan</label> <select id="pekerjaan" name="pekerjaan" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"> <option value="">Pilih Pekerjaan</option> <option value="Mahasiswa">Mahasiswa</option> <option value="LSM">LSM</option> <option value="Instansi Pemerintah">Instansi Pemerintah</option> <option value="Masyarakat">Masyarakat</option> <option value="Lainnya">Lainnya</option> </select>
-        </div>
-        <div id="pekerjaan-lainnya-container" class="hidden"><label for="pekerjaan-lainnya" class="block text-sm font-medium text-gray-700 mb-2">Pekerjaan Lainnya</label> <input type="text" id="pekerjaan-lainnya" name="pekerjaan_lainnya" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-        </div>
-        <div><label for="no-telp" class="block text-sm font-medium text-gray-700 mb-2">No. Telepon</label> <input type="tel" id="no-telp" name="no_telp" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-        </div>
-        <div><label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email</label> <input type="email" id="email" name="email" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-        </div>
-        <div class="md:col-span-2"><label for="rincian-informasi" class="block text-sm font-medium text-gray-700 mb-2">Rincian Informasi yang Dibutuhkan</label> <textarea id="rincian-informasi" name="rincian_informasi" required rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-        </div>
-        <div class="md:col-span-2"><label for="tujuan-penggunaan" class="block text-sm font-medium text-gray-700 mb-2">Tujuan Penggunaan Informasi</label> <textarea id="tujuan-penggunaan" name="tujuan_penggunaan" required rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-        </div>
-        <div><label for="cara-memperoleh" class="block text-sm font-medium text-gray-700 mb-2">Cara Memperoleh Informasi</label> <select id="cara-memperoleh" name="cara_memperoleh" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"> <option value="">Pilih Cara</option> <option value="Melihat">Melihat</option> <option value="Membaca">Membaca</option> <option value="Mencatat">Mencatat</option> <option value="Mendengarkan">Mendengarkan</option> </select>
-        </div>
-        <div><label for="bentuk-salinan" class="block text-sm font-medium text-gray-700 mb-2">Bentuk Salinan Informasi</label> <select id="bentuk-salinan" name="bentuk_salinan" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"> <option value="">Pilih Bentuk</option> <option value="Hardcopy">Hardcopy</option> <option value="Softcopy">Softcopy</option> </select>
-        </div>
-        <div><label for="cara-mendapat-salinan" class="block text-sm font-medium text-gray-700 mb-2">Cara Mendapat Salinan</label> <select id="cara-mendapat-salinan" name="cara_mendapat_salinan" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"> <option value="">Pilih Cara</option> <option value="Mengambil Langsung">Mengambil Langsung</option> <option value="Kurir">Kurir</option> <option value="Pos">Pos</option> <option value="Email">Email</option> <option value="WhatsApp">WhatsApp</option> </select>
-        </div>
-        <div><label for="petugas-pelayanan" class="block text-sm font-medium text-gray-700 mb-2">Petugas Pelayanan</label> <select id="petugas-pelayanan" name="petugas_pelayanan" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"> <option value="">Pilih Petugas</option> <option value="Rachmatul Azmi">Rachmatul Azmi</option> <option value="Nur Asiah">Nur Asiah</option> <option value="Dandi">Dandi</option> </select>
-        </div>
-        <div><label for="upload-identitas" class="block text-sm font-medium text-gray-700 mb-2">Upload Identitas</label> <input type="file" id="upload-identitas" name="upload_identitas" accept=".pdf,.jpg,.jpeg,.png" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-        </div>
-       </div>
-       <div class="mt-6"><button type="submit" class="px-6 py-3 bg-blue-900 text-white rounded-md hover:bg-blue-800 transition duration-200"> <i class="fas fa-paper-plane mr-2"></i> Submit Permohonan </button>
-       </div>
-      </form>
-     </div><!-- Halaman Daftar Permohonan -->
-     <div id="daftar-permohonan" class="admin-page">
-      <div class="mb-6 flex justify-between items-center">
-       <div>
-        <h2 class="text-2xl font-bold text-gray-900 mb-2">Daftar Permohonan Informasi</h2>
-        <p class="text-gray-600">Daftar semua permohonan informasi yang masuk</p>
-       </div>
-       <div class="flex space-x-3"><button id="refresh-data-btn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200"> <i class="fas fa-sync-alt mr-2"></i> Refresh Data </button> <button id="debug-load-btn" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition duration-200"> <i class="fas fa-bug mr-2"></i> Debug Load </button>
-       </div>
-      </div>
-      <div class="bg-white rounded-lg shadow overflow-hidden">
-       <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-         <thead class="bg-gray-50">
-          <tr>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Pemohon</th>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rincian Informasi</th>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
-          </tr>
-         </thead>
-         <tbody id="permohonan-table-body" class="bg-white divide-y divide-gray-200"><!-- Data akan diisi dengan JavaScript -->
-         </tbody>
-        </table>
-       </div>
-      </div>
-     </div><!-- Halaman Daftar Informasi Publik -->
-     <div id="daftar-informasi" class="admin-page">
-      <div class="mb-6">
-       <h2 class="text-2xl font-bold text-gray-900 mb-2">Setup Google Apps Script Integration</h2>
-       <p class="text-gray-600">Panduan lengkap setup koneksi dengan Google Sheets &amp; Drive</p>
-      </div>
-      <div class="bg-white p-6 rounded-lg shadow"><!-- Status Koneksi -->
-       <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-        <h4 class="font-medium text-green-900 mb-3">🔗 Status Koneksi Apps Script:</h4>
-        <div class="flex items-center space-x-4">
-         <div class="flex items-center">
-          <div id="connection-status" class="w-3 h-3 bg-red-500 rounded-full mr-2"></div><span id="connection-text" class="text-sm text-red-600 font-medium">Belum terhubung</span>
-         </div><button id="test-connection" class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"> Test Koneksi </button>
-        </div>
-        <p class="text-sm text-green-700 mt-2">URL: https://script.google.com/macros/s/AKfycbzA0-3-PDqdw8WT2mxcQvrsVk2224AYzp0da2-7vKNLFwoOiIacw3o5QQQQdnindfqD8Q/exec</p>
-       </div><!-- Debug Log -->
-       <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
-        <h4 class="font-medium text-gray-900 mb-3">🔍 Debug Log (Troubleshooting):</h4>
-        <div id="debug-log" class="debug-log">
-         Menunggu aktivitas...
-        </div><button id="clear-log" class="mt-2 px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700"> Clear Log </button>
-       </div><!-- Kemungkinan Masalah -->
-       <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-        <h4 class="font-medium text-red-900 mb-3">🚨 Kemungkinan Masalah &amp; Solusi:</h4>
-        <div class="space-y-3 text-sm text-red-800">
-         <div class="bg-white p-3 rounded border"><strong>1. Apps Script belum di-deploy:</strong>
-          <ul class="list-disc list-inside mt-1 ml-4">
-           <li>Pastikan sudah klik "Deploy" → "New deployment"</li>
-           <li>Pilih type: "Web app"</li>
-           <li>Who has access: "Anyone"</li>
-          </ul>
-         </div>
-         <div class="bg-white p-3 rounded border"><strong>2. ID Sheet/Folder salah:</strong>
-          <ul class="list-disc list-inside mt-1 ml-4">
-           <li>Periksa SPREADSHEET_ID di Apps Script</li>
-           <li>Periksa DRIVE_FOLDER_ID di Apps Script</li>
-           <li>Pastikan ID diambil dari URL yang benar</li>
-          </ul>
-         </div>
-         <div class="bg-white p-3 rounded border"><strong>3. Permission Google Apps Script:</strong>
-          <ul class="list-disc list-inside mt-1 ml-4">
-           <li>Saat deploy, pilih "Execute as: Me"</li>
-           <li>Berikan permission ke Google Sheets &amp; Drive</li>
-           <li>Klik "Advanced" → "Go to [project name] (unsafe)" jika ada warning</li>
-          </ul>
-         </div>
-        </div>
-       </div><!-- Langkah Setup Apps Script -->
-       <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-        <h4 class="font-medium text-blue-900 mb-3">🚀 Langkah Setup Google Apps Script (UPDATED):</h4>
-        <ol class="list-decimal list-inside space-y-2 text-sm text-blue-800">
-         <li>Buka <a href="https://script.google.com" target="_blank" class="underline font-medium">Google Apps Script</a></li>
-         <li>Klik "New Project" dan beri nama "PPID Bawaslu API"</li>
-         <li>Copy kode Apps Script dari bagian di bawah (VERSI TERBARU)</li>
-         <li>Buat Google Sheet baru dengan header kolom yang sudah ditentukan</li>
-         <li>Buat folder di Google Drive untuk file identitas</li>
-         <li>Update ID Sheet dan Folder di Apps Script</li>
-         <li><strong>PENTING:</strong> Deploy sebagai Web App dengan akses "Anyone"</li>
-         <li>Copy URL Web App dan update di aplikasi ini</li>
-        </ol>
-       </div><!-- Kode Apps Script UPDATED -->
-       <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
-        <h4 class="font-medium text-gray-900 mb-3">📝 Kode Google Apps Script (VERSI TERBARU):</h4>
-        <div class="bg-black text-green-400 p-4 rounded text-xs font-mono overflow-x-auto max-h-96">
-         <pre>// PPID Bawaslu - Google Apps Script API (UPDATED VERSION)
-// Ganti ID di bawah dengan ID Sheet dan Folder Anda
-
-const SPREADSHEET_ID = 'YOUR_SPREADSHEET_ID_HERE';
-const DRIVE_FOLDER_ID = 'YOUR_DRIVE_FOLDER_ID_HERE';
-
-// Handle GET requests (untuk test koneksi)
-function doGet(e) {
-  return ContentService
-    .createTextOutput(JSON.stringify({success: true, message: 'Apps Script is running'}))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-// Handle POST requests (untuk data)
-function doPost(e) {
-  try {
-    console.log('Received POST request');
-    console.log('Request body:', e.postData.contents);
-    
-    const data = JSON.parse(e.postData.contents);
-    console.log('Parsed data:', data);
-    
-    if (data.action === 'saveData') {
-      return saveToSheet(data.payload);
-    } else if (data.action === 'uploadFile') {
-      return uploadToDrive(data.payload);
-    } else if (data.action === 'getData') {
-      return getSheetData();
-    } else if (data.action === 'test') {
-      return ContentService
-        .createTextOutput(JSON.stringify({success: true, message: 'Test successful'}))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-    
-    return ContentService
-      .createTextOutput(JSON.stringify({success: false, error: 'Invalid action: ' + data.action}))
-      .setMimeType(ContentService.MimeType.JSON);
-      
-  } catch (error) {
-    console.error('Error in doPost:', error);
-    return ContentService
-      .createTextOutput(JSON.stringify({success: false, error: error.toString()}))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-}
-
-function saveToSheet(data) {
-  try {
-    console.log('Saving to sheet:', data);
-    
-    if (!SPREADSHEET_ID || SPREADSHEET_ID === 'YOUR_SPREADSHEET_ID_HERE') {
-      throw new Error('SPREADSHEET_ID not configured');
-    }
-    
-    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getActiveSheet();
-    
-    // Prepare row data
-    const rowData = [
-      data.id || '',
-      data.nama_pemohon || '',
-      data.alamat || '',
-      data.pekerjaan || '',
-      data.pekerjaan_lainnya || '',
-      data.no_telp || '',
-      data.email || '',
-      data.rincian_informasi || '',
-      data.tujuan_penggunaan || '',
-      data.cara_memperoleh || '',
-      data.bentuk_salinan || '',
-      data.cara_mendapat_salinan || '',
-      data.petugas_pelayanan || '',
-      data.tanggal_permohonan ? new Date(data.tanggal_permohonan).toLocaleDateString('id-ID') : '',
-      data.status || '',
-      data.type || ''
-    ];
-    
-    console.log('Row data to append:', rowData);
-    sheet.appendRow(rowData);
-    console.log('Data saved successfully');
-    
-    return ContentService
-      .createTextOutput(JSON.stringify({success: true, message: 'Data saved successfully'}))
-      .setMimeType(ContentService.MimeType.JSON);
-      
-  } catch (error) {
-    console.error('Error saving to sheet:', error);
-    return ContentService
-      .createTextOutput(JSON.stringify({success: false, error: error.toString()}))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-}
-
-function uploadToDrive(data) {
-  try {
-    console.log('Uploading to drive');
-    
-    if (!DRIVE_FOLDER_ID || DRIVE_FOLDER_ID === 'YOUR_DRIVE_FOLDER_ID_HERE') {
-      throw new Error('DRIVE_FOLDER_ID not configured');
-    }
-    
-    const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
-    const fileBlob = Utilities.newBlob(
-      Utilities.base64Decode(data.fileData), 
-      data.mimeType, 
-      data.fileName
-    );
-    
-    const file = folder.createFile(fileBlob);
-    console.log('File uploaded successfully:', file.getId());
-    
-    return ContentService
-      .createTextOutput(JSON.stringify({
-        success: true, 
-        fileId: file.getId(),
-        fileUrl: file.getUrl()
-      }))
-      .setMimeType(ContentService.MimeType.JSON);
-      
-  } catch (error) {
-    console.error('Error uploading file:', error);
-    return ContentService
-      .createTextOutput(JSON.stringify({success: false, error: error.toString()}))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-}
-
-function getSheetData() {
-  try {
-    if (!SPREADSHEET_ID || SPREADSHEET_ID === 'YOUR_SPREADSHEET_ID_HERE') {
-      throw new Error('SPREADSHEET_ID not configured');
-    }
-    
-    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getActiveSheet();
-    const data = sheet.getDataRange().getValues();
-    
-    // Skip header row
-    const rows = data.slice(1);
-    
-    return ContentService
-      .createTextOutput(JSON.stringify({success: true, data: rows}))
-      .setMimeType(ContentService.MimeType.JSON);
-      
-  } catch (error) {
-    console.error('Error getting sheet data:', error);
-    return ContentService
-      .createTextOutput(JSON.stringify({success: false, error: error.toString()}))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-}</pre>
-        </div>
-       </div><!-- Header Kolom Google Sheet -->
-       <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-        <h4 class="font-medium text-green-900 mb-3">📊 Header Kolom Google Sheet:</h4>
-        <p class="text-sm text-green-800 mb-3">Buat Google Sheet baru dan tambahkan header berikut di baris pertama (A1:P1):</p>
-        <div class="bg-white border rounded p-3 text-xs font-mono overflow-x-auto">
-         <div class="grid grid-cols-4 gap-2 text-green-700">
-          <div>
-           <strong>A1:</strong> ID
-          </div>
-          <div>
-           <strong>B1:</strong> Nama Pemohon
-          </div>
-          <div>
-           <strong>C1:</strong> Alamat
-          </div>
-          <div>
-           <strong>D1:</strong> Pekerjaan
-          </div>
-          <div>
-           <strong>E1:</strong> Pekerjaan Lainnya
-          </div>
-          <div>
-           <strong>F1:</strong> No Telepon
-          </div>
-          <div>
-           <strong>G1:</strong> Email
-          </div>
-          <div>
-           <strong>H1:</strong> Rincian Informasi
-          </div>
-          <div>
-           <strong>I1:</strong> Tujuan Penggunaan
-          </div>
-          <div>
-           <strong>J1:</strong> Cara Memperoleh
-          </div>
-          <div>
-           <strong>K1:</strong> Bentuk Salinan
-          </div>
-          <div>
-           <strong>L1:</strong> Cara Mendapat Salinan
-          </div>
-          <div>
-           <strong>M1:</strong> Petugas Pelayanan
-          </div>
-          <div>
-           <strong>N1:</strong> Tanggal Permohonan
-          </div>
-          <div>
-           <strong>O1:</strong> Status
-          </div>
-          <div>
-           <strong>P1:</strong> Type
-          </div>
-         </div>
-        </div>
-       </div><!-- Konfigurasi -->
-       <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-        <h4 class="font-medium text-yellow-900 mb-3">⚙️ Konfigurasi yang Perlu Diubah:</h4>
-        <div class="space-y-3 text-sm text-yellow-800">
-         <div class="bg-white p-3 rounded border"><strong>1. Di Apps Script:</strong>
-          <ul class="list-disc list-inside mt-1 ml-4">
-           <li><code>SPREADSHEET_ID</code> - ID Google Sheet Anda</li>
-           <li><code>DRIVE_FOLDER_ID</code> - ID folder Google Drive</li>
-          </ul>
-         </div>
-        </div>
-       </div><!-- Cara Deploy -->
-       <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
-        <h4 class="font-medium text-purple-900 mb-3">🚀 Cara Deploy Apps Script:</h4>
-        <ol class="list-decimal list-inside space-y-1 text-sm text-purple-800">
-         <li>Di Apps Script, klik "Deploy" → "New deployment"</li>
-         <li>Pilih type: "Web app"</li>
-         <li>Execute as: "Me"</li>
-         <li>Who has access: "Anyone"</li>
-         <li>Klik "Deploy" dan copy URL yang diberikan</li>
-         <li>Paste URL tersebut ke konfigurasi aplikasi</li>
-        </ol>
-       </div>
-      </div>
-     </div><!-- Halaman Formulir Keberatan -->
-     <div id="formulir-keberatan" class="admin-page">
-      <div class="mb-6">
-       <h2 class="text-2xl font-bold text-gray-900 mb-2">Formulir Keberatan</h2>
-       <p class="text-gray-600">Formulir untuk mengajukan keberatan informasi</p>
-      </div>
-      <div class="bg-white p-6 rounded-lg shadow">
-       <p class="text-gray-600">Formulir keberatan akan dikembangkan lebih lanjut.</p>
-      </div>
-     </div><!-- Halaman Daftar Keberatan -->
-     <div id="daftar-keberatan" class="admin-page">
-      <div class="mb-6">
-       <h2 class="text-2xl font-bold text-gray-900 mb-2">Daftar Keberatan</h2>
-       <p class="text-gray-600">Daftar keberatan informasi yang masuk</p>
-      </div>
-      <div class="bg-white p-6 rounded-lg shadow">
-       <p class="text-gray-600">Halaman daftar keberatan akan dikembangkan lebih lanjut.</p>
-      </div>
-     </div><!-- Halaman Buat Surat -->
-     <div id="buat-surat" class="admin-page">
-      <div class="mb-6">
-       <h2 class="text-2xl font-bold text-gray-900 mb-2">Buat Surat Pemberitahuan</h2>
-       <p class="text-gray-600">Buat surat pemberitahuan untuk pemohon</p>
-      </div>
-      <div class="bg-white p-6 rounded-lg shadow">
-       <p class="text-gray-600">Fitur buat surat pemberitahuan akan dikembangkan lebih lanjut.</p>
-      </div>
-     </div>
-    </main>
-   </div>
-  </div><!-- Modal Success -->
-  <div id="success-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-   <div class="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
-    <div class="text-center"><i class="fas fa-check-circle text-green-500 text-4xl mb-4"></i>
-     <h3 class="text-lg font-semibold mb-2">Permohonan Berhasil!</h3>
-     <p id="success-message" class="text-gray-600 mb-4"></p>
-     <div class="flex space-x-3 justify-center"><button id="print-formulir" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"> <i class="fas fa-print mr-2"></i> Cetak Formulir </button> <button id="print-tanda-terima" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"> <i class="fas fa-receipt mr-2"></i> Cetak Tanda Terima </button>
-     </div><button id="close-success-modal" class="mt-4 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"> Tutup </button>
-    </div>
-   </div>
-  </div>
+ <body class="min-h-full">
+  <div id="app" class="min-h-full"></div>
   <script>
-        // Konfigurasi default
-        const defaultConfig = {
-            app_title: "PPID Bawaslu Provinsi Riau",
-            welcome_message: "Selamat Datang ADMIN di PPID Bawaslu Provinsi Riau"
-        };
+    const defaultConfig = {
+      background_color: "#f0f9ff",
+      surface_color: "#ffffff",
+      text_color: "#1e293b",
+      primary_action_color: "#0ea5e9",
+      secondary_action_color: "#64748b",
+      font_family: "Inter",
+      font_size: 16,
+      judul_aplikasi: "Selamat Datang di Aplikasi Absensi Bawaslu Provinsi Riau",
+      label_kabupaten: "Pilih Kabupaten",
+      label_pimpinan: "Pilih Nama Pimpinan",
+      label_presensi: "Jenis Presensi",
+      tombol_kirim: "Kirim Absensi"
+    };
 
-        // Google Apps Script Configuration - URL sudah terkonfigurasi
-        const APPS_SCRIPT_CONFIG = {
-            URL: 'https://script.google.com/macros/s/AKfycbzA0-3-PDqdw8WT2mxcQvrsVk2224AYzp0da2-7vKNLFwoOiIacw3o5QQQQdnindfqD8Q/exec'
-        };
+    let currentPage = 'user';
+    let allAbsensi = [];
+    let gpsSettings = [];
+    let selectedKabupaten = '';
+    let selectedPimpinan = '';
+    let selectedPresensi = '';
+    let capturedPhoto = null;
+    let isLoading = false;
 
-        // Apps Script state
-        let appsScriptConnected = false;
+    const kabupatenData = {
+      'Pekanbaru': ['Verdi', 'Reni Purba', 'Misbah Ibrahim', 'Raja Inal', 'Taufiq'],
+      'Dumai': ['Yeni', 'Adi', 'Badu'],
+      'Kuansing': ['Susi', 'Adi', 'Iqbal']
+    };
 
-        // Data storage
-        let allData = [];
-        let currentRecordCount = 0;
-
-        // Debug logging
-        function debugLog(message) {
-            const logElement = document.getElementById('debug-log');
-            const timestamp = new Date().toLocaleTimeString();
-            logElement.textContent += `[${timestamp}] ${message}\n`;
-            logElement.scrollTop = logElement.scrollHeight;
-            console.log(`[DEBUG] ${message}`);
+    const dataHandler = {
+      onDataChanged(data) {
+        const absensiData = data.filter(d => d.jenis_presensi);
+        const gpsData = data.filter(d => d.titik_latitude);
+        
+        allAbsensi = absensiData;
+        gpsSettings = gpsData;
+        
+        if (currentPage === 'admin-dashboard') {
+          renderAdminDashboard();
+        } else if (currentPage === 'admin-gps') {
+          renderAdminGPS();
         }
+      }
+    };
 
-        // Data handler untuk SDK
-        const dataHandler = {
-            onDataChanged(data) {
-                allData = data;
-                currentRecordCount = data.length;
-                updateStatistics();
-                updatePermohonanTable();
-                debugLog(`Data updated: ${data.length} records loaded`);
-            }
-        };
+    async function onConfigChange(config) {
+      const customFont = config.font_family || defaultConfig.font_family;
+      const baseSize = config.font_size || defaultConfig.font_size;
+      const baseFontStack = 'system-ui, -apple-system, sans-serif';
+      
+      document.body.style.backgroundColor = config.background_color || defaultConfig.background_color;
+      document.body.style.fontFamily = `${customFont}, ${baseFontStack}`;
+      document.body.style.fontSize = `${baseSize}px`;
+      document.body.style.color = config.text_color || defaultConfig.text_color;
+      
+      const app = document.getElementById('app');
+      if (app) {
+        app.style.backgroundColor = config.background_color || defaultConfig.background_color;
+      }
+      
+      renderCurrentPage();
+    }
 
-        // Apps Script Functions
-        async function testAppsScriptConnection() {
-            try {
-                debugLog('Testing connection to Apps Script...');
-                debugLog(`URL: ${APPS_SCRIPT_CONFIG.URL}`);
-                
-                const response = await fetch(APPS_SCRIPT_CONFIG.URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'text/plain',
-                    },
-                    body: JSON.stringify({
-                        action: 'test'
-                    })
-                });
+    function renderCurrentPage() {
+      if (currentPage === 'user') {
+        renderUserPage();
+      } else if (currentPage === 'admin-login') {
+        renderAdminLogin();
+      } else if (currentPage === 'admin-dashboard') {
+        renderAdminDashboard();
+      } else if (currentPage === 'admin-gps') {
+        renderAdminGPS();
+      }
+    }
 
-                debugLog(`Response status: ${response.status}`);
-                const responseText = await response.text();
-                debugLog(`Response text: ${responseText}`);
+    function renderUserPage() {
+      const config = window.elementSdk.config;
+      const baseSize = config.font_size || defaultConfig.font_size;
+      
+      const app = document.getElementById('app');
+      app.innerHTML = `
+        <div class="min-h-full p-6" style="background-color: ${config.background_color || defaultConfig.background_color}">
+          <div class="max-w-2xl mx-auto">
+            <div class="text-center mb-8">
+              <h1 class="font-bold mb-2" style="font-size: ${baseSize * 1.75}px; color: ${config.text_color || defaultConfig.text_color}">${config.judul_aplikasi || defaultConfig.judul_aplikasi}</h1>
+              <button id="adminBtn" class="mt-4 px-4 py-2 rounded-lg transition-colors" style="background-color: ${config.secondary_action_color || defaultConfig.secondary_action_color}; color: white; font-size: ${baseSize * 0.875}px">
+                Login Admin
+              </button>
+            </div>
 
-                if (response.ok) {
-                    try {
-                        const result = JSON.parse(responseText);
-                        if (result.success) {
-                            appsScriptConnected = true;
-                            updateConnectionStatus(true);
-                            showNotification('Apps Script berhasil terhubung!', 'success');
-                            debugLog('✅ Connection successful');
-                            
-                            // Auto-load data from Google Sheets when connection is successful
-                            await loadDataFromAppsScript();
-                            
-                            return true;
-                        } else {
-                            throw new Error(result.error || 'Unknown error');
-                        }
-                    } catch (parseError) {
-                        debugLog(`❌ JSON parse error: ${parseError.message}`);
-                        throw new Error('Invalid JSON response from Apps Script');
-                    }
-                } else {
-                    throw new Error(`HTTP ${response.status}: ${responseText}`);
-                }
-            } catch (error) {
-                debugLog(`❌ Connection failed: ${error.message}`);
-                appsScriptConnected = false;
-                updateConnectionStatus(false);
-                showNotification(`Gagal terhubung: ${error.message}`, 'error');
-                return false;
-            }
-        }
+            <div class="rounded-xl shadow-lg p-6 mb-6" style="background-color: ${config.surface_color || defaultConfig.surface_color}">
+              <div class="mb-4">
+                <label class="block mb-2 font-medium" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">${config.label_kabupaten || defaultConfig.label_kabupaten}</label>
+                <select id="kabupatenSelect" class="w-full p-3 border-2 rounded-lg" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}; border-color: ${config.secondary_action_color || defaultConfig.secondary_action_color}">
+                  <option value="">-- Pilih Kabupaten --</option>
+                  <option value="Pekanbaru">Pekanbaru</option>
+                  <option value="Dumai">Dumai</option>
+                  <option value="Kuansing">Kuansing</option>
+                </select>
+              </div>
 
-        async function loadDataFromAppsScript() {
-            try {
-                debugLog('Loading data from Google Sheets...');
-                
-                const response = await fetch(APPS_SCRIPT_CONFIG.URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'text/plain',
-                    },
-                    body: JSON.stringify({
-                        action: 'getData'
-                    })
-                });
+              <div id="pimpinanSection" class="mb-4 hidden">
+                <label class="block mb-2 font-medium" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">${config.label_pimpinan || defaultConfig.label_pimpinan}</label>
+                <select id="pimpinanSelect" class="w-full p-3 border-2 rounded-lg" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}; border-color: ${config.secondary_action_color || defaultConfig.secondary_action_color}">
+                  <option value="">-- Pilih Pimpinan --</option>
+                </select>
+              </div>
 
-                debugLog(`Load data response status: ${response.status}`);
-                const responseText = await response.text();
-                debugLog(`Load data response text: ${responseText}`);
+              <div class="mb-4">
+                <label class="block mb-2 font-medium" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">${config.label_presensi || defaultConfig.label_presensi}</label>
+                <select id="presensiSelect" class="w-full p-3 border-2 rounded-lg" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}; border-color: ${config.secondary_action_color || defaultConfig.secondary_action_color}">
+                  <option value="">-- Pilih Jenis Presensi --</option>
+                  <option value="Presensi Masuk">Presensi Masuk</option>
+                  <option value="Presensi Pulang">Presensi Pulang</option>
+                </select>
+              </div>
 
-                if (response.ok) {
-                    try {
-                        const result = JSON.parse(responseText);
-                        if (result.success && result.data) {
-                            debugLog(`Raw data from Google Sheets: ${JSON.stringify(result.data)}`);
-                            
-                            // Convert Google Sheets data to our format
-                            const convertedData = result.data.map((row, index) => {
-                                debugLog(`Processing row ${index}: ${JSON.stringify(row)}`);
-                                
-                                // Check if row has data (skip empty rows)
-                                if (row && row.length > 0 && row[1]) { // Check if nama_pemohon exists
-                                    // Safe date parsing function
-                                    const parseDate = (dateValue) => {
-                                        if (!dateValue) return new Date().toISOString();
-                                        
-                                        try {
-                                            // Handle different date formats from Google Sheets
-                                            let parsedDate;
-                                            
-                                            if (typeof dateValue === 'string') {
-                                                // Try parsing as ISO string first
-                                                if (dateValue.includes('T') || dateValue.includes('Z')) {
-                                                    parsedDate = new Date(dateValue);
-                                                } else {
-                                                    // Try parsing as date string (DD/MM/YYYY or similar)
-                                                    parsedDate = new Date(dateValue);
-                                                }
-                                            } else if (typeof dateValue === 'number') {
-                                                // Excel/Google Sheets serial date number
-                                                parsedDate = new Date((dateValue - 25569) * 86400 * 1000);
-                                            } else {
-                                                parsedDate = new Date(dateValue);
-                                            }
-                                            
-                                            // Check if date is valid
-                                            if (isNaN(parsedDate.getTime())) {
-                                                debugLog(`⚠️ Invalid date value: ${dateValue}, using current date`);
-                                                return new Date().toISOString();
-                                            }
-                                            
-                                            return parsedDate.toISOString();
-                                        } catch (error) {
-                                            debugLog(`❌ Date parsing error for value "${dateValue}": ${error.message}`);
-                                            return new Date().toISOString();
-                                        }
-                                    };
-                                    
-                                    const convertedRow = {
-                                        __backendId: `gs_${index}`,
-                                        id: row[0] || `REQ-${Date.now()}-${index}`,
-                                        nama_pemohon: row[1] || '',
-                                        alamat: row[2] || '',
-                                        pekerjaan: row[3] || '',
-                                        pekerjaan_lainnya: row[4] || '',
-                                        no_telp: row[5] || '',
-                                        email: row[6] || '',
-                                        rincian_informasi: row[7] || '',
-                                        tujuan_penggunaan: row[8] || '',
-                                        cara_memperoleh: row[9] || '',
-                                        bentuk_salinan: row[10] || '',
-                                        cara_mendapat_salinan: row[11] || '',
-                                        petugas_pelayanan: row[12] || '',
-                                        tanggal_permohonan: parseDate(row[13]),
-                                        status: row[14] || 'Menunggu',
-                                        type: row[15] || 'permohonan'
-                                    };
-                                    
-                                    debugLog(`Converted row ${index}: ${JSON.stringify(convertedRow)}`);
-                                    return convertedRow;
-                                }
-                                return null;
-                            }).filter(item => item !== null);
-
-                            debugLog(`✅ Loaded ${convertedData.length} records from Google Sheets`);
-                            debugLog(`Converted data: ${JSON.stringify(convertedData, null, 2)}`);
-                            
-                            // Update local data
-                            allData = convertedData;
-                            currentRecordCount = convertedData.length;
-                            
-                            // Force update UI immediately
-                            debugLog('Updating UI with loaded data...');
-                            updateStatistics();
-                            updatePermohonanTable();
-                            
-                            // Also trigger Data SDK update if available
-                            if (window.dataSdk && dataHandler.onDataChanged) {
-                                debugLog('Triggering Data SDK onDataChanged...');
-                                dataHandler.onDataChanged(convertedData);
-                            }
-                            
-                            showNotification(`${convertedData.length} data berhasil dimuat dari Google Sheets`, 'success');
-                            return convertedData;
-                        } else {
-                            debugLog(`❌ Load failed: ${result.error || 'No data returned'}`);
-                            debugLog(`Result object: ${JSON.stringify(result)}`);
-                            
-                            // Show empty state
-                            allData = [];
-                            currentRecordCount = 0;
-                            updateStatistics();
-                            updatePermohonanTable();
-                            
-                            return [];
-                        }
-                    } catch (parseError) {
-                        debugLog(`❌ JSON parse error: ${parseError.message}`);
-                        debugLog(`Response text that failed to parse: ${responseText}`);
-                        return [];
-                    }
-                } else {
-                    throw new Error(`HTTP ${response.status}: ${responseText}`);
-                }
-            } catch (error) {
-                debugLog(`❌ Load data error: ${error.message}`);
-                showNotification(`Gagal memuat data dari Google Sheets: ${error.message}`, 'error');
-                return [];
-            }
-        }
-
-        async function saveToAppsScript(data) {
-            try {
-                debugLog('Sending data to Apps Script...');
-                debugLog(`Data: ${JSON.stringify(data, null, 2)}`);
-                
-                const response = await fetch(APPS_SCRIPT_CONFIG.URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'text/plain',
-                    },
-                    body: JSON.stringify({
-                        action: 'saveData',
-                        payload: data
-                    })
-                });
-
-                debugLog(`Save response status: ${response.status}`);
-                const responseText = await response.text();
-                debugLog(`Save response text: ${responseText}`);
-
-                if (response.ok) {
-                    try {
-                        const result = JSON.parse(responseText);
-                        if (result.success) {
-                            showNotification('Data berhasil disimpan ke Google Sheets!', 'success');
-                            debugLog('✅ Data saved successfully to Google Sheets');
-                            return true;
-                        } else {
-                            showNotification(`Error: ${result.error}`, 'error');
-                            debugLog(`❌ Save failed: ${result.error}`);
-                            return false;
-                        }
-                    } catch (parseError) {
-                        debugLog(`❌ JSON parse error: ${parseError.message}`);
-                        showNotification('Response tidak valid dari Apps Script', 'error');
-                        return false;
-                    }
-                } else {
-                    throw new Error(`HTTP ${response.status}: ${responseText}`);
-                }
-            } catch (error) {
-                debugLog(`❌ Save error: ${error.message}`);
-                showNotification(`Gagal menyimpan ke Google Sheets: ${error.message}`, 'error');
-                return false;
-            }
-        }
-
-        async function uploadFileToAppsScript(file, fileName) {
-            try {
-                debugLog(`Uploading file: ${fileName}`);
-                
-                // Convert file to base64
-                const fileData = await new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                        const base64 = reader.result.split(',')[1];
-                        resolve(base64);
-                    };
-                    reader.readAsDataURL(file);
-                });
-
-                const response = await fetch(APPS_SCRIPT_CONFIG.URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'text/plain',
-                    },
-                    body: JSON.stringify({
-                        action: 'uploadFile',
-                        payload: {
-                            fileName: fileName,
-                            fileData: fileData,
-                            mimeType: file.type
-                        }
-                    })
-                });
-
-                debugLog(`Upload response status: ${response.status}`);
-                const responseText = await response.text();
-                debugLog(`Upload response text: ${responseText}`);
-
-                if (response.ok) {
-                    try {
-                        const result = JSON.parse(responseText);
-                        if (result.success) {
-                            debugLog(`✅ File uploaded successfully: ${result.fileId}`);
-                            return result.fileId;
-                        } else {
-                            debugLog(`❌ Upload failed: ${result.error}`);
-                            return null;
-                        }
-                    } catch (parseError) {
-                        debugLog(`❌ JSON parse error: ${parseError.message}`);
-                        return null;
-                    }
-                } else {
-                    throw new Error(`HTTP ${response.status}: ${responseText}`);
-                }
-            } catch (error) {
-                debugLog(`❌ Upload error: ${error.message}`);
-                return null;
-            }
-        }
-
-        function updateConnectionStatus(connected) {
-            const statusDot = document.getElementById('connection-status');
-            const statusText = document.getElementById('connection-text');
-            
-            if (connected) {
-                statusDot.className = 'w-3 h-3 bg-green-500 rounded-full mr-2';
-                statusText.textContent = 'Terhubung ke Apps Script';
-                statusText.className = 'text-sm text-green-600 font-medium';
-            } else {
-                statusDot.className = 'w-3 h-3 bg-red-500 rounded-full mr-2';
-                statusText.textContent = 'Belum terhubung';
-                statusText.className = 'text-sm text-red-600 font-medium';
-            }
-        }
-
-        // Inisialisasi SDK
-        async function initializeApp() {
-            debugLog('Initializing application...');
-            
-            // Test Apps Script connection on startup
-            await testAppsScriptConnection();
-
-            if (window.dataSdk) {
-                const initResult = await window.dataSdk.init(dataHandler);
-                if (!initResult.isOk) {
-                    debugLog('❌ Failed to initialize data SDK');
-                } else {
-                    debugLog('✅ Data SDK initialized successfully');
-                }
-            }
-
-            if (window.elementSdk) {
-                await window.elementSdk.init({
-                    defaultConfig,
-                    onConfigChange: async (config) => {
-                        const appTitle = config.app_title || defaultConfig.app_title;
-                        const welcomeMessage = config.welcome_message || defaultConfig.welcome_message;
-                        
-                        document.getElementById('login-title').textContent = `Login Admin ${appTitle}`;
-                        document.getElementById('header-title').textContent = welcomeMessage;
-                        document.getElementById('welcome-message').textContent = welcomeMessage;
-                    },
-                    mapToCapabilities: (config) => ({
-                        recolorables: [],
-                        borderables: [],
-                        fontEditable: undefined,
-                        fontSizeable: undefined
-                    }),
-                    mapToEditPanelValues: (config) => new Map([
-                        ["app_title", config.app_title || defaultConfig.app_title],
-                        ["welcome_message", config.welcome_message || defaultConfig.welcome_message]
-                    ])
-                });
-                debugLog('✅ Element SDK initialized successfully');
-            }
-        }
-
-        // Login functionality
-        document.getElementById('login-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            
-            if (username === 'admin' && password === 'agustus2025') {
-                document.getElementById('login-page').classList.add('hidden');
-                document.getElementById('admin-panel').classList.remove('hidden');
-                showNotification('Login berhasil! Selamat datang Admin.', 'success');
-                debugLog('✅ Admin login successful');
-            } else {
-                document.getElementById('login-error').classList.remove('hidden');
-                debugLog('❌ Login failed: Invalid credentials');
-                setTimeout(() => {
-                    document.getElementById('login-error').classList.add('hidden');
-                }, 3000);
-            }
-        });
-
-        // Test connection functionality
-        document.getElementById('test-connection').addEventListener('click', async function() {
-            const originalText = this.textContent;
-            this.textContent = 'Testing...';
-            this.disabled = true;
-            
-            await testAppsScriptConnection();
-            
-            this.textContent = originalText;
-            this.disabled = false;
-        });
-
-        // Clear debug log
-        document.getElementById('clear-log').addEventListener('click', function() {
-            document.getElementById('debug-log').textContent = 'Log cleared...\n';
-        });
-
-        // Apps Script sync functionality
-        document.getElementById('google-sync-btn').addEventListener('click', async function() {
-            const originalText = this.innerHTML;
-            this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Memuat Data...';
-            this.disabled = true;
-            
-            try {
-                if (!appsScriptConnected) {
-                    const success = await testAppsScriptConnection();
-                    if (success) {
-                        document.getElementById('google-sync-text').textContent = 'Tersinkron';
-                        this.classList.remove('bg-green-600', 'hover:bg-green-700');
-                        this.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                    }
-                } else {
-                    // Refresh data from Google Sheets
-                    await loadDataFromAppsScript();
-                    showNotification('Data berhasil dimuat ulang dari Google Sheets', 'success');
-                }
-            } finally {
-                this.innerHTML = originalText;
-                this.disabled = false;
-            }
-        });
-
-        // Sign out functionality
-        document.getElementById('signout-btn').addEventListener('click', function() {
-            document.getElementById('admin-panel').classList.add('hidden');
-            document.getElementById('login-page').classList.remove('hidden');
-            document.getElementById('username').value = '';
-            document.getElementById('password').value = '';
-            showNotification('Anda telah keluar dari sistem.', 'info');
-            debugLog('User signed out');
-        });
-
-        // Navigation functionality
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                
-                // Remove active class from all links and pages
-                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-                document.querySelectorAll('.admin-page').forEach(p => p.classList.remove('active'));
-                
-                // Add active class to clicked link
-                this.classList.add('active');
-                
-                // Show corresponding page
-                const pageId = this.getAttribute('data-page');
-                document.getElementById(pageId).classList.add('active');
-            });
-        });
-
-        // Pekerjaan dropdown handler
-        document.getElementById('pekerjaan').addEventListener('change', function() {
-            const lainnyaContainer = document.getElementById('pekerjaan-lainnya-container');
-            if (this.value === 'Lainnya') {
-                lainnyaContainer.classList.remove('hidden');
-                document.getElementById('pekerjaan-lainnya').required = true;
-            } else {
-                lainnyaContainer.classList.add('hidden');
-                document.getElementById('pekerjaan-lainnya').required = false;
-            }
-        });
-
-        // Form submission
-        document.getElementById('permohonan-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            if (currentRecordCount >= 999) {
-                showNotification('Maksimum 999 permohonan telah tercapai. Silakan hapus beberapa data terlebih dahulu.', 'error');
-                return;
-            }
-
-            // Show loading state
-            const submitBtn = this.querySelector('button[type="submit"]');
-            const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Menyimpan...';
-            submitBtn.disabled = true;
-
-            const formData = new FormData(this);
-            const data = {
-                id: generateId(),
-                nama_pemohon: formData.get('nama_pemohon'),
-                alamat: formData.get('alamat'),
-                pekerjaan: formData.get('pekerjaan'),
-                pekerjaan_lainnya: formData.get('pekerjaan_lainnya') || '',
-                no_telp: formData.get('no_telp'),
-                email: formData.get('email'),
-                rincian_informasi: formData.get('rincian_informasi'),
-                tujuan_penggunaan: formData.get('tujuan_penggunaan'),
-                cara_memperoleh: formData.get('cara_memperoleh'),
-                bentuk_salinan: formData.get('bentuk_salinan'),
-                cara_mendapat_salinan: formData.get('cara_mendapat_salinan'),
-                petugas_pelayanan: formData.get('petugas_pelayanan'),
-                tanggal_permohonan: new Date().toISOString(),
-                status: 'Menunggu',
-                type: 'permohonan'
-            };
-
-            debugLog(`Submitting form data: ${JSON.stringify(data, null, 2)}`);
-
-            try {
-                // Save to local Data SDK
-                let localSaveSuccess = false;
-                if (window.dataSdk) {
-                    debugLog('Saving to local Data SDK...');
-                    const result = await window.dataSdk.create(data);
-                    localSaveSuccess = result.isOk;
-                    if (localSaveSuccess) {
-                        debugLog('✅ Local save successful');
-                    } else {
-                        debugLog(`❌ Local save failed: ${result.error}`);
-                    }
-                }
-
-                // Save to Apps Script (Google Sheets)
-                let appsScriptSaveSuccess = false;
-                if (appsScriptConnected) {
-                    debugLog('Saving to Google Sheets via Apps Script...');
-                    appsScriptSaveSuccess = await saveToAppsScript(data);
-                } else {
-                    debugLog('⚠️ Apps Script not connected, skipping Google Sheets save');
-                }
-
-                // Upload file to Google Drive via Apps Script if available
-                const fileInput = document.getElementById('upload-identitas');
-                let driveFileId = null;
-                if (fileInput.files.length > 0 && appsScriptConnected) {
-                    const file = fileInput.files[0];
-                    const fileName = `identitas_${data.nama_pemohon}_${data.id}.${file.name.split('.').pop()}`;
-                    debugLog(`Uploading file: ${fileName}`);
-                    driveFileId = await uploadFileToAppsScript(file, fileName);
-                    
-                    if (driveFileId) {
-                        showNotification('File identitas berhasil diupload ke Google Drive', 'success');
-                        debugLog(`✅ File uploaded to Drive: ${driveFileId}`);
-                    }
-                }
-
-                // Show appropriate success message
-                if (localSaveSuccess || appsScriptSaveSuccess) {
-                    let message = `Data berhasil disimpan`;
-                    
-                    if (localSaveSuccess && appsScriptSaveSuccess) {
-                        message += ` ke sistem lokal dan Google Sheets`;
-                    } else if (appsScriptSaveSuccess) {
-                        message += ` ke Google Sheets`;
-                    } else if (localSaveSuccess) {
-                        message += ` ke sistem lokal`;
-                    }
-                    
-                    if (driveFileId) {
-                        message += ` dengan file identitas di Google Drive`;
-                    }
-                    
-                    showSuccessModal(data.nama_pemohon, message);
-                    this.reset();
-                    document.getElementById('pekerjaan-lainnya-container').classList.add('hidden');
-                    debugLog('✅ Form submission completed successfully');
-                } else {
-                    showNotification('Gagal menyimpan permohonan ke semua sistem. Silakan coba lagi.', 'error');
-                    debugLog('❌ Form submission failed - no successful saves');
-                }
-
-            } catch (error) {
-                debugLog(`❌ Form submission error: ${error.message}`);
-                showNotification('Terjadi kesalahan saat menyimpan data.', 'error');
-            } finally {
-                // Restore button state
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
-            }
-        });
-
-        // Success modal handlers
-        document.getElementById('close-success-modal').addEventListener('click', function() {
-            document.getElementById('success-modal').classList.add('hidden');
-        });
-
-        document.getElementById('print-formulir').addEventListener('click', function() {
-            printFormulir();
-        });
-
-        document.getElementById('print-tanda-terima').addEventListener('click', function() {
-            printTandaTerima();
-        });
-
-        // Utility functions
-        function generateId() {
-            return 'REQ-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-        }
-
-        function showNotification(message, type = 'success') {
-            const popup = document.getElementById('notification-popup');
-            const text = document.getElementById('notification-text');
-            
-            text.textContent = message;
-            
-            // Set color based on type
-            popup.className = `fixed top-4 right-4 z-50 p-4 text-white rounded-lg shadow-lg max-w-sm ${
-                type === 'success' ? 'bg-green-500' : 
-                type === 'error' ? 'bg-red-500' : 'bg-blue-500'
-            }`;
-            
-            popup.classList.add('show');
-            
-            setTimeout(() => {
-                popup.classList.remove('show');
-            }, 3000);
-        }
-
-        function showSuccessModal(namaPemohon, additionalMessage = '') {
-            const modal = document.getElementById('success-modal');
-            const message = document.getElementById('success-message');
-            
-            let fullMessage = `Permohonan Informasi an. ${namaPemohon} Sukses di Registrasi, silahkan Cetak Formulir dan Tanda Terima Permohonan`;
-            if (additionalMessage) {
-                fullMessage += `\n\n${additionalMessage}`;
-            }
-            
-            message.textContent = fullMessage;
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
-
-        function updateStatistics() {
-            const permohonanData = allData.filter(item => item.type === 'permohonan');
-            const keberatanData = allData.filter(item => item.type === 'keberatan');
-            
-            document.getElementById('total-permohonan').textContent = permohonanData.length;
-            document.getElementById('total-keberatan').textContent = keberatanData.length;
-            document.getElementById('total-informasi').textContent = '0'; // Placeholder
-            
-            // Update status statistics
-            const statusCounts = {
-                diberikan: permohonanData.filter(item => item.status === 'Diberikan').length,
-                sebagian: permohonanData.filter(item => item.status === 'Diberikan Sebagian').length,
-                ditolak: permohonanData.filter(item => item.status === 'Ditolak').length
-            };
-            
-            document.getElementById('status-diberikan').textContent = statusCounts.diberikan;
-            document.getElementById('status-sebagian').textContent = statusCounts.sebagian;
-            document.getElementById('status-ditolak').textContent = statusCounts.ditolak;
-            
-            // Update pekerjaan statistics
-            const pekerjaanStats = {};
-            permohonanData.forEach(item => {
-                const pekerjaan = item.pekerjaan || 'Tidak Diketahui';
-                pekerjaanStats[pekerjaan] = (pekerjaanStats[pekerjaan] || 0) + 1;
-            });
-            
-            const pekerjaanContainer = document.getElementById('stats-pekerjaan');
-            pekerjaanContainer.innerHTML = '';
-            
-            Object.entries(pekerjaanStats).forEach(([pekerjaan, count]) => {
-                const div = document.createElement('div');
-                div.className = 'flex justify-between items-center';
-                div.innerHTML = `
-                    <span class="text-gray-600">${pekerjaan}</span>
-                    <span class="font-semibold text-blue-600">${count}</span>
-                `;
-                pekerjaanContainer.appendChild(div);
-            });
-        }
-
-        function updatePermohonanTable() {
-            debugLog('=== UPDATE PERMOHONAN TABLE STARTED ===');
-            const tbody = document.getElementById('permohonan-table-body');
-            
-            if (!tbody) {
-                debugLog('❌ Table body element not found!');
-                return;
-            }
-            
-            debugLog(`Total allData: ${allData.length}`);
-            debugLog(`All data: ${JSON.stringify(allData, null, 2)}`);
-            
-            // Filter permohonan data (include all types for now to debug)
-            const permohonanData = allData.filter(item => {
-                const isPermohonan = !item.type || item.type === 'permohonan';
-                debugLog(`Item ${item.id}: type="${item.type}", isPermohonan=${isPermohonan}`);
-                return isPermohonan;
-            });
-            
-            debugLog(`Filtered permohonan data: ${permohonanData.length}`);
-            debugLog(`Permohonan data: ${JSON.stringify(permohonanData, null, 2)}`);
-            
-            // Clear existing content
-            tbody.innerHTML = '';
-            
-            if (permohonanData.length === 0) {
-                debugLog('No permohonan data found, showing empty message');
-                const emptyRow = document.createElement('tr');
-                emptyRow.innerHTML = `
-                    <td colspan="6" class="px-6 py-8 text-center text-gray-500">
-                        <i class="fas fa-inbox text-4xl mb-2 block"></i>
-                        Belum ada data permohonan
-                    </td>
-                `;
-                tbody.appendChild(emptyRow);
-                debugLog('Empty message added to table');
-            } else {
-                debugLog(`Creating ${permohonanData.length} table rows...`);
-                
-                permohonanData.forEach((item, index) => {
-                    debugLog(`Creating row ${index + 1} for item: ${JSON.stringify(item)}`);
-                    
-                    try {
-                        const row = document.createElement('tr');
-                        
-                        // Safe date formatting
-                        let tanggalFormatted = 'Tidak ada tanggal';
-                        if (item.tanggal_permohonan) {
-                            try {
-                                const date = new Date(item.tanggal_permohonan);
-                                if (!isNaN(date.getTime())) {
-                                    tanggalFormatted = date.toLocaleDateString('id-ID');
-                                } else {
-                                    debugLog(`⚠️ Invalid date for item ${item.id}: ${item.tanggal_permohonan}`);
-                                }
-                            } catch (dateError) {
-                                debugLog(`❌ Date formatting error for item ${item.id}: ${dateError.message}`);
-                            }
-                        }
-                        
-                        row.innerHTML = `
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${index + 1}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.nama_pemohon || 'Tidak ada nama'}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${tanggalFormatted}</td>
-                            <td class="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">${item.rincian_informasi || 'Tidak ada rincian'}</td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(item.status)}">
-                                    ${item.status || 'Menunggu'}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <button onclick="viewDetail('${item.id}')" class="text-blue-600 hover:text-blue-900 mr-2">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <button onclick="editStatus('${item.id}')" class="text-green-600 hover:text-green-900">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                            </td>
-                        `;
-                        tbody.appendChild(row);
-                        debugLog(`Row ${index + 1} added successfully`);
-                    } catch (rowError) {
-                        debugLog(`❌ Error creating row ${index + 1}: ${rowError.message}`);
-                        // Continue with next row instead of breaking
-                    }
-                });
-                
-                debugLog(`✅ All ${permohonanData.length} rows processed`);
-            }
-            
-            debugLog(`Final table HTML length: ${tbody.innerHTML.length} characters`);
-            debugLog('=== UPDATE PERMOHONAN TABLE COMPLETED ===');
-        }
-
-        function getStatusColor(status) {
-            switch(status) {
-                case 'Diberikan': return 'bg-green-100 text-green-800';
-                case 'Diberikan Sebagian': return 'bg-yellow-100 text-yellow-800';
-                case 'Ditolak': return 'bg-red-100 text-red-800';
-                default: return 'bg-gray-100 text-gray-800';
-            }
-        }
-
-        function viewDetail(id) {
-            const item = allData.find(data => data.id === id);
-            if (item) {
-                // Create custom modal instead of alert
-                const detailText = `Detail Permohonan:\n\nNama: ${item.nama_pemohon}\nAlamat: ${item.alamat}\nPekerjaan: ${item.pekerjaan}\nRincian: ${item.rincian_informasi}`;
-                showNotification('Detail permohonan ditampilkan di console', 'info');
-                debugLog(`Viewing detail for ID: ${id}`);
-                debugLog(detailText);
-            }
-        }
-
-        function editStatus(id) {
-            const item = allData.find(data => data.id === id);
-            if (item && window.dataSdk) {
-                // Create inline status editor instead of prompt
-                const newStatus = 'Diberikan'; // Default change for demo
-                item.status = newStatus;
-                window.dataSdk.update(item);
-                showNotification(`Status permohonan diubah menjadi: ${newStatus}`, 'success');
-                debugLog(`Status updated for ID ${id}: ${newStatus}`);
-            }
-        }
-
-        function printFormulir() {
-            const printContent = `
-                <div style="font-family: Arial, sans-serif; padding: 20px;">
-                    <h2 style="text-align: center; margin-bottom: 20px;">FORMULIR PERMOHONAN INFORMASI PUBLIK</h2>
-                    <h3 style="text-align: center; margin-bottom: 30px;">BAWASLU PROVINSI RIAU</h3>
-                    <p>Formulir permohonan informasi telah berhasil disubmit.</p>
-                    <p>Tanggal: ${new Date().toLocaleDateString('id-ID')}</p>
+              <div class="mb-4">
+                <label class="block mb-2 font-medium" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Foto Selfie</label>
+                <input type="file" id="photoInput" accept="image/*" capture="user" class="w-full p-3 border-2 rounded-lg" style="font-size: ${baseSize}px; border-color: ${config.secondary_action_color || defaultConfig.secondary_action_color}">
+                <div id="photoPreview" class="mt-2 hidden">
+                  <img id="previewImg" class="w-full max-w-xs rounded-lg" alt="Preview foto">
                 </div>
-            `;
-            
-            const opt = {
-                margin: 1,
-                filename: 'formulir-permohonan.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-            };
-            
-            html2pdf().set(opt).from(printContent).save();
+              </div>
+
+              <button id="kirimBtn" class="w-full py-3 rounded-lg font-semibold transition-colors" style="background-color: ${config.primary_action_color || defaultConfig.primary_action_color}; color: white; font-size: ${baseSize * 1.125}px">
+                ${config.tombol_kirim || defaultConfig.tombol_kirim}
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('adminBtn').onclick = () => {
+        currentPage = 'admin-login';
+        renderAdminLogin();
+      };
+
+      document.getElementById('kabupatenSelect').onchange = (e) => {
+        selectedKabupaten = e.target.value;
+        const pimpinanSection = document.getElementById('pimpinanSection');
+        const pimpinanSelect = document.getElementById('pimpinanSelect');
+        
+        if (selectedKabupaten) {
+          pimpinanSection.classList.remove('hidden');
+          pimpinanSelect.innerHTML = '<option value="">-- Pilih Pimpinan --</option>';
+          kabupatenData[selectedKabupaten].forEach(nama => {
+            pimpinanSelect.innerHTML += `<option value="${nama}">${nama}</option>`;
+          });
+        } else {
+          pimpinanSection.classList.add('hidden');
+        }
+      };
+
+      document.getElementById('pimpinanSelect').onchange = (e) => {
+        selectedPimpinan = e.target.value;
+      };
+
+      document.getElementById('presensiSelect').onchange = (e) => {
+        selectedPresensi = e.target.value;
+      };
+
+      document.getElementById('photoInput').onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            capturedPhoto = event.target.result;
+            document.getElementById('photoPreview').classList.remove('hidden');
+            document.getElementById('previewImg').src = capturedPhoto;
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+
+      document.getElementById('kirimBtn').onclick = handleKirimAbsensi;
+    }
+
+    async function handleKirimAbsensi() {
+      if (isLoading) return;
+      
+      if (!selectedKabupaten || !selectedPimpinan || !selectedPresensi) {
+        showToast('Mohon lengkapi semua data', 'error');
+        return;
+      }
+
+      if (!capturedPhoto) {
+        showToast('Mohon ambil foto selfie terlebih dahulu', 'error');
+        return;
+      }
+
+      const kirimBtn = document.getElementById('kirimBtn');
+      const originalText = kirimBtn.innerHTML;
+      kirimBtn.innerHTML = '<span class="loading-spinner"></span>Mengirim...';
+      kirimBtn.disabled = true;
+      isLoading = true;
+
+      try {
+        const position = await getCurrentPosition();
+        const userLat = position.coords.latitude;
+        const userLng = position.coords.longitude;
+
+        const gpsSetting = gpsSettings.find(g => g.nama_kabupaten === selectedKabupaten);
+        
+        if (!gpsSetting) {
+          showToast('Titik GPS untuk kabupaten ini belum diatur. Silakan hubungi admin.', 'error');
+          kirimBtn.innerHTML = originalText;
+          kirimBtn.disabled = false;
+          isLoading = false;
+          return;
         }
 
-        function printTandaTerima() {
-            const printContent = `
-                <div style="font-family: Arial, sans-serif; padding: 20px;">
-                    <h2 style="text-align: center; margin-bottom: 20px;">TANDA TERIMA PERMOHONAN INFORMASI</h2>
-                    <h3 style="text-align: center; margin-bottom: 30px;">BAWASLU PROVINSI RIAU</h3>
-                    <p>Permohonan informasi Anda telah diterima dan akan diproses sesuai ketentuan yang berlaku.</p>
-                    <p>Tanggal: ${new Date().toLocaleDateString('id-ID')}</p>
-                    <p>Nomor Registrasi: ${generateId()}</p>
+        const distance = calculateDistance(userLat, userLng, gpsSetting.titik_latitude, gpsSetting.titik_longitude);
+
+        if (distance > 50) {
+          showToast('Anda saat ini tidak dapat melakukan absensi karena berada jauh dari lokasi kantor', 'error');
+          kirimBtn.innerHTML = originalText;
+          kirimBtn.disabled = false;
+          isLoading = false;
+          return;
+        }
+
+        const now = new Date();
+        const tanggal = now.toLocaleDateString('id-ID');
+        const waktu = now.toLocaleTimeString('id-ID');
+
+        const result = await window.dataSdk.create({
+          id: `${Date.now()}-${Math.random()}`,
+          kabupaten: selectedKabupaten,
+          nama_pimpinan: selectedPimpinan,
+          jenis_presensi: selectedPresensi,
+          tanggal: tanggal,
+          waktu: waktu,
+          latitude: userLat,
+          longitude: userLng,
+          foto_selfie: capturedPhoto
+        });
+
+        if (result.isOk) {
+          showToast(`Absensi '${selectedPresensi}' pada ${tanggal} telah dikirim`, 'success');
+          selectedKabupaten = '';
+          selectedPimpinan = '';
+          selectedPresensi = '';
+          capturedPhoto = null;
+          renderUserPage();
+        } else {
+          showToast('Gagal mengirim absensi. Silakan coba lagi.', 'error');
+        }
+      } catch (error) {
+        showToast('Gagal mendapatkan lokasi GPS. Pastikan GPS aktif.', 'error');
+      } finally {
+        kirimBtn.innerHTML = originalText;
+        kirimBtn.disabled = false;
+        isLoading = false;
+      }
+    }
+
+    function getCurrentPosition() {
+      return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error('Geolocation tidak didukung'));
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        });
+      });
+    }
+
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371000;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
+    function renderAdminLogin() {
+      const config = window.elementSdk.config;
+      const baseSize = config.font_size || defaultConfig.font_size;
+      
+      const app = document.getElementById('app');
+      app.innerHTML = `
+        <div class="min-h-full flex items-center justify-center p-6" style="background-color: ${config.background_color || defaultConfig.background_color}">
+          <div class="w-full max-w-md rounded-xl shadow-lg p-8" style="background-color: ${config.surface_color || defaultConfig.surface_color}">
+            <h2 class="text-center font-bold mb-6" style="font-size: ${baseSize * 1.5}px; color: ${config.text_color || defaultConfig.text_color}">Login Admin</h2>
+            
+            <div class="mb-4">
+              <label class="block mb-2 font-medium" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Username</label>
+              <input type="text" id="username" class="w-full p-3 border-2 rounded-lg" style="font-size: ${baseSize}px; border-color: ${config.secondary_action_color || defaultConfig.secondary_action_color}">
+            </div>
+
+            <div class="mb-6">
+              <label class="block mb-2 font-medium" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Password</label>
+              <input type="password" id="password" class="w-full p-3 border-2 rounded-lg" style="font-size: ${baseSize}px; border-color: ${config.secondary_action_color || defaultConfig.secondary_action_color}">
+            </div>
+
+            <button id="loginBtn" class="w-full py-3 rounded-lg font-semibold mb-4 transition-colors" style="background-color: ${config.primary_action_color || defaultConfig.primary_action_color}; color: white; font-size: ${baseSize * 1.125}px">
+              Login
+            </button>
+
+            <button id="backBtn" class="w-full py-3 rounded-lg font-semibold transition-colors" style="background-color: ${config.secondary_action_color || defaultConfig.secondary_action_color}; color: white; font-size: ${baseSize}px">
+              Kembali
+            </button>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('loginBtn').onclick = () => {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+
+        if (username === 'admin' && password === '12345678') {
+          currentPage = 'admin-dashboard';
+          renderAdminDashboard();
+        } else {
+          showToast('Username atau password salah', 'error');
+        }
+      };
+
+      document.getElementById('backBtn').onclick = () => {
+        currentPage = 'user';
+        renderUserPage();
+      };
+    }
+
+    function renderAdminDashboard() {
+      const config = window.elementSdk.config;
+      const baseSize = config.font_size || defaultConfig.font_size;
+      
+      const today = new Date().toLocaleDateString('id-ID');
+      const todayAbsensi = allAbsensi.filter(a => a.tanggal === today);
+      const absensiMasuk = todayAbsensi.filter(a => a.jenis_presensi === 'Presensi Masuk').length;
+      const absensiPulang = todayAbsensi.filter(a => a.jenis_presensi === 'Presensi Pulang').length;
+
+      const allPimpinan = new Set();
+      Object.values(kabupatenData).forEach(arr => arr.forEach(nama => allPimpinan.add(nama)));
+      
+      const absenToday = new Set(todayAbsensi.map(a => a.nama_pimpinan));
+      const tidakAbsen = Array.from(allPimpinan).filter(nama => !absenToday.has(nama));
+
+      const sortedAbsensi = [...todayAbsensi].sort((a, b) => {
+        const timeA = new Date(`${a.tanggal} ${a.waktu}`).getTime();
+        const timeB = new Date(`${b.tanggal} ${b.waktu}`).getTime();
+        return timeB - timeA;
+      });
+
+      const app = document.getElementById('app');
+      app.innerHTML = `
+        <div class="min-h-full" style="background-color: ${config.background_color || defaultConfig.background_color}">
+          <div class="p-6">
+            <div class="max-w-6xl mx-auto">
+              <div class="flex justify-between items-center mb-6">
+                <h1 class="font-bold" style="font-size: ${baseSize * 1.75}px; color: ${config.text_color || defaultConfig.text_color}">Dashboard Admin</h1>
+                <div class="flex gap-3">
+                  <button id="gpsBtn" class="px-4 py-2 rounded-lg transition-colors" style="background-color: ${config.secondary_action_color || defaultConfig.secondary_action_color}; color: white; font-size: ${baseSize}px">
+                    Atur GPS
+                  </button>
+                  <button id="logoutBtn" class="px-4 py-2 rounded-lg transition-colors" style="background-color: ${config.secondary_action_color || defaultConfig.secondary_action_color}; color: white; font-size: ${baseSize}px">
+                    Logout
+                  </button>
                 </div>
-            `;
-            
-            const opt = {
-                margin: 1,
-                filename: 'tanda-terima.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-            };
-            
-            html2pdf().set(opt).from(printContent).save();
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div class="rounded-xl shadow-lg p-6" style="background-color: ${config.surface_color || defaultConfig.surface_color}">
+                  <h3 class="font-semibold mb-2" style="font-size: ${baseSize * 1.25}px; color: ${config.text_color || defaultConfig.text_color}">Absensi Masuk Hari Ini</h3>
+                  <p class="font-bold" style="font-size: ${baseSize * 2}px; color: ${config.primary_action_color || defaultConfig.primary_action_color}">${absensiMasuk}</p>
+                </div>
+                <div class="rounded-xl shadow-lg p-6" style="background-color: ${config.surface_color || defaultConfig.surface_color}">
+                  <h3 class="font-semibold mb-2" style="font-size: ${baseSize * 1.25}px; color: ${config.text_color || defaultConfig.text_color}">Absensi Pulang Hari Ini</h3>
+                  <p class="font-bold" style="font-size: ${baseSize * 2}px; color: ${config.primary_action_color || defaultConfig.primary_action_color}">${absensiPulang}</p>
+                </div>
+              </div>
+
+              <div class="rounded-xl shadow-lg p-6 mb-6" style="background-color: ${config.surface_color || defaultConfig.surface_color}">
+                <h3 class="font-semibold mb-4" style="font-size: ${baseSize * 1.25}px; color: ${config.text_color || defaultConfig.text_color}">Daftar Absensi Hari Ini</h3>
+                <div class="overflow-x-auto">
+                  <table class="w-full">
+                    <thead>
+                      <tr style="border-bottom: 2px solid ${config.secondary_action_color || defaultConfig.secondary_action_color}">
+                        <th class="text-left p-3" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Waktu</th>
+                        <th class="text-left p-3" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Nama</th>
+                        <th class="text-left p-3" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Kabupaten</th>
+                        <th class="text-left p-3" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Jenis</th>
+                      </tr>
+                    </thead>
+                    <tbody id="absensiList">
+                      ${sortedAbsensi.length === 0 ? 
+                        `<tr><td colspan="4" class="text-center p-4" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Belum ada absensi hari ini</td></tr>` :
+                        sortedAbsensi.map(a => `
+                          <tr style="border-bottom: 1px solid ${config.secondary_action_color || defaultConfig.secondary_action_color}33">
+                            <td class="p-3" style="font-size: ${baseSize * 0.875}px; color: ${config.text_color || defaultConfig.text_color}">${a.waktu}</td>
+                            <td class="p-3" style="font-size: ${baseSize * 0.875}px; color: ${config.text_color || defaultConfig.text_color}">${a.nama_pimpinan}</td>
+                            <td class="p-3" style="font-size: ${baseSize * 0.875}px; color: ${config.text_color || defaultConfig.text_color}">${a.kabupaten}</td>
+                            <td class="p-3" style="font-size: ${baseSize * 0.875}px; color: ${config.text_color || defaultConfig.text_color}">${a.jenis_presensi}</td>
+                          </tr>
+                        `).join('')
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="rounded-xl shadow-lg p-6" style="background-color: ${config.surface_color || defaultConfig.surface_color}">
+                <h3 class="font-semibold mb-4" style="font-size: ${baseSize * 1.25}px; color: ${config.text_color || defaultConfig.text_color}">Belum Absen Hari Ini</h3>
+                <div id="tidakAbsenList">
+                  ${tidakAbsen.length === 0 ?
+                    `<p style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Semua pimpinan sudah absen</p>` :
+                    tidakAbsen.map(nama => `
+                      <span class="inline-block px-3 py-1 rounded-full mr-2 mb-2" style="background-color: ${config.secondary_action_color || defaultConfig.secondary_action_color}33; color: ${config.text_color || defaultConfig.text_color}; font-size: ${baseSize * 0.875}px">${nama}</span>
+                    `).join('')
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('gpsBtn').onclick = () => {
+        currentPage = 'admin-gps';
+        renderAdminGPS();
+      };
+
+      document.getElementById('logoutBtn').onclick = () => {
+        currentPage = 'user';
+        renderUserPage();
+      };
+    }
+
+    function renderAdminGPS() {
+      const config = window.elementSdk.config;
+      const baseSize = config.font_size || defaultConfig.font_size;
+      
+      const app = document.getElementById('app');
+      app.innerHTML = `
+        <div class="min-h-full" style="background-color: ${config.background_color || defaultConfig.background_color}">
+          <div class="p-6">
+            <div class="max-w-4xl mx-auto">
+              <div class="flex justify-between items-center mb-6">
+                <h1 class="font-bold" style="font-size: ${baseSize * 1.75}px; color: ${config.text_color || defaultConfig.text_color}">Pengaturan Titik GPS</h1>
+                <button id="backDashboard" class="px-4 py-2 rounded-lg transition-colors" style="background-color: ${config.secondary_action_color || defaultConfig.secondary_action_color}; color: white; font-size: ${baseSize}px">
+                  Kembali ke Dashboard
+                </button>
+              </div>
+
+              <div class="rounded-xl shadow-lg p-6 mb-6" style="background-color: ${config.surface_color || defaultConfig.surface_color}">
+                <h3 class="font-semibold mb-4" style="font-size: ${baseSize * 1.25}px; color: ${config.text_color || defaultConfig.text_color}">Tambah/Update Titik GPS</h3>
+                
+                <div class="mb-4">
+                  <label class="block mb-2 font-medium" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Nama Kabupaten</label>
+                  <select id="gpsKabupaten" class="w-full p-3 border-2 rounded-lg" style="font-size: ${baseSize}px; border-color: ${config.secondary_action_color || defaultConfig.secondary_action_color}">
+                    <option value="">-- Pilih Kabupaten --</option>
+                    <option value="Pekanbaru">Pekanbaru</option>
+                    <option value="Dumai">Dumai</option>
+                    <option value="Kuansing">Kuansing</option>
+                  </select>
+                </div>
+
+                <div class="mb-4">
+                  <label class="block mb-2 font-medium" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Latitude</label>
+                  <input type="number" step="any" id="gpsLat" class="w-full p-3 border-2 rounded-lg" placeholder="Contoh: 0.5071" style="font-size: ${baseSize}px; border-color: ${config.secondary_action_color || defaultConfig.secondary_action_color}">
+                </div>
+
+                <div class="mb-4">
+                  <label class="block mb-2 font-medium" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Longitude</label>
+                  <input type="number" step="any" id="gpsLng" class="w-full p-3 border-2 rounded-lg" placeholder="Contoh: 101.4478" style="font-size: ${baseSize}px; border-color: ${config.secondary_action_color || defaultConfig.secondary_action_color}">
+                </div>
+
+                <button id="simpanGPS" class="w-full py-3 rounded-lg font-semibold transition-colors" style="background-color: ${config.primary_action_color || defaultConfig.primary_action_color}; color: white; font-size: ${baseSize * 1.125}px">
+                  Simpan Titik GPS
+                </button>
+              </div>
+
+              <div class="rounded-xl shadow-lg p-6" style="background-color: ${config.surface_color || defaultConfig.surface_color}">
+                <h3 class="font-semibold mb-4" style="font-size: ${baseSize * 1.25}px; color: ${config.text_color || defaultConfig.text_color}">Daftar Titik GPS</h3>
+                <div class="overflow-x-auto">
+                  <table class="w-full">
+                    <thead>
+                      <tr style="border-bottom: 2px solid ${config.secondary_action_color || defaultConfig.secondary_action_color}">
+                        <th class="text-left p-3" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Kabupaten</th>
+                        <th class="text-left p-3" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Latitude</th>
+                        <th class="text-left p-3" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Longitude</th>
+                        <th class="text-left p-3" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody id="gpsList">
+                      ${gpsSettings.length === 0 ?
+                        `<tr><td colspan="4" class="text-center p-4" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Belum ada titik GPS yang diatur</td></tr>` :
+                        gpsSettings.map(g => `
+                          <tr style="border-bottom: 1px solid ${config.secondary_action_color || defaultConfig.secondary_action_color}33">
+                            <td class="p-3" style="font-size: ${baseSize * 0.875}px; color: ${config.text_color || defaultConfig.text_color}">${g.nama_kabupaten}</td>
+                            <td class="p-3" style="font-size: ${baseSize * 0.875}px; color: ${config.text_color || defaultConfig.text_color}">${g.titik_latitude}</td>
+                            <td class="p-3" style="font-size: ${baseSize * 0.875}px; color: ${config.text_color || defaultConfig.text_color}">${g.titik_longitude}</td>
+                            <td class="p-3">
+                              <button class="deleteGPS px-3 py-1 rounded transition-colors" data-id="${g.__backendId}" style="background-color: #ef4444; color: white; font-size: ${baseSize * 0.875}px">
+                                Hapus
+                              </button>
+                            </td>
+                          </tr>
+                        `).join('')
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('backDashboard').onclick = () => {
+        currentPage = 'admin-dashboard';
+        renderAdminDashboard();
+      };
+
+      document.getElementById('simpanGPS').onclick = async () => {
+        if (isLoading) return;
+        
+        const kabupaten = document.getElementById('gpsKabupaten').value;
+        const lat = parseFloat(document.getElementById('gpsLat').value);
+        const lng = parseFloat(document.getElementById('gpsLng').value);
+
+        if (!kabupaten || isNaN(lat) || isNaN(lng)) {
+          showToast('Mohon lengkapi semua data dengan benar', 'error');
+          return;
         }
 
-        // Refresh data button functionality
-        document.getElementById('refresh-data-btn').addEventListener('click', async function() {
-            const originalText = this.innerHTML;
-            this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Memuat...';
-            this.disabled = true;
+        const simpanBtn = document.getElementById('simpanGPS');
+        const originalText = simpanBtn.innerHTML;
+        simpanBtn.innerHTML = '<span class="loading-spinner"></span>Menyimpan...';
+        simpanBtn.disabled = true;
+        isLoading = true;
+
+        const existing = gpsSettings.find(g => g.nama_kabupaten === kabupaten);
+
+        try {
+          if (existing) {
+            const updated = { ...existing, titik_latitude: lat, titik_longitude: lng };
+            const result = await window.dataSdk.update(updated);
             
-            try {
-                if (appsScriptConnected) {
-                    await loadDataFromAppsScript();
-                    showNotification('Data berhasil dimuat ulang dari Google Sheets', 'success');
-                } else {
-                    showNotification('Belum terhubung ke Apps Script. Klik tombol "Sinkron Google" terlebih dahulu.', 'error');
+            if (result.isOk) {
+              showToast('Titik GPS berhasil diupdate', 'success');
+              document.getElementById('gpsKabupaten').value = '';
+              document.getElementById('gpsLat').value = '';
+              document.getElementById('gpsLng').value = '';
+            } else {
+              showToast('Gagal mengupdate titik GPS', 'error');
+            }
+          } else {
+            const result = await window.dataSdk.create({
+              id: `gps-${Date.now()}`,
+              nama_kabupaten: kabupaten,
+              titik_latitude: lat,
+              titik_longitude: lng
+            });
+
+            if (result.isOk) {
+              showToast('Titik GPS berhasil disimpan', 'success');
+              document.getElementById('gpsKabupaten').value = '';
+              document.getElementById('gpsLat').value = '';
+              document.getElementById('gpsLng').value = '';
+            } else {
+              showToast('Gagal menyimpan titik GPS', 'error');
+            }
+          }
+        } finally {
+          simpanBtn.innerHTML = originalText;
+          simpanBtn.disabled = false;
+          isLoading = false;
+        }
+      };
+
+      document.querySelectorAll('.deleteGPS').forEach(btn => {
+        btn.onclick = async (e) => {
+          if (isLoading) return;
+          
+          const id = e.target.dataset.id;
+          const gps = gpsSettings.find(g => g.__backendId === id);
+          
+          if (!gps) return;
+
+          const originalText = e.target.innerHTML;
+          e.target.innerHTML = '<span class="loading-spinner"></span>';
+          e.target.disabled = true;
+          isLoading = true;
+
+          try {
+            const result = await window.dataSdk.delete(gps);
+            
+            if (result.isOk) {
+              showToast('Titik GPS berhasil dihapus', 'success');
+            } else {
+              showToast('Gagal menghapus titik GPS', 'error');
+              e.target.innerHTML = originalText;
+              e.target.disabled = false;
+            }
+          } finally {
+            isLoading = false;
+          }
+        };
+      });
+    }
+
+    function showToast(message, type) {
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.style.backgroundColor = type === 'success' ? '#10b981' : '#ef4444';
+      toast.style.color = 'white';
+      toast.textContent = message;
+      
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.remove();
+      }, 4000);
+    }
+
+    async function init() {
+      const initResult = await window.dataSdk.init(dataHandler);
+      if (!initResult.isOk) {
+        console.error('Failed to initialize data SDK');
+        return;
+      }
+
+      if (window.elementSdk) {
+        window.elementSdk.init({
+          defaultConfig,
+          onConfigChange,
+          mapToCapabilities: (config) => ({
+            recolorables: [
+              {
+                get: () => config.background_color || defaultConfig.background_color,
+                set: (value) => {
+                  config.background_color = value;
+                  window.elementSdk.setConfig({ background_color: value });
                 }
-            } finally {
-                this.innerHTML = originalText;
-                this.disabled = false;
+              },
+              {
+                get: () => config.surface_color || defaultConfig.surface_color,
+                set: (value) => {
+                  config.surface_color = value;
+                  window.elementSdk.setConfig({ surface_color: value });
+                }
+              },
+              {
+                get: () => config.text_color || defaultConfig.text_color,
+                set: (value) => {
+                  config.text_color = value;
+                  window.elementSdk.setConfig({ text_color: value });
+                }
+              },
+              {
+                get: () => config.primary_action_color || defaultConfig.primary_action_color,
+                set: (value) => {
+                  config.primary_action_color = value;
+                  window.elementSdk.setConfig({ primary_action_color: value });
+                }
+              },
+              {
+                get: () => config.secondary_action_color || defaultConfig.secondary_action_color,
+                set: (value) => {
+                  config.secondary_action_color = value;
+                  window.elementSdk.setConfig({ secondary_action_color: value });
+                }
+              }
+            ],
+            borderables: [],
+            fontEditable: {
+              get: () => config.font_family || defaultConfig.font_family,
+              set: (value) => {
+                config.font_family = value;
+                window.elementSdk.setConfig({ font_family: value });
+              }
+            },
+            fontSizeable: {
+              get: () => config.font_size || defaultConfig.font_size,
+              set: (value) => {
+                config.font_size = value;
+                window.elementSdk.setConfig({ font_size: value });
+              }
             }
+          }),
+          mapToEditPanelValues: (config) => new Map([
+            ['judul_aplikasi', config.judul_aplikasi || defaultConfig.judul_aplikasi],
+            ['label_kabupaten', config.label_kabupaten || defaultConfig.label_kabupaten],
+            ['label_pimpinan', config.label_pimpinan || defaultConfig.label_pimpinan],
+            ['label_presensi', config.label_presensi || defaultConfig.label_presensi],
+            ['tombol_kirim', config.tombol_kirim || defaultConfig.tombol_kirim]
+          ])
         });
+      }
 
-        // Debug load button functionality
-        document.getElementById('debug-load-btn').addEventListener('click', async function() {
-            const originalText = this.innerHTML;
-            this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Debug...';
-            this.disabled = true;
-            
-            try {
-                debugLog('=== MANUAL DEBUG LOAD STARTED ===');
-                debugLog(`Apps Script Connected: ${appsScriptConnected}`);
-                debugLog(`Current allData length: ${allData.length}`);
-                debugLog(`Current allData: ${JSON.stringify(allData, null, 2)}`);
-                
-                // Force load regardless of connection status
-                debugLog('Forcing data load from Apps Script...');
-                const loadedData = await loadDataFromAppsScript();
-                
-                debugLog(`Loaded data length: ${loadedData.length}`);
-                debugLog(`Final allData length: ${allData.length}`);
-                
-                // Force UI update
-                debugLog('Force updating UI...');
-                updateStatistics();
-                updatePermohonanTable();
-                
-                // Show current table state
-                const tableBody = document.getElementById('permohonan-table-body');
-                debugLog(`Table body HTML: ${tableBody.innerHTML}`);
-                
-                showNotification(`Debug selesai. Data: ${allData.length} records`, 'info');
-                debugLog('=== MANUAL DEBUG LOAD COMPLETED ===');
-                
-            } finally {
-                this.innerHTML = originalText;
-                this.disabled = false;
-            }
-        });
+      renderUserPage();
+    }
 
-        // Initialize app when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            debugLog('DOM loaded, initializing app...');
-            initializeApp();
-        });
-    </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9962252e80396042',t:'MTc2MTczNTM3NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+    init();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'996b0673f1b2fda7',t:'MTc2MTgyODQ4OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
