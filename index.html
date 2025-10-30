@@ -108,11 +108,12 @@
             // Data simulasi koordinat kantor (admin-defined)
             // Titik Bawaslu Riau dari link: 0.4918, 101.4449
             const kantorCoordinates = {
-                pekanbaru: { lat: 0.4918, lon: 101.4449 },
-                dumai: { lat: 1.6740, lon: 101.4450 }, // Koordinat fiktif untuk Dumai
-                kuansing: { lat: -0.5180, lon: 101.5360 } // Koordinat fiktif untuk Kuansing
+                // GANTI KOORDINAT DI BAWAH INI DENGAN TITIK GPS YANG SEHARUSNYA
+                pekanbaru: { lat: 0.499579, lon: 101.444959 }, // <-- Ganti nilai lat/lon ini
+                dumai: { lat: 1.6740, lon: 101.4450 }, // <-- Ganti nilai lat/lon ini
+                kuansing: { lat: -0.5180, lon: 101.5360 } // <-- Ganti nilai lat/lon ini
             };
-            const MAX_DISTANCE_METERS = 50; // Jarak toleransi 50 meter
+            const MAX_DISTANCE_METERS = 500; // Jarak toleransi diubah ke 500 meter
 
             // --- REFERENSI ELEMEN ---
             const kabupatenSelect = document.getElementById('kabupatenSelect');
@@ -306,4 +307,5 @@ _                    }
     </script>
 </body>
 </html>
+
 
