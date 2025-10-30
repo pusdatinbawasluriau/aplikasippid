@@ -1,764 +1,309 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
- <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Absensi Bawaslu Riau</title>
-  <script src="/_sdk/data_sdk.js"></script>
-  <script src="/_sdk/element_sdk.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    body {
-      box-sizing: border-box;
-    }
-    
-    .toast {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      padding: 16px 24px;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      z-index: 1000;
-      animation: slideIn 0.3s ease-out;
-    }
-    
-    @keyframes slideIn {
-      from {
-        transform: translateX(400px);
-        opacity: 0;
-      }
-      to {
-        transform: translateX(0);
-        opacity: 1;
-      }
-    }
-    
-    .loading-spinner {
-      border: 3px solid rgba(255,255,255,0.3);
-      border-top: 3px solid white;
-      border-radius: 50%;
-      width: 20px;
-      height: 20px;
-      animation: spin 1s linear infinite;
-      display: inline-block;
-      margin-right: 8px;
-    }
-    
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-  </style>
-  <style>@view-transition { navigation: auto; }</style>
- </head>
- <body class="min-h-full">
-  <div id="app" class="min-h-full"></div>
-  <script>
-    const defaultConfig = {
-      background_color: "#f0f9ff",
-      surface_color: "#ffffff",
-      text_color: "#1e293b",
-      primary_action_color: "#0ea5e9",
-      secondary_action_color: "#64748b",
-      font_family: "Inter",
-      font_size: 16,
-      judul_aplikasi: "Selamat Datang di Aplikasi Absensi Bawaslu Provinsi Riau",
-      label_kabupaten: "Pilih Kabupaten",
-      label_pimpinan: "Pilih Nama Pimpinan",
-      label_presensi: "Jenis Presensi",
-      tombol_kirim: "Kirim Absensi"
-    };
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Usaha perbaikan untuk Permissions Policy -->
+    <meta http-equiv="Permissions-Policy" content="geolocation=*">
+    <title>Absensi Bawaslu Riau</title>
+    <!-- Memuat Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Menggunakan font Inter */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Style untuk loading spinner sederhana */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3b82f6; /* blue-600 */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
 
-    let currentPage = 'user';
-    let allAbsensi = [];
-    let gpsSettings = [];
-    let selectedKabupaten = '';
-    let selectedPimpinan = '';
-    let selectedPresensi = '';
-    let capturedPhoto = null;
-    let isLoading = false;
-
-    const kabupatenData = {
-      'Pekanbaru': ['Verdi', 'Reni Purba', 'Misbah Ibrahim', 'Raja Inal', 'Taufiq'],
-      'Dumai': ['Yeni', 'Adi', 'Badu'],
-      'Kuansing': ['Susi', 'Adi', 'Iqbal']
-    };
-
-    const dataHandler = {
-      onDataChanged(data) {
-        const absensiData = data.filter(d => d.jenis_presensi);
-        const gpsData = data.filter(d => d.titik_latitude);
+    <div class="bg-white w-full max-w-lg p-8 rounded-xl shadow-lg">
         
-        allAbsensi = absensiData;
-        gpsSettings = gpsData;
-        
-        if (currentPage === 'admin-dashboard') {
-          renderAdminDashboard();
-        } else if (currentPage === 'admin-gps') {
-          renderAdminGPS();
-        }
-      }
-    };
+        <header class="text-center mb-6">
+            <img src="https://placehold.co/100x100/e0e0e0/333?text=Logo" alt="Logo Bawaslu" class="mx-auto mb-4 w-20 h-20 rounded-full object-cover" onerror="this.src='https://placehold.co/100x100/e0e0e0/333?text=Logo'"/>
+            <h1 class="text-2xl font-bold text-gray-800">
+                Selamat Datang di Aplikasi Absensi
+            </h1>
+            <p class="text-lg text-gray-600">Bawaslu Provinsi Riau</p>
+        </header>
 
-    async function onConfigChange(config) {
-      const customFont = config.font_family || defaultConfig.font_family;
-      const baseSize = config.font_size || defaultConfig.font_size;
-      const baseFontStack = 'system-ui, -apple-system, sans-serif';
-      
-      document.body.style.backgroundColor = config.background_color || defaultConfig.background_color;
-      document.body.style.fontFamily = `${customFont}, ${baseFontStack}`;
-      document.body.style.fontSize = `${baseSize}px`;
-      document.body.style.color = config.text_color || defaultConfig.text_color;
-      
-      const app = document.getElementById('app');
-      if (app) {
-        app.style.backgroundColor = config.background_color || defaultConfig.background_color;
-      }
-      
-      renderCurrentPage();
-    }
-
-    function renderCurrentPage() {
-      if (currentPage === 'user') {
-        renderUserPage();
-      } else if (currentPage === 'admin-login') {
-        renderAdminLogin();
-      } else if (currentPage === 'admin-dashboard') {
-        renderAdminDashboard();
-      } else if (currentPage === 'admin-gps') {
-        renderAdminGPS();
-      }
-    }
-
-    function renderUserPage() {
-      const config = window.elementSdk.config;
-      const baseSize = config.font_size || defaultConfig.font_size;
-      
-      const app = document.getElementById('app');
-      app.innerHTML = `
-        <div class="min-h-full p-6" style="background-color: ${config.background_color || defaultConfig.background_color}">
-          <div class="max-w-2xl mx-auto">
-            <div class="text-center mb-8">
-              <h1 class="font-bold mb-2" style="font-size: ${baseSize * 1.75}px; color: ${config.text_color || defaultConfig.text_color}">${config.judul_aplikasi || defaultConfig.judul_aplikasi}</h1>
-              <button id="adminBtn" class="mt-4 px-4 py-2 rounded-lg transition-colors" style="background-color: ${config.secondary_action_color || defaultConfig.secondary_action_color}; color: white; font-size: ${baseSize * 0.875}px">
-                Login Admin
-              </button>
-            </div>
-
-            <div class="rounded-xl shadow-lg p-6 mb-6" style="background-color: ${config.surface_color || defaultConfig.surface_color}">
-              <div class="mb-4">
-                <label class="block mb-2 font-medium" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">${config.label_kabupaten || defaultConfig.label_kabupaten}</label>
-                <select id="kabupatenSelect" class="w-full p-3 border-2 rounded-lg" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}; border-color: ${config.secondary_action_color || defaultConfig.secondary_action_color}">
-                  <option value="">-- Pilih Kabupaten --</option>
-                  <option value="Pekanbaru">Pekanbaru</option>
-                  <option value="Dumai">Dumai</option>
-                  <option value="Kuansing">Kuansing</option>
-                </select>
-              </div>
-
-              <div id="pimpinanSection" class="mb-4 hidden">
-                <label class="block mb-2 font-medium" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">${config.label_pimpinan || defaultConfig.label_pimpinan}</label>
-                <select id="pimpinanSelect" class="w-full p-3 border-2 rounded-lg" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}; border-color: ${config.secondary_action_color || defaultConfig.secondary_action_color}">
-                  <option value="">-- Pilih Pimpinan --</option>
-                </select>
-              </div>
-
-              <div class="mb-4">
-                <label class="block mb-2 font-medium" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">${config.label_presensi || defaultConfig.label_presensi}</label>
-                <select id="presensiSelect" class="w-full p-3 border-2 rounded-lg" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}; border-color: ${config.secondary_action_color || defaultConfig.secondary_action_color}">
-                  <option value="">-- Pilih Jenis Presensi --</option>
-                  <option value="Presensi Masuk">Presensi Masuk</option>
-                  <option value="Presensi Pulang">Presensi Pulang</option>
-                </select>
-              </div>
-
-              <div class="mb-4">
-                <label class="block mb-2 font-medium" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Foto Selfie</label>
-                <input type="file" id="photoInput" accept="image/*" capture="user" class="w-full p-3 border-2 rounded-lg" style="font-size: ${baseSize}px; border-color: ${config.secondary_action_color || defaultConfig.secondary_action_color}">
-                <div id="photoPreview" class="mt-2 hidden">
-                  <img id="previewImg" class="w-full max-w-xs rounded-lg" alt="Preview foto">
-                </div>
-              </div>
-
-              <button id="kirimBtn" class="w-full py-3 rounded-lg font-semibold transition-colors" style="background-color: ${config.primary_action_color || defaultConfig.primary_action_color}; color: white; font-size: ${baseSize * 1.125}px">
-                ${config.tombol_kirim || defaultConfig.tombol_kirim}
-              </button>
-            </div>
-          </div>
-        </div>
-      `;
-
-      document.getElementById('adminBtn').onclick = () => {
-        currentPage = 'admin-login';
-        renderAdminLogin();
-      };
-
-      document.getElementById('kabupatenSelect').onchange = (e) => {
-        selectedKabupaten = e.target.value;
-        const pimpinanSection = document.getElementById('pimpinanSection');
-        const pimpinanSelect = document.getElementById('pimpinanSelect');
-        
-        if (selectedKabupaten) {
-          pimpinanSection.classList.remove('hidden');
-          pimpinanSelect.innerHTML = '<option value="">-- Pilih Pimpinan --</option>';
-          kabupatenData[selectedKabupaten].forEach(nama => {
-            pimpinanSelect.innerHTML += `<option value="${nama}">${nama}</option>`;
-          });
-        } else {
-          pimpinanSection.classList.add('hidden');
-        }
-      };
-
-      document.getElementById('pimpinanSelect').onchange = (e) => {
-        selectedPimpinan = e.target.value;
-      };
-
-      document.getElementById('presensiSelect').onchange = (e) => {
-        selectedPresensi = e.target.value;
-      };
-
-      document.getElementById('photoInput').onchange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            capturedPhoto = event.target.result;
-            document.getElementById('photoPreview').classList.remove('hidden');
-            document.getElementById('previewImg').src = capturedPhoto;
-          };
-          reader.readAsDataURL(file);
-        }
-      };
-
-      document.getElementById('kirimBtn').onclick = handleKirimAbsensi;
-    }
-
-    async function handleKirimAbsensi() {
-      if (isLoading) return;
-      
-      if (!selectedKabupaten || !selectedPimpinan || !selectedPresensi) {
-        showToast('Mohon lengkapi semua data', 'error');
-        return;
-      }
-
-      if (!capturedPhoto) {
-        showToast('Mohon ambil foto selfie terlebih dahulu', 'error');
-        return;
-      }
-
-      const kirimBtn = document.getElementById('kirimBtn');
-      const originalText = kirimBtn.innerHTML;
-      kirimBtn.innerHTML = '<span class="loading-spinner"></span>Mengirim...';
-      kirimBtn.disabled = true;
-      isLoading = true;
-
-      try {
-        const position = await getCurrentPosition();
-        const userLat = position.coords.latitude;
-        const userLng = position.coords.longitude;
-
-        const gpsSetting = gpsSettings.find(g => g.nama_kabupaten === selectedKabupaten);
-        
-        if (!gpsSetting) {
-          showToast('Titik GPS untuk kabupaten ini belum diatur. Silakan hubungi admin.', 'error');
-          kirimBtn.innerHTML = originalText;
-          kirimBtn.disabled = false;
-          isLoading = false;
-          return;
-        }
-
-        const distance = calculateDistance(userLat, userLng, gpsSetting.titik_latitude, gpsSetting.titik_longitude);
-
-        if (distance > 50) {
-          showToast('Anda saat ini tidak dapat melakukan absensi karena berada jauh dari lokasi kantor', 'error');
-          kirimBtn.innerHTML = originalText;
-          kirimBtn.disabled = false;
-          isLoading = false;
-          return;
-        }
-
-        const now = new Date();
-        const tanggal = now.toLocaleDateString('id-ID');
-        const waktu = now.toLocaleTimeString('id-ID');
-
-        const result = await window.dataSdk.create({
-          id: `${Date.now()}-${Math.random()}`,
-          kabupaten: selectedKabupaten,
-          nama_pimpinan: selectedPimpinan,
-          jenis_presensi: selectedPresensi,
-          tanggal: tanggal,
-          waktu: waktu,
-          latitude: userLat,
-          longitude: userLng,
-          foto_selfie: capturedPhoto
-        });
-
-        if (result.isOk) {
-          showToast(`Absensi '${selectedPresensi}' pada ${tanggal} telah dikirim`, 'success');
-          selectedKabupaten = '';
-          selectedPimpinan = '';
-          selectedPresensi = '';
-          capturedPhoto = null;
-          renderUserPage();
-        } else {
-          showToast('Gagal mengirim absensi. Silakan coba lagi.', 'error');
-        }
-      } catch (error) {
-        showToast('Gagal mendapatkan lokasi GPS. Pastikan GPS aktif.', 'error');
-      } finally {
-        kirimBtn.innerHTML = originalText;
-        kirimBtn.disabled = false;
-        isLoading = false;
-      }
-    }
-
-    function getCurrentPosition() {
-      return new Promise((resolve, reject) => {
-        if (!navigator.geolocation) {
-          reject(new Error('Geolocation tidak didukung'));
-          return;
-        }
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
-        });
-      });
-    }
-
-    function calculateDistance(lat1, lon1, lat2, lon2) {
-      const R = 6371000;
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLon = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      return R * c;
-    }
-
-    function renderAdminLogin() {
-      const config = window.elementSdk.config;
-      const baseSize = config.font_size || defaultConfig.font_size;
-      
-      const app = document.getElementById('app');
-      app.innerHTML = `
-        <div class="min-h-full flex items-center justify-center p-6" style="background-color: ${config.background_color || defaultConfig.background_color}">
-          <div class="w-full max-w-md rounded-xl shadow-lg p-8" style="background-color: ${config.surface_color || defaultConfig.surface_color}">
-            <h2 class="text-center font-bold mb-6" style="font-size: ${baseSize * 1.5}px; color: ${config.text_color || defaultConfig.text_color}">Login Admin</h2>
-            
+        <form id="absensiForm">
+            <!-- Pilihan Kabupaten/Kota -->
             <div class="mb-4">
-              <label class="block mb-2 font-medium" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Username</label>
-              <input type="text" id="username" class="w-full p-3 border-2 rounded-lg" style="font-size: ${baseSize}px; border-color: ${config.secondary_action_color || defaultConfig.secondary_action_color}">
+                <label for="kabupatenSelect" class="block text-sm font-medium text-gray-700 mb-2">Pilih Kabupaten/Kota:</label>
+                <select id="kabupatenSelect" name="kabupaten" class="w-full p-3 border border-gray-300 rounded-md bg-white focus:ring-blue-500 focus:border-blue-500">
+                    <option value="pekanbaru">Pekanbaru</option>
+                    <option value="dumai">Dumai</option>
+                    <option value="kuansing">Kuansing</option>
+                </select>
             </div>
 
+            <!-- Pilihan Nama Pimpinan -->
+            <div class="mb-4">
+                <label for="namaSelect" class="block text-sm font-medium text-gray-700 mb-2">Pilih Nama Pimpinan:</label>
+                <select id="namaSelect" name="nama" class="w-full p-3 border border-gray-300 rounded-md bg-white focus:ring-blue-500 focus:border-blue-500">
+                    <!-- Opsi nama akan diisi oleh JavaScript -->
+                </select>
+            </div>
+
+            <!-- Pilihan Jenis Presensi -->
             <div class="mb-6">
-              <label class="block mb-2 font-medium" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Password</label>
-              <input type="password" id="password" class="w-full p-3 border-2 rounded-lg" style="font-size: ${baseSize}px; border-color: ${config.secondary_action_color || defaultConfig.secondary_action_color}">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Presensi:</label>
+                <div class="flex flex-col sm:flex-row sm:gap-6">
+                    <label class="flex items-center p-3 border rounded-md has-[:checked]:bg-blue-50 has-[:checked]:border-blue-400">
+                        <input type="radio" name="presensiType" value="Presensi Masuk" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500" required>
+                        <span class="ml-3 text-gray-700">Presensi Masuk</span>
+                    </label>
+                    <label class="flex items-center mt-2 sm:mt-0 p-3 border rounded-md has-[:checked]:bg-blue-50 has-[:checked]:border-blue-400">
+                        <input type="radio" name="presensiType" value="Presensi Pulang" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500" required>
+                        <span class="ml-3 text-gray-700">Presensi Pulang</span>
+                    </label>
+                </div>
             </div>
 
-            <button id="loginBtn" class="w-full py-3 rounded-lg font-semibold mb-4 transition-colors" style="background-color: ${config.primary_action_color || defaultConfig.primary_action_color}; color: white; font-size: ${baseSize * 1.125}px">
-              Login
+            <!-- Tombol Kirim -->
+            <button id="submitButton" type="submit" class="w-full bg-blue-600 text-white p-3 rounded-md font-semibold hover:bg-blue-700 transition-colors duration-200 disabled:bg-gray-400 flex items-center justify-center gap-2">
+                Kirim Absensi
             </button>
 
-            <button id="backBtn" class="w-full py-3 rounded-lg font-semibold transition-colors" style="background-color: ${config.secondary_action_color || defaultConfig.secondary_action_color}; color: white; font-size: ${baseSize}px">
-              Kembali
-            </button>
-          </div>
-        </div>
-      `;
-
-      document.getElementById('loginBtn').onclick = () => {
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-
-        if (username === 'admin' && password === '12345678') {
-          currentPage = 'admin-dashboard';
-          renderAdminDashboard();
-        } else {
-          showToast('Username atau password salah', 'error');
-        }
-      };
-
-      document.getElementById('backBtn').onclick = () => {
-        currentPage = 'user';
-        renderUserPage();
-      };
-    }
-
-    function renderAdminDashboard() {
-      const config = window.elementSdk.config;
-      const baseSize = config.font_size || defaultConfig.font_size;
-      
-      const today = new Date().toLocaleDateString('id-ID');
-      const todayAbsensi = allAbsensi.filter(a => a.tanggal === today);
-      const absensiMasuk = todayAbsensi.filter(a => a.jenis_presensi === 'Presensi Masuk').length;
-      const absensiPulang = todayAbsensi.filter(a => a.jenis_presensi === 'Presensi Pulang').length;
-
-      const allPimpinan = new Set();
-      Object.values(kabupatenData).forEach(arr => arr.forEach(nama => allPimpinan.add(nama)));
-      
-      const absenToday = new Set(todayAbsensi.map(a => a.nama_pimpinan));
-      const tidakAbsen = Array.from(allPimpinan).filter(nama => !absenToday.has(nama));
-
-      const sortedAbsensi = [...todayAbsensi].sort((a, b) => {
-        const timeA = new Date(`${a.tanggal} ${a.waktu}`).getTime();
-        const timeB = new Date(`${b.tanggal} ${b.waktu}`).getTime();
-        return timeB - timeA;
-      });
-
-      const app = document.getElementById('app');
-      app.innerHTML = `
-        <div class="min-h-full" style="background-color: ${config.background_color || defaultConfig.background_color}">
-          <div class="p-6">
-            <div class="max-w-6xl mx-auto">
-              <div class="flex justify-between items-center mb-6">
-                <h1 class="font-bold" style="font-size: ${baseSize * 1.75}px; color: ${config.text_color || defaultConfig.text_color}">Dashboard Admin</h1>
-                <div class="flex gap-3">
-                  <button id="gpsBtn" class="px-4 py-2 rounded-lg transition-colors" style="background-color: ${config.secondary_action_color || defaultConfig.secondary_action_color}; color: white; font-size: ${baseSize}px">
-                    Atur GPS
-                  </button>
-                  <button id="logoutBtn" class="px-4 py-2 rounded-lg transition-colors" style="background-color: ${config.secondary_action_color || defaultConfig.secondary_action_color}; color: white; font-size: ${baseSize}px">
-                    Logout
-                  </button>
-                </div>
-              </div>
-
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div class="rounded-xl shadow-lg p-6" style="background-color: ${config.surface_color || defaultConfig.surface_color}">
-                  <h3 class="font-semibold mb-2" style="font-size: ${baseSize * 1.25}px; color: ${config.text_color || defaultConfig.text_color}">Absensi Masuk Hari Ini</h3>
-                  <p class="font-bold" style="font-size: ${baseSize * 2}px; color: ${config.primary_action_color || defaultConfig.primary_action_color}">${absensiMasuk}</p>
-                </div>
-                <div class="rounded-xl shadow-lg p-6" style="background-color: ${config.surface_color || defaultConfig.surface_color}">
-                  <h3 class="font-semibold mb-2" style="font-size: ${baseSize * 1.25}px; color: ${config.text_color || defaultConfig.text_color}">Absensi Pulang Hari Ini</h3>
-                  <p class="font-bold" style="font-size: ${baseSize * 2}px; color: ${config.primary_action_color || defaultConfig.primary_action_color}">${absensiPulang}</p>
-                </div>
-              </div>
-
-              <div class="rounded-xl shadow-lg p-6 mb-6" style="background-color: ${config.surface_color || defaultConfig.surface_color}">
-                <h3 class="font-semibold mb-4" style="font-size: ${baseSize * 1.25}px; color: ${config.text_color || defaultConfig.text_color}">Daftar Absensi Hari Ini</h3>
-                <div class="overflow-x-auto">
-                  <table class="w-full">
-                    <thead>
-                      <tr style="border-bottom: 2px solid ${config.secondary_action_color || defaultConfig.secondary_action_color}">
-                        <th class="text-left p-3" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Waktu</th>
-                        <th class="text-left p-3" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Nama</th>
-                        <th class="text-left p-3" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Kabupaten</th>
-                        <th class="text-left p-3" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Jenis</th>
-                      </tr>
-                    </thead>
-                    <tbody id="absensiList">
-                      ${sortedAbsensi.length === 0 ? 
-                        `<tr><td colspan="4" class="text-center p-4" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Belum ada absensi hari ini</td></tr>` :
-                        sortedAbsensi.map(a => `
-                          <tr style="border-bottom: 1px solid ${config.secondary_action_color || defaultConfig.secondary_action_color}33">
-                            <td class="p-3" style="font-size: ${baseSize * 0.875}px; color: ${config.text_color || defaultConfig.text_color}">${a.waktu}</td>
-                            <td class="p-3" style="font-size: ${baseSize * 0.875}px; color: ${config.text_color || defaultConfig.text_color}">${a.nama_pimpinan}</td>
-                            <td class="p-3" style="font-size: ${baseSize * 0.875}px; color: ${config.text_color || defaultConfig.text_color}">${a.kabupaten}</td>
-                            <td class="p-3" style="font-size: ${baseSize * 0.875}px; color: ${config.text_color || defaultConfig.text_color}">${a.jenis_presensi}</td>
-                          </tr>
-                        `).join('')
-                      }
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div class="rounded-xl shadow-lg p-6" style="background-color: ${config.surface_color || defaultConfig.surface_color}">
-                <h3 class="font-semibold mb-4" style="font-size: ${baseSize * 1.25}px; color: ${config.text_color || defaultConfig.text_color}">Belum Absen Hari Ini</h3>
-                <div id="tidakAbsenList">
-                  ${tidakAbsen.length === 0 ?
-                    `<p style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Semua pimpinan sudah absen</p>` :
-                    tidakAbsen.map(nama => `
-                      <span class="inline-block px-3 py-1 rounded-full mr-2 mb-2" style="background-color: ${config.secondary_action_color || defaultConfig.secondary_action_color}33; color: ${config.text_color || defaultConfig.text_color}; font-size: ${baseSize * 0.875}px">${nama}</span>
-                    `).join('')
-                  }
-                </div>
-              </div>
+            <!-- Status Message -->
+            <div id="statusMessage" role="alert" class="mt-4 text-center p-3 rounded-md text-sm" aria-live="assertive">
+                <!-- Pesan sukses atau error akan muncul di sini -->
             </div>
-          </div>
-        </div>
-      `;
 
-      document.getElementById('gpsBtn').onclick = () => {
-        currentPage = 'admin-gps';
-        renderAdminGPS();
-      };
+            <!-- Loading Indicator (hidden by default) -->
+            <div id="loadingIndicator" class="hidden items-center justify-center mt-4 gap-2 text-gray-600">
+                <div class="spinner"></div>
+                <span>Mencari lokasi Anda...</span>
+            </div>
 
-      document.getElementById('logoutBtn').onclick = () => {
-        currentPage = 'user';
-        renderUserPage();
-      };
-    }
+        </form>
+    </div>
 
-    function renderAdminGPS() {
-      const config = window.elementSdk.config;
-      const baseSize = config.font_size || defaultConfig.font_size;
-      
-      const app = document.getElementById('app');
-      app.innerHTML = `
-        <div class="min-h-full" style="background-color: ${config.background_color || defaultConfig.background_color}">
-          <div class="p-6">
-            <div class="max-w-4xl mx-auto">
-              <div class="flex justify-between items-center mb-6">
-                <h1 class="font-bold" style="font-size: ${baseSize * 1.75}px; color: ${config.text_color || defaultConfig.text_color}">Pengaturan Titik GPS</h1>
-                <button id="backDashboard" class="px-4 py-2 rounded-lg transition-colors" style="background-color: ${config.secondary_action_color || defaultConfig.secondary_action_color}; color: white; font-size: ${baseSize}px">
-                  Kembali ke Dashboard
-                </button>
-              </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // --- DATA SIMULASI ---
+            // Data pimpinan berdasarkan kabupaten
+            const pimpinanData = {
+                pekanbaru: ["Verdi", "Reni Purba", "Misbah Ibrahim", "Raja Inal", "Taufiq"],
+                dumai: ["Yeni", "Adi", "Badu"],
+                kuansing: ["Susi", "Adi", "Iqbal"]
+            };
 
-              <div class="rounded-xl shadow-lg p-6 mb-6" style="background-color: ${config.surface_color || defaultConfig.surface_color}">
-                <h3 class="font-semibold mb-4" style="font-size: ${baseSize * 1.25}px; color: ${config.text_color || defaultConfig.text_color}">Tambah/Update Titik GPS</h3>
+            // Data simulasi koordinat kantor (admin-defined)
+            // Titik Bawaslu Riau dari link: 0.4918, 101.4449
+            const kantorCoordinates = {
+                pekanbaru: { lat: 0.4918, lon: 101.4449 },
+                dumai: { lat: 1.6740, lon: 101.4450 }, // Koordinat fiktif untuk Dumai
+                kuansing: { lat: -0.5180, lon: 101.5360 } // Koordinat fiktif untuk Kuansing
+            };
+            const MAX_DISTANCE_METERS = 50; // Jarak toleransi 50 meter
+
+            // --- REFERENSI ELEMEN ---
+            const kabupatenSelect = document.getElementById('kabupatenSelect');
+            const namaSelect = document.getElementById('namaSelect');
+            const absensiForm = document.getElementById('absensiForm');
+            const submitButton = document.getElementById('submitButton');
+            const statusMessage = document.getElementById('statusMessage');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+
+            // --- FUNGSI ---
+
+            /**
+             * Memperbarui daftar nama pimpinan berdasarkan kabupaten yang dipilih.
+             */
+            function updateNamaPimpinan() {
+                const selectedKabupaten = kabupatenSelect.value;
+                const pimpinanList = pimpinanData[selectedKabupaten] || [];
                 
-                <div class="mb-4">
-                  <label class="block mb-2 font-medium" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Nama Kabupaten</label>
-                  <select id="gpsKabupaten" class="w-full p-3 border-2 rounded-lg" style="font-size: ${baseSize}px; border-color: ${config.secondary_action_color || defaultConfig.secondary_action_color}">
-                    <option value="">-- Pilih Kabupaten --</option>
-                    <option value="Pekanbaru">Pekanbaru</option>
-                    <option value="Dumai">Dumai</option>
-                    <option value="Kuansing">Kuansing</option>
-                  </select>
-                </div>
+                // Kosongkan select nama
+                namaSelect.innerHTML = ''; 
 
-                <div class="mb-4">
-                  <label class="block mb-2 font-medium" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Latitude</label>
-                  <input type="number" step="any" id="gpsLat" class="w-full p-3 border-2 rounded-lg" placeholder="Contoh: 0.5071" style="font-size: ${baseSize}px; border-color: ${config.secondary_action_color || defaultConfig.secondary_action_color}">
-                </div>
-
-                <div class="mb-4">
-                  <label class="block mb-2 font-medium" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Longitude</label>
-                  <input type="number" step="any" id="gpsLng" class="w-full p-3 border-2 rounded-lg" placeholder="Contoh: 101.4478" style="font-size: ${baseSize}px; border-color: ${config.secondary_action_color || defaultConfig.secondary_action_color}">
-                </div>
-
-                <button id="simpanGPS" class="w-full py-3 rounded-lg font-semibold transition-colors" style="background-color: ${config.primary_action_color || defaultConfig.primary_action_color}; color: white; font-size: ${baseSize * 1.125}px">
-                  Simpan Titik GPS
-                </button>
-              </div>
-
-              <div class="rounded-xl shadow-lg p-6" style="background-color: ${config.surface_color || defaultConfig.surface_color}">
-                <h3 class="font-semibold mb-4" style="font-size: ${baseSize * 1.25}px; color: ${config.text_color || defaultConfig.text_color}">Daftar Titik GPS</h3>
-                <div class="overflow-x-auto">
-                  <table class="w-full">
-                    <thead>
-                      <tr style="border-bottom: 2px solid ${config.secondary_action_color || defaultConfig.secondary_action_color}">
-                        <th class="text-left p-3" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Kabupaten</th>
-                        <th class="text-left p-3" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Latitude</th>
-                        <th class="text-left p-3" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Longitude</th>
-                        <th class="text-left p-3" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody id="gpsList">
-                      ${gpsSettings.length === 0 ?
-                        `<tr><td colspan="4" class="text-center p-4" style="font-size: ${baseSize}px; color: ${config.text_color || defaultConfig.text_color}">Belum ada titik GPS yang diatur</td></tr>` :
-                        gpsSettings.map(g => `
-                          <tr style="border-bottom: 1px solid ${config.secondary_action_color || defaultConfig.secondary_action_color}33">
-                            <td class="p-3" style="font-size: ${baseSize * 0.875}px; color: ${config.text_color || defaultConfig.text_color}">${g.nama_kabupaten}</td>
-                            <td class="p-3" style="font-size: ${baseSize * 0.875}px; color: ${config.text_color || defaultConfig.text_color}">${g.titik_latitude}</td>
-                            <td class="p-3" style="font-size: ${baseSize * 0.875}px; color: ${config.text_color || defaultConfig.text_color}">${g.titik_longitude}</td>
-                            <td class="p-3">
-                              <button class="deleteGPS px-3 py-1 rounded transition-colors" data-id="${g.__backendId}" style="background-color: #ef4444; color: white; font-size: ${baseSize * 0.875}px">
-                                Hapus
-                              </button>
-                            </td>
-                          </tr>
-                        `).join('')
-                      }
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-
-      document.getElementById('backDashboard').onclick = () => {
-        currentPage = 'admin-dashboard';
-        renderAdminDashboard();
-      };
-
-      document.getElementById('simpanGPS').onclick = async () => {
-        if (isLoading) return;
-        
-        const kabupaten = document.getElementById('gpsKabupaten').value;
-        const lat = parseFloat(document.getElementById('gpsLat').value);
-        const lng = parseFloat(document.getElementById('gpsLng').value);
-
-        if (!kabupaten || isNaN(lat) || isNaN(lng)) {
-          showToast('Mohon lengkapi semua data dengan benar', 'error');
-          return;
-        }
-
-        const simpanBtn = document.getElementById('simpanGPS');
-        const originalText = simpanBtn.innerHTML;
-        simpanBtn.innerHTML = '<span class="loading-spinner"></span>Menyimpan...';
-        simpanBtn.disabled = true;
-        isLoading = true;
-
-        const existing = gpsSettings.find(g => g.nama_kabupaten === kabupaten);
-
-        try {
-          if (existing) {
-            const updated = { ...existing, titik_latitude: lat, titik_longitude: lng };
-            const result = await window.dataSdk.update(updated);
-            
-            if (result.isOk) {
-              showToast('Titik GPS berhasil diupdate', 'success');
-              document.getElementById('gpsKabupaten').value = '';
-              document.getElementById('gpsLat').value = '';
-              document.getElementById('gpsLng').value = '';
-            } else {
-              showToast('Gagal mengupdate titik GPS', 'error');
+                // Isi dengan nama yang baru
+                if (pimpinanList.length > 0) {
+                    pimpinanList.forEach(nama => {
+                        const option = document.createElement('option');
+                        option.value = nama.toLowerCase().replace(' ', '-');
+                        option.textContent = nama;
+                        namaSelect.appendChild(option);
+                    });
+                    namaSelect.disabled = false;
+                } else {
+                    const option = document.createElement('option');
+                    option.textContent = 'Tidak ada data';
+                    namaSelect.appendChild(option);
+                    namaSelect.disabled = true;
+                }
             }
-          } else {
-            const result = await window.dataSdk.create({
-              id: `gps-${Date.now()}`,
-              nama_kabupaten: kabupaten,
-              titik_latitude: lat,
-              titik_longitude: lng
-            });
 
-            if (result.isOk) {
-              showToast('Titik GPS berhasil disimpan', 'success');
-              document.getElementById('gpsKabupaten').value = '';
-              document.getElementById('gpsLat').value = '';
-              document.getElementById('gpsLng').value = '';
-            } else {
-              showToast('Gagal menyimpan titik GPS', 'error');
+            /**
+             * Menampilkan pesan status kepada pengguna.
+             * @param {string} message - Pesan yang akan ditampilkan.
+             * @param {('success'|'error'|'info')} type - Jenis pesan.
+             */
+            function showMessage(message, type = 'info') {
+                statusMessage.textContent = message;
+                statusMessage.className = 'mt-4 text-center p-3 rounded-md text-sm'; // Reset
+                
+                if (type === 'success') {
+                    statusMessage.classList.add('bg-green-100', 'text-green-800');
+                } else if (type === 'error') {
+                    statusMessage.classList.add('bg-red-100', 'text-red-800');
+                } else {
+                    statusMessage.classList.add('bg-blue-100', 'text-blue-800');
+                }
             }
-          }
-        } finally {
-          simpanBtn.innerHTML = originalText;
-          simpanBtn.disabled = false;
-          isLoading = false;
-        }
-      };
 
-      document.querySelectorAll('.deleteGPS').forEach(btn => {
-        btn.onclick = async (e) => {
-          if (isLoading) return;
-          
-          const id = e.target.dataset.id;
-          const gps = gpsSettings.find(g => g.__backendId === id);
-          
-          if (!gps) return;
-
-          const originalText = e.target.innerHTML;
-          e.target.innerHTML = '<span class="loading-spinner"></span>';
-          e.target.disabled = true;
-          isLoading = true;
-
-          try {
-            const result = await window.dataSdk.delete(gps);
-            
-            if (result.isOk) {
-              showToast('Titik GPS berhasil dihapus', 'success');
-            } else {
-              showToast('Gagal menghapus titik GPS', 'error');
-              e.target.innerHTML = originalText;
-              e.target.disabled = false;
+            /**
+             * Mengatur status loading
+             * @param {boolean} isLoading - true jika sedang loading.
+             */
+            function setLoading(isLoading) {
+                if (isLoading) {
+                    submitButton.disabled = true;
+                    submitButton.classList.add('disabled:bg-gray-400');
+                    loadingIndicator.classList.remove('hidden');
+                    loadingIndicator.classList.add('flex');
+                    statusMessage.innerHTML = ''; // Hapus pesan lama
+                } else {
+                    submitButton.disabled = false;
+                    loadingIndicator.classList.add('hidden');
+                    loadingIndicator.classList.remove('flex');
+                }
             }
-          } finally {
-            isLoading = false;
-          }
-        };
-      });
-    }
 
-    function showToast(message, type) {
-      const toast = document.createElement('div');
-      toast.className = 'toast';
-      toast.style.backgroundColor = type === 'success' ? '#10b981' : '#ef4444';
-      toast.style.color = 'white';
-      toast.textContent = message;
-      
-      document.body.appendChild(toast);
-      
-      setTimeout(() => {
-        toast.remove();
-      }, 4000);
-    }
+            /**
+             * Menghitung jarak Haversine antara dua titik GPS dalam meter.
+             */
+            function haversineDistance(lat1, lon1, lat2, lon2) {
+                const R = 6371e3; // Radius Bumi dalam meter
+                const phi1 = lat1 * Math.PI / 180;
+                const phi2 = lat2 * Math.PI / 180;
+                const deltaPhi = (lat2 - lat1) * Math.PI / 180;
+                const deltaLambda = (lon2 - lon1) * Math.PI / 180;
 
-    async function init() {
-      const initResult = await window.dataSdk.init(dataHandler);
-      if (!initResult.isOk) {
-        console.error('Failed to initialize data SDK');
-        return;
-      }
-
-      if (window.elementSdk) {
-        window.elementSdk.init({
-          defaultConfig,
-          onConfigChange,
-          mapToCapabilities: (config) => ({
-            recolorables: [
-              {
-                get: () => config.background_color || defaultConfig.background_color,
-                set: (value) => {
-                  config.background_color = value;
-                  window.elementSdk.setConfig({ background_color: value });
-                }
-              },
-              {
-                get: () => config.surface_color || defaultConfig.surface_color,
-                set: (value) => {
-                  config.surface_color = value;
-                  window.elementSdk.setConfig({ surface_color: value });
-                }
-              },
-              {
-                get: () => config.text_color || defaultConfig.text_color,
-                set: (value) => {
-                  config.text_color = value;
-                  window.elementSdk.setConfig({ text_color: value });
-                }
-              },
-              {
-                get: () => config.primary_action_color || defaultConfig.primary_action_color,
-                set: (value) => {
-                  config.primary_action_color = value;
-                  window.elementSdk.setConfig({ primary_action_color: value });
-                }
-              },
-              {
-                get: () => config.secondary_action_color || defaultConfig.secondary_action_color,
-                set: (value) => {
-                  config.secondary_action_color = value;
-                  window.elementSdk.setConfig({ secondary_action_color: value });
-                }
-              }
-            ],
-            borderables: [],
-            fontEditable: {
-              get: () => config.font_family || defaultConfig.font_family,
-              set: (value) => {
-                config.font_family = value;
-                window.elementSdk.setConfig({ font_family: value });
-              }
-            },
-            fontSizeable: {
-              get: () => config.font_size || defaultConfig.font_size,
-              set: (value) => {
-                config.font_size = value;
-                window.elementSdk.setConfig({ font_size: value });
-              }
+                const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+                          Math.cos(phi1) * Math.cos(phi2) *
+                          Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                
+                return R * c; // Jarak dalam meter
             }
-          }),
-          mapToEditPanelValues: (config) => new Map([
-            ['judul_aplikasi', config.judul_aplikasi || defaultConfig.judul_aplikasi],
-            ['label_kabupaten', config.label_kabupaten || defaultConfig.label_kabupaten],
-            ['label_pimpinan', config.label_pimpinan || defaultConfig.label_pimpinan],
-            ['label_presensi', config.label_presensi || defaultConfig.label_presensi],
-            ['tombol_kirim', config.tombol_kirim || defaultConfig.tombol_kirim]
-          ])
+
+            /**
+             * Handler untuk proses submit form absensi.
+             */
+            async function handleAbsensiSubmit(event) {
+                event.preventDefault(); // Mencegah form submit
+                
+                const formData = new FormData(absensiForm);
+                const jenisPresensi = formData.get('presensiType');
+                const selectedKabupaten = formData.get('kabupaten');
+
+                if (!jenisPresensi) {
+                    showMessage('Silakan pilih jenis presensi (Masuk atau Pulang).', 'error');
+                    return;
+                }
+                
+                setLoading(true);
+
+                try {
+                    // 1. Dapatkan lokasi GPS pengguna
+                    const position = await new Promise((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(resolve, reject, {
+                            enableHighAccuracy: true, 
+                            timeout: 10000, 
+                            maximumAge: 0
+                        });
+                    });
+
+                    const userLat = position.coords.latitude;
+                    const userLon = position.coords.longitude;
+
+                    // 2. Dapatkan koordinat kantor tujuan
+                    const target = kantorCoordinates[selectedKabupaten];
+                    if (!target) {
+                        throw new Error("Koordinat kantor untuk kabupaten ini tidak ditemukan.");
+                    }
+
+                    // 3. Hitung jarak
+                    const distance = haversineDistance(userLat, userLon, target.lat, target.lon);
+
+                    // 4. Cek jarak
+                    if (distance > MAX_DISTANCE_METERS) {
+                        // Jarak terlalu jauh
+                        showMessage(`Anda saat ini tidak dapat melakukan absensi karena berada jauh dari lokasi kantor. (Jarak: ${distance.toFixed(0)} meter)`, 'error');
+                    } else {
+                        // Jarak sesuai, sukses absensi
+                        const tanggal = new Date().toLocaleDateString('id-ID', {
+                            day: '2-digit', month: 'long', year: 'numeric'
+                        });
+                        
+                        // Simulasi pengiriman data ke admin
+                        console.log("MENGIRIM DATA KE ADMIN (SIMULASI):", {
+                            kabupaten: selectedKabupaten,
+                            nama: formData.get('nama'),
+                            jenisPresensi: jenisPresensi,
+                            tanggal: new Date().toISOString(),
+                            lokasi: `${userLat}, ${userLon}`,
+                            jarak: distance.toFixed(2) + ' meter'
+                        });
+
+                        showMessage(`Absensi '${jenisPresensi}' pada tanggal ${tanggal} telah dikirim.`, 'success');
+                        
+                        // Reset form
+                        absensiForm.reset();
+                        updateNamaPimpinan(); // Set nama kembali ke default
+                    }
+
+                } catch (error) {
+                    // Tangani error GPS
+                    let errorMsg = "Terjadi kesalahan.";
+
+                    // Cek spesifik untuk error Permissions Policy
+                    if (error.message && error.message.toLowerCase().includes("permissions policy")) {
+                        errorMsg = "Error: Izin Geolocation diblokir oleh 'permissions policy'. Pratinjau ini mungkin tidak mendukung GPS. Coba buka file ini di tab browser terpisah.";
+                    } else if (error.code === 1) { // PERMISSION_DENIED
+                        errorMsg = "Izin lokasi ditolak. Anda harus mengizinkan akses lokasi di browser Anda.";
+                    } else if (error.code === 2) { // POSITION_UNAVAILABLE
+                        errorMsg = "Gagal mendapatkan lokasi. Pastikan GPS Anda aktif dan sinyal kuat.";
+                    } else if (error.code === 3) { // TIMEOUT
+                        errorMsg = "Waktu tunggu habis saat mencari lokasi. Coba lagi.";
+                    } else {
+                        // Fallback untuk error lain
+                        errorMsg = `Gagal mendapatkan lokasi. Silakan coba lagi.`;
+_                    }
+                    
+                    showMessage(errorMsg, 'error');
+                    console.error("Geolocation Error:", error.message, error); // Log seluruh error object
+                } finally {
+                    setLoading(false); // Selalu hentikan loading
+                }
+            }
+
+            // --- EVENT LISTENERS ---
+            kabupatenSelect.addEventListener('change', updateNamaPimpinan);
+            absensiForm.addEventListener('submit', handleAbsensiSubmit);
+
+            // --- INISIALISASI ---
+            updateNamaPimpinan(); // Panggil sekali saat load untuk mengisi data awal
         });
-      }
-
-      renderUserPage();
-    }
-
-    init();
-  </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'996b0673f1b2fda7',t:'MTc2MTgyODQ4OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+    </script>
+</body>
 </html>
+
