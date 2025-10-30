@@ -137,16 +137,26 @@
         // =======================================================================
         
         // --- PENGATURAN LOKASI ---
-        // Koordinat Target (Bawaslu Riau dari Google Maps link)
-        const TARGET_LAT = 0.49162;
-        const TARGET_LON = 101.43285;
-        const MAX_DISTANCE_METERS = 100; // Jarak toleransi 100 meter
+        // Jarak toleransi 100 meter
+        const MAX_DISTANCE_METERS = 100; 
 
-        // --- Data Pimpinan ---
-        const pimpinanData = {
-            "Pekanbaru": ["Verdi", "Reni Purba", "Misbah Ibrahim", "Raja Inal", "Taufiq"],
-            "Dumai": ["Yeni", "Adi", "Badu"],
-            "Kuansing": ["Susi", "Adi", "Iqbal"]
+        // --- Data Pimpinan & Lokasi Kantor ---
+        // PERUBAHAN: Data Pimpinan diubah menjadi Data Kantor,
+        // dan menyertakan koordinat untuk setiap kabupaten.
+        // (Catatan: Koordinat Dumai & Kuansing adalah perkiraan, silakan disesuaikan)
+        const kantorData = {
+            "Pekanbaru": {
+                nama: ["Verdi", "Reni Purba", "Misbah Ibrahim", "Raja Inal", "Taufiq"],
+                lokasi: { lat: 0.49162, lon: 101.43285 } // Sesuai permintaan (Bawaslu Riau)
+            },
+            "Dumai": {
+                nama: ["Yeni", "Adi", "Badu"],
+                lokasi: { lat: 1.66624, lon: 101.44686 } // Perkiraan Bawaslu Dumai
+            },
+            "Kuansing": {
+                nama: ["Susi", "Adi", "Iqbal"],
+                lokasi: { lat: -0.52358, lon: 101.53123 } // Perkiraan Bawaslu Kuansing
+            }
         };
 
         // --- Referensi Elemen DOM ---
@@ -209,11 +219,13 @@
             // Kosongkan daftar nama
             namaSelect.innerHTML = ''; 
             
-            if (selectedKabupaten && pimpinanData[selectedKabupaten]) {
+            // PERUBAHAN: Menggunakan 'kantorData'
+            if (selectedKabupaten && kantorData[selectedKabupaten]) {
                 namaSelect.disabled = false;
                 namaSelect.innerHTML = '<option value="">-- Pilih Nama --</option>'; // Tambah placeholder
                 
-                pimpinanData[selectedKabupaten].forEach(nama => {
+                // PERUBAHAN: Mengambil list nama dari 'kantorData'
+                kantorData[selectedKabupaten].nama.forEach(nama => {
                     const option = document.createElement('option');
                     option.value = nama;
                     option.textContent = nama;
@@ -266,8 +278,28 @@
             const userLat = position.coords.latitude;
             const userLon = position.coords.longitude;
 
-            // Hitung jarak
-            const distance = calculateDistance(userLat, userLon, TARGET_LAT, TARGET_LON);
+            // --- PERUBAHAN KODE DIMULAI DI SINI ---
+            // Ambil data kantor berdasarkan kabupaten yang dipilih dari form
+            const targetKantor = kantorData[formData.kabupaten];
+
+            // Cek jika data lokasi untuk kabupaten itu ada
+            if (!targetKantor || !targetKantor.lokasi) {
+                hideLoading();
+                showModal(
+                    'Error Data Lokasi',
+                    `Data lokasi GPS untuk ${formData.kabupaten} tidak ditemukan. Silakan hubungi admin.`,
+                    false
+                );
+                return;
+            }
+            
+            // Ambil koordinat target yang dinamis
+            const targetLat = targetKantor.lokasi.lat;
+            const targetLon = targetKantor.lokasi.lon;
+            // --- PERUBAHAN KODE SELESAI ---
+
+            // Hitung jarak menggunakan koordinat dinamis
+            const distance = calculateDistance(userLat, userLon, targetLat, targetLon);
             
             if (distance <= MAX_DISTANCE_METERS) {
                 // LOKASI SESUAI
@@ -364,3 +396,4 @@
     </script>
 </body>
 </html>
+
