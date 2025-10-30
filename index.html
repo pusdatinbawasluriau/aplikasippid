@@ -75,6 +75,11 @@
                 </div>
             </div>
 
+            <!-- Tombol Cek Koordinat -->
+            <button id="checkCoordButton" type="button" class="w-full bg-green-600 text-white p-3 rounded-md font-semibold hover:bg-green-700 transition-colors duration-200 disabled:bg-gray-400 flex items-center justify-center gap-2 mb-3">
+                Cek Koordinat Saya
+            </button>
+
             <!-- Tombol Kirim -->
             <button id="submitButton" type="submit" class="w-full bg-blue-600 text-white p-3 rounded-md font-semibold hover:bg-blue-700 transition-colors duration-200 disabled:bg-gray-400 flex items-center justify-center gap-2">
                 Kirim Absensi
@@ -113,13 +118,29 @@
                 dumai: { lat: 1.6740, lon: 101.4450 }, // <-- Ganti nilai lat/lon ini
                 kuansing: { lat: -0.5180, lon: 101.5360 } // <-- Ganti nilai lat/lon ini
             };
-            const MAX_DISTANCE_METERS = 1000; // Jarak toleransi diubah ke 500 meter
+            const MAX_DISTANCE_METERS = 1000; // Jarak toleransi diubah ke 1000 meter
+
+            // --- PENGATURAN SIMULASI (UBAH UNTUK PENGUJIAN) ---
+            // Atur ke 'true' untuk melewati GPS asli & menggunakan koordinat simulasi di bawah.
+            // Atur ke 'false' untuk menggunakan GPS asli (AKAN GAGAL di mode 'Preview').
+            const SIMULATE_LOCATION = true; 
+
+            // Koordinat simulasi pengguna. Ubah ini untuk menguji jarak.
+            const simulatedUserCoords = {
+                // Kasus SUKSES (dekat kantor Pekanbaru, ~1 meter)
+                sukses: { lat: 0.499729, lon: 101.44501 }, 
+                // Kasus GAGAL (jauh dari kantor, > 1000 meter)
+                gagal: { lat: 0.5193, lon: 101.4475 } 
+            };
+            // --- AKHIR PENGATURAN SIMULASI ---
+
 
             // --- REFERENSI ELEMEN ---
             const kabupatenSelect = document.getElementById('kabupatenSelect');
             const namaSelect = document.getElementById('namaSelect');
             const absensiForm = document.getElementById('absensiForm');
             const submitButton = document.getElementById('submitButton');
+            const checkCoordButton = document.getElementById('checkCoordButton'); // Tombol baru
             const statusMessage = document.getElementById('statusMessage');
             const loadingIndicator = document.getElementById('loadingIndicator');
 
@@ -177,12 +198,15 @@
             function setLoading(isLoading) {
                 if (isLoading) {
                     submitButton.disabled = true;
+                    checkCoordButton.disabled = true; // Nonaktifkan tombol cek juga
                     submitButton.classList.add('disabled:bg-gray-400');
+                    checkCoordButton.classList.add('disabled:bg-gray-400'); // Style nonaktif
                     loadingIndicator.classList.remove('hidden');
                     loadingIndicator.classList.add('flex');
                     statusMessage.innerHTML = ''; // Hapus pesan lama
                 } else {
                     submitButton.disabled = false;
+                    checkCoordButton.disabled = false; // Aktifkan tombol cek juga
                     loadingIndicator.classList.add('hidden');
                     loadingIndicator.classList.remove('flex');
                 }
@@ -207,6 +231,78 @@
             }
 
             /**
+             * Mendapatkan lokasi GPS pengguna, baik asli atau simulasi.
+             * @returns {Promise<{userLat: number, userLon: number}>}
+             */
+            function getCurrentLocation() {
+                return new Promise(async (resolve, reject) => {
+                    if (SIMULATE_LOCATION) {
+                        // --- MODE SIMULASI AKTIF ---
+                        showMessage("MODE SIMULASI AKTIF. Menggunakan lokasi palsu.", 'info');
+                        
+                        // Ganti 'sukses' atau 'gagal' untuk menguji
+                        const simCoords = simulatedUserCoords.sukses; 
+                        
+                        // Beri jeda 1 detik untuk meniru proses loading GPS
+                        await new Promise(res => setTimeout(res, 1000));
+                        
+                        resolve({ userLat: simCoords.lat, userLon: simCoords.lon });
+
+                    } else {
+                        // --- MODE GPS ASLI ---
+                        navigator.geolocation.getCurrentPosition(
+                            (position) => {
+                                resolve({
+                                    userLat: position.coords.latitude,
+                                    userLon: position.coords.longitude
+                                });
+                            },
+                            (error) => {
+                                reject(error); // Melempar error untuk ditangkap oleh 'catch'
+                            },
+                            {
+                                enableHighAccuracy: true, 
+                                timeout: 10000, 
+                                maximumAge: 0
+                            }
+                        );
+                    }
+                });
+            }
+
+            /**
+             * Handler untuk tombol Cek Koordinat.
+             */
+            async function handleCheckCoordinates() {
+                setLoading(true);
+                try {
+                    const { userLat, userLon } = await getCurrentLocation();
+                    // Tampilkan koordinat dengan 6 angka desimal
+                    showMessage(`Lokasi Anda Saat Ini: ${userLat.toFixed(6)}, ${userLon.toFixed(6)}`, 'success');
+                } catch (error) {
+                    // Tangani error GPS (logic disalin dari handleAbsensiSubmit)
+                    let errorMsg = "Terjadi kesalahan.";
+
+                    if (error.message && error.message.toLowerCase().includes("permissions policy")) {
+                        errorMsg = "Error: Izin Geolocation diblokir oleh 'permissions policy'. Pratinjau ini tidak mendukung GPS. Gunakan 'MODE SIMULASI' di dalam kode untuk pengujian.";
+                    } else if (error.code === 1) { // PERMISSION_DENIED
+                        errorMsg = "Izin lokasi ditolak. Anda harus mengizinkan akses lokasi di browser Anda.";
+                    } else if (error.code === 2) { // POSITION_UNAVAILABLE
+                        errorMsg = "Gagal mendapatkan lokasi. Pastikan GPS Anda aktif dan sinyal kuat.";
+                    } else if (error.code === 3) { // TIMEOUT
+                        errorMsg = "Waktu tunggu habis saat mencari lokasi. Coba lagi.";
+                    } else {
+                        errorMsg = `Gagal mendapatkan lokasi. Silakan coba lagi.`;
+                    }
+                    showMessage(errorMsg, 'error');
+                    console.error("Geolocation Error:", error.message, error);
+                } finally {
+                    setLoading(false);
+                }
+            }
+
+
+            /**
              * Handler untuk proses submit form absensi.
              */
             async function handleAbsensiSubmit(event) {
@@ -224,17 +320,9 @@
                 setLoading(true);
 
                 try {
-                    // 1. Dapatkan lokasi GPS pengguna
-                    const position = await new Promise((resolve, reject) => {
-                        navigator.geolocation.getCurrentPosition(resolve, reject, {
-                            enableHighAccuracy: true, 
-                            timeout: 10000, 
-                            maximumAge: 0
-                        });
-                    });
+                    // 1. Dapatkan lokasi GPS pengguna (sekarang memanggil fungsi baru)
+                    const { userLat, userLon } = await getCurrentLocation();
 
-                    const userLat = position.coords.latitude;
-                    const userLon = position.coords.longitude;
 
                     // 2. Dapatkan koordinat kantor tujuan
                     const target = kantorCoordinates[selectedKabupaten];
@@ -278,7 +366,7 @@
 
                     // Cek spesifik untuk error Permissions Policy
                     if (error.message && error.message.toLowerCase().includes("permissions policy")) {
-                        errorMsg = "Error: Izin Geolocation diblokir oleh 'permissions policy'. Pratinjau ini mungkin tidak mendukung GPS. Coba buka file ini di tab browser terpisah.";
+                        errorMsg = "Error: Izin Geolocation diblokir oleh 'permissions policy'. Pratinjau ini tidak mendukung GPS. Gunakan 'MODE SIMULASI' di dalam kode untuk pengujian.";
                     } else if (error.code === 1) { // PERMISSION_DENIED
                         errorMsg = "Izin lokasi ditolak. Anda harus mengizinkan akses lokasi di browser Anda.";
                     } else if (error.code === 2) { // POSITION_UNAVAILABLE
@@ -291,7 +379,7 @@
 _                    }
                     
                     showMessage(errorMsg, 'error');
-                    console.error("Geolocation Error:", error.message, error); // Log seluruh error object
+                    console.error("Absensi Error:", error.message, error); // Log seluruh error object
                 } finally {
                     setLoading(false); // Selalu hentikan loading
                 }
@@ -300,6 +388,7 @@ _                    }
             // --- EVENT LISTENERS ---
             kabupatenSelect.addEventListener('change', updateNamaPimpinan);
             absensiForm.addEventListener('submit', handleAbsensiSubmit);
+            checkCoordButton.addEventListener('click', handleCheckCoordinates); // Listener untuk tombol baru
 
             // --- INISIALISASI ---
             updateNamaPimpinan(); // Panggil sekali saat load untuk mengisi data awal
@@ -307,5 +396,4 @@ _                    }
     </script>
 </body>
 </html>
-
 
