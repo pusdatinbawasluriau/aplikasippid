@@ -22,7 +22,7 @@
                 Selamat Datang!
             </h1>
             <p class="text-center text-gray-600 mb-6">
-                Aplikasi Absensi Bawaslu Provinsi Riau4
+                Aplikasi Absensi Bawaslu Provinsi Riau5
             </p>
 
             <form id="absensiForm">
@@ -398,13 +398,19 @@
 
         // 8. Kirim Data ke Google Apps Script
         async function sendDataToAppsScript(formData, fraudKey) {
+            
+            // --- PERUBAHAN DI SINI ---
+            // Menggunakan metode substring yang lebih aman untuk mengekstrak data Base64
+            // Ini jauh lebih stabil daripada .split() atau .replace()
+            const dataUrl = fotoBase64Input.value;
+            const base64Data = dataUrl.substring(dataUrl.indexOf(',') + 1);
+            // --- AKHIR PERUBAHAN ---
+
             const payload = {
                 kabupaten: formData.kabupaten,
                 nama: formData.pimpinan,
                 jenisPresensi: formData.jenisPresensi,
-                // --- PERUBAHAN DI SINI ---
-                // Mengganti .replace() dengan .split() untuk ekstraksi data Base64 yang lebih robust
-                fotoBase64: fotoBase64Input.value.split(',')[1]
+                fotoBase64: base64Data // Menggunakan variabel baru yang sudah bersih
             };
 
             try {
@@ -478,6 +484,7 @@
     </script>
 </body>
 </html>
+
 
 
 
