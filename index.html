@@ -101,7 +101,7 @@
 
     <script>
         // --- PASTE URL WEB APP ANDA DI SINI ---
-        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxh5LPXEFh3Nc-LJYwdqjGg57gZnVBUq5pvZqkCDWZZc01pmE6xebfXdb3Pc7pgcR8HEw/exec"; 
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyidfuBZqqvdBD1YpCWp23OTp1MGyjDspBw1QuW-_9Ae8mYs07-Es3LC_3GbXh_Ei5CDA/exec"; 
         // -------------------------------------
 
         // Data Pimpinan
@@ -196,13 +196,23 @@
                 try {
                     stream = await navigator.mediaDevices.getUserMedia(constraints);
                 } catch (finalErr) {
-                    console.error("Error mengakses kamera:", finalErr);
+                    // --- PERUBAHAN DI SINI ---
+                    // Mengganti console.error menjadi console.warn
+                    // Ini BUKAN error, ini log bahwa error 'kamera tidak ada' telah ditangani.
+                    console.warn("Peringatan akses kamera (ditangani):", finalErr); 
+                    // --- AKHIR PERUBAHAN ---
+                    
                     let errMsg = "Gagal mengakses kamera. Pastikan Anda memberikan izin.";
                     
                     const errName = finalErr.name || "";
                     const errMsgLower = (finalErr.message || "").toLowerCase();
 
-                    if (errName === "NotFoundError" || errName === "DevicesNotFoundError" || errName === "OverconstrainedError" || errMsgLower.includes("not found") || errMsgLower.includes("no device")) {
+                    if (errName === "NotFoundError" || 
+                        errName === "DevicesNotFoundError" || 
+                        errName === "OverconstrainedError" || 
+                        errMsgLower.includes("not found") || 
+                        errMsgLower.includes("no device") ||
+                        errMsgLower.includes("requested device not found")) {
                         errMsg = "Error: Tidak ada kamera yang ditemukan di perangkat ini.";
                     } else if (errName === "NotAllowedError" || errName === "PermissionDeniedError") {
                         errMsg = "Error: Izin menggunakan kamera ditolak.";
@@ -227,7 +237,6 @@
 
         // 3. Logika Ambil Foto
         takePhotoButton.addEventListener('click', () => {
-            // --- PERBAIKAN DI SINI ---
             // Pastikan video sudah memuat metadata sebelum mengambil gambar
             if (video.videoWidth === 0 || video.videoHeight === 0) {
                 console.warn("Video stream belum siap. Coba lagi sebentar.");
@@ -244,7 +253,6 @@
                 }, 1000);
                 return;
             }
-            // --- AKHIR PERBAIKAN ---
 
             // Atur ukuran canvas sesuai video
             canvas.width = video.videoWidth;
@@ -428,7 +436,7 @@
                     showMessage(`Error: ${result.message}`, "error");
                 }
 
-            } catch (error) { // <-- PERBAIKAN: Menambahkan kurung kurawal {
+            } catch (error) { 
                 console.error("Error sending data:", error);
                 showMessage("Gagal terhubung ke server. Periksa koneksi internet Anda.", "error");
             } finally {
