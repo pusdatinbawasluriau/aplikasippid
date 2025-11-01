@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Absensi Bawaslu Riau1</title>
+    <title>Absensi Bawaslu Riau</title>
     <!-- Memuat Tailwind CSS untuk styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -22,7 +22,7 @@
                 Selamat Datang!
             </h1>
             <p class="text-center text-gray-600 mb-6">
-                Aplikasi Absensi Bawaslu Provinsi Riau1
+                Aplikasi Absensi Bawaslu Provinsi Riau2
             </p>
 
             <form id="absensiForm">
@@ -101,7 +101,7 @@
 
     <script>
         // --- PASTE URL WEB APP ANDA DI SINI ---
-        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyGnJzWgo0pUr2k124PIB0J9LNkyTyxsza6cxxiAUPEVxs_XddIV1hrSF_dSOMPaTuJnA/exec"; 
+        const APPS_SCRIPT_URL = ""; 
         // -------------------------------------
 
         // Data Pimpinan
@@ -402,8 +402,9 @@
                 kabupaten: formData.kabupaten,
                 nama: formData.pimpinan,
                 jenisPresensi: formData.jenisPresensi,
-                // Kirim hanya data base64-nya, buang headernya
-                fotoBase64: fotoBase64Input.value.split(',')[1] 
+                // --- PERUBAHAN DI SINI ---
+                // Mengganti .split() dengan .replace() agar lebih aman
+                fotoBase64: fotoBase64Input.value.replace(/^data:image\/jpeg;base64,/, "")
             };
 
             try {
@@ -477,4 +478,5 @@
     </script>
 </body>
 </html>
+
 
