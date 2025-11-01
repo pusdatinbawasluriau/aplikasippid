@@ -19,7 +19,7 @@
         
         <header class="text-center my-6">
             <h1 class="text-3xl font-bold text-gray-800">
-                Selamat Datang di Aplikasi Absensi Bawaslu Provinsi Riauv3
+                Selamat Datang di Aplikasi Absensi Bawaslu Provinsi Riau
             </h1>
         </header>
 
@@ -321,7 +321,16 @@
                     })
                     .catch(err => {
                         console.error('Error fetching:', err);
-                        showMessage('error', 'Terjadi kesalahan jaringan. Coba lagi.');
+                        // PERBAIKAN: Tampilkan error yang lebih detail
+                        let errorMsg = 'Terjadi kesalahan jaringan. Coba lagi. ';
+                        if (err.message && err.message.includes('Failed to fetch')) {
+                            errorMsg += '[Detail: Kemungkinan besar masalah CORS atau server tidak terjangkau. Periksa URL GAS_WEB_APP_URL dan pastikan deployment "Siapa saja".]';
+                        } else if (err.message) {
+                            errorMsg += `[Detail: ${err.message}]`;
+                        } else {
+                            errorMsg += '[Detail: Error tidak diketahui, periksa log Eksekusi di Apps Script.]';
+                        }
+                        showMessage('error', errorMsg);
                         setLoading(false);
                     });
 
@@ -405,5 +414,6 @@
     </script>
 </body>
 </html>
+
 
 
