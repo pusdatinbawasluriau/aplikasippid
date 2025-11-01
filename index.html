@@ -178,22 +178,48 @@
 
         // 2. Inisialisasi Kamera
         async function initCamera() {
+            let constraints = { 
+                video: { facingMode: 'user' },
+                audio: false 
+            };
+
             try {
-                // Meminta akses kamera depan (user-facing)
-                stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: 'user' },
-                    audio: false 
-                });
-                video.srcObject = stream;
-                video.style.display = 'block';
-                takePhotoButton.style.display = 'block';
-                imgPreview.style.display = 'none';
-                retakeButton.style.display = 'none';
-                fotoBase64Input.value = '';
+                // Coba kamera depan (selfie) dulu
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
             } catch (err) {
-                console.error("Error mengakses kamera:", err);
-                showMessage("Gagal mengakses kamera. Pastikan Anda memberikan izin.", "error");
+                console.warn("Gagal mendapatkan kamera depan ('user'), mencoba kamera utama:", err);
+                // Jika gagal (misal di PC/laptop), coba kamera apa saja
+                constraints = { 
+                    video: true, // Minta kamera apa saja yang tersedia
+                    audio: false 
+                };
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia(constraints);
+                } catch (finalErr) {
+                    console.error("Error mengakses kamera:", finalErr);
+                    let errMsg = "Gagal mengakses kamera. Pastikan Anda memberikan izin.";
+                    
+                    const errName = finalErr.name || "";
+                    const errMsgLower = (finalErr.message || "").toLowerCase();
+
+                    if (errName === "NotFoundError" || errName === "DevicesNotFoundError" || errName === "OverconstrainedError" || errMsgLower.includes("not found") || errMsgLower.includes("no device")) {
+                        errMsg = "Error: Tidak ada kamera yang ditemukan di perangkat ini.";
+                    } else if (errName === "NotAllowedError" || errName === "PermissionDeniedError") {
+                        errMsg = "Error: Izin menggunakan kamera ditolak.";
+                    }
+
+                    showMessage(errMsg, "error");
+                    return; // Hentikan eksekusi jika kamera gagal total
+                }
             }
+
+            // Jika stream berhasil didapat (dari salah satu try)
+            video.srcObject = stream;
+            video.style.display = 'block';
+            takePhotoButton.style.display = 'block';
+            imgPreview.style.display = 'none';
+            retakeButton.style.display = 'none';
+            fotoBase64Input.value = '';
         }
         
         // Panggil initCamera saat halaman dimuat
@@ -201,6 +227,25 @@
 
         // 3. Logika Ambil Foto
         takePhotoButton.addEventListener('click', () => {
+            // --- PERBAIKAN DI SINI ---
+            // Pastikan video sudah memuat metadata sebelum mengambil gambar
+            if (video.videoWidth === 0 || video.videoHeight === 0) {
+                console.warn("Video stream belum siap. Coba lagi sebentar.");
+                showMessage("Kamera belum siap, coba lagi dalam 1 detik.", "loading");
+                // Coba lagi setelah sedikit delay
+                setTimeout(() => {
+                    if (video.videoWidth === 0 || video.videoHeight === 0) {
+                         console.error("Video stream gagal dimuat.");
+                         showMessage("Gagal mengambil gambar, video stream tidak valid.", "error");
+                         return;
+                    }
+                    // Panggil ulang fungsi klik jika sudah siap
+                    takePhotoButton.click();
+                }, 1000);
+                return;
+            }
+            // --- AKHIR PERBAIKAN ---
+
             // Atur ukuran canvas sesuai video
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
@@ -240,8 +285,8 @@
             }
 
             // Validasi URL
-            if (APPS_SCRIPT_URL === "URL_WEB_APP_ANDA") {
-                 showMessage("Error: URL Apps Script belum diatur di index.html.", "error");
+            if (APPS_SCRIPT_URL === "URL_WEB_APP_ANDA" || APPS_SCRIPT_URL.length < 50) { // Pengecekan sederhana
+                 showMessage("Error: URL Apps Script belum diatur dengan benar di index.html.", "error");
                  return;
             }
 
@@ -383,7 +428,7 @@
                     showMessage(`Error: ${result.message}`, "error");
                 }
 
-            } catch (error) {
+            } catch (error) { // <-- PERBAIKAN: Menambahkan kurung kurawal {
                 console.error("Error sending data:", error);
                 showMessage("Gagal terhubung ke server. Periksa koneksi internet Anda.", "error");
             } finally {
@@ -424,3 +469,4 @@
     </script>
 </body>
 </html>
+
