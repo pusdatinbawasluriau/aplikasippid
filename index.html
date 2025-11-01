@@ -22,7 +22,7 @@
                 Selamat Datang!
             </h1>
             <p class="text-center text-gray-600 mb-6">
-                Aplikasi Absensi Bawaslu Provinsi Riau3
+                Aplikasi Absensi Bawaslu Provinsi Riau4
             </p>
 
             <form id="absensiForm">
@@ -403,8 +403,8 @@
                 nama: formData.pimpinan,
                 jenisPresensi: formData.jenisPresensi,
                 // --- PERUBAHAN DI SINI ---
-                // Mengganti .split() dengan .replace() agar lebih aman
-                fotoBase64: fotoBase64Input.value.replace(/^data:image\/jpeg;base64,/, "")
+                // Mengganti .replace() dengan .split() untuk ekstraksi data Base64 yang lebih robust
+                fotoBase64: fotoBase64Input.value.split(',')[1]
             };
 
             try {
@@ -478,5 +478,6 @@
     </script>
 </body>
 </html>
+
 
 
