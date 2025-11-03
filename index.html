@@ -29,8 +29,13 @@
             
             <!-- Judul -->
             <div class="text-center">
-                <img src="https://placehold.co/100x100/E2E8F0/333?text=Logo" alt="Logo Bawaslu" class="mx-auto mb-3 rounded-full"
+                <!-- Logo Bawaslu Asli -->
+                <img src="https://riau.bawaslu.go.id/wp-content/uploads/2022/07/Logo-Bawaslu-Baru-2022-Warna.png" 
+                     alt="Logo Bawaslu" 
+                     class="mx-auto mb-3"
+                     style="width: 100px; height: auto;"
                      onerror="this.src='https://placehold.co/100x100/E2E8F0/333?text=Logo+Bawaslu'">
+                
                 <h1 class="text-2xl font-bold text-gray-800">
                     Selamat Datang di Aplikasi Absensi
                 </h1>
@@ -90,11 +95,11 @@
                     </div>
                     <div class="flex gap-2 mt-2">
                          <button type="button" id="snap" class="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                            Ambil Foto
-                        </button>
+                             Ambil Foto
+                         </button>
                          <button type="button" id="retake" class="w-full py-2 px-4 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 hidden">
-                            Ganti Foto
-                        </button>
+                             Ganti Foto
+                         </button>
                     </div>
                 </div>
 
@@ -115,7 +120,8 @@
         // KONFIGURASI
         // ---------------------------------------------------------------------
         // !!! GANTI DENGAN URL WEB APP GOOGLE APPS SCRIPT ANDA SETELAH DEPLOY !!!
-        const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxJGOspMZ0D-hv0X3wZ4iv4KVFc--bPTZB1yJQkz_LW4Dk2DxCsiyz19eBnkIG9p4nWUg/exec';
+        // URL INI DIDAPAT SETELAH ANDA MEN-DEPLOY FILE Code.gs
+        const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyhVzUnQaShScG-bbZxBzOyVGdG-jKvuqh2fC7mbISrEeJOeqDBKxCHDGoU0K_zLLnO/exec';
         // ---------------------------------------------------------------------
 
         // Data Pimpinan dan Lokasi
@@ -140,13 +146,13 @@
             'Kuansing': { lat: -0.534470, lon: 101.569874 },
             'Rokan Hulu': { lat: 0.876158, lon: 100.286686 },
             'Rokan Hilir': { lat: 2.158803, lon: 100.799874 },
-            'Indragiri Hulu': { lat: -0.334796, lon: 102.321204 }, // Koordinat InHu disesuaikan (sebelumnya sama dgn Rohil)
+            'Indragiri Hulu': { lat: -0.334796, lon: 102.321204 }, 
             'Indragiri Hilir': { lat: -0.3201440, lon: 103.1542940 },
             'Kampar': { lat: 0.324784, lon: 101.026305 },
             'Siak': { lat: 0.814464, lon: 102.018998 },
             'Bengkalis': { lat: 1.473969, lon: 102.123841 },
             'Kep. Meranti': { lat: 1.008499, lon: 102.712468 },
-            'Pelalawan': { lat: 0.353316, lon: 101.884210 } // Koordinat Pelalawan disesuaikan (sebelumnya sama dgn Rohil)
+            'Pelalawan': { lat: 0.353316, lon: 101.884210 }
         };
 
         // Referensi Elemen DOM
@@ -191,6 +197,10 @@
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             const context = canvas.getContext('2d');
+            
+            // Balik gambar secara horizontal (mirror)
+            context.translate(canvas.width, 0);
+            context.scale(-1, 1);
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
             
             selfieData = canvas.toDataURL('image/jpeg', 0.8); // Kompresi gambar
@@ -297,7 +307,7 @@
         // Handler Submit Form
         form.addEventListener('submit', (e) => {
             e.preventDefault();
-            if (GAS_WEB_APP_URL === 'URL_WEB_APP_ANDA_DISINI') {
+            if (GAS_WEB_APP_URL === 'URL_WEB_APP_ANDA_DISINI' || GAS_WEB_APP_URL === '') {
                 showStatus('Harap konfigurasi URL Web App di file index.html terlebih dahulu.', 'error');
                 return;
             }
