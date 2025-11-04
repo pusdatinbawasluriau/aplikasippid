@@ -11,7 +11,8 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
+            /* Latar belakang abu-abu sangat muda untuk membuat kartu putih menonjol */
+            background-color: #f9fafb; 
         }
         /* Loading Overlay */
         #loading-overlay {
@@ -29,9 +30,10 @@
             color: white;
             text-align: center;
         }
+        /* PERUBAHAN: Spinner diubah ke warna oranye */
         #loading-spinner {
             border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
+            border-top: 4px solid #f97316; /* Oranye-600 */
             border-radius: 50%;
             width: 40px;
             height: 40px;
@@ -43,12 +45,13 @@
         }
         /* Preview Foto */
         #photo-preview {
-            max-width: 100%;
-            height: 200px;
+            width: 100%;
+            height: auto;
+            max-height: 200px; /* Batas tinggi maks */
             object-fit: cover;
-            border-radius: 8px;
-            border: 2px dashed #d1d5db;
-            margin-top: 1rem;
+            border-radius: 0.5rem; /* rounded-lg */
+            border: 1px solid #e5e7eb; /* border-gray-200 */
+            margin-top: 0.75rem; /* mt-3 */
             background-color: #f9fafb;
         }
         /* Notifikasi */
@@ -64,28 +67,31 @@
             display: none;
             opacity: 0;
             transition: opacity 0.5s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
         .notification.success { background-color: #10b981; }
         .notification.error { background-color: #ef4444; }
         .notification.show { display: block; opacity: 1; }
     </style>
 </head>
-<body class="flex items-center justify-center min-h-screen">
+<body class="flex items-center justify-center min-h-screen p-4">
 
-    <div class="w-full max-w-lg p-6 mx-4 bg-white rounded-lg shadow-xl">
-        <h1 class="text-2xl font-bold text-center text-gray-800">
-            Selamat Datang di Aplikasi Absensi
+    <!-- PERUBAHAN: Kartu dibuat lebih menonjol dengan shadow-xl dan padding lebih besar -->
+    <div class="w-full max-w-lg p-6 sm:p-8 bg-white rounded-xl shadow-xl space-y-6">
+        <!-- PERUBAHAN: Judul diubah ke warna oranye -->
+        <h1 class="text-3xl font-bold text-center text-orange-600">
+            Aplikasi Absensi
         </h1>
-        <h2 class="text-xl font-semibold text-center text-gray-600 mb-6">
+        <h2 class="text-xl font-semibold text-center text-gray-700 -mt-4">
             Bawaslu Provinsi Riau
         </h2>
 
-        <form id="absensi-form" class="space-y-4">
+        <form id="absensi-form" class="space-y-5">
             <!-- 1. Pilih Kabupaten -->
             <div>
-                <label for="kabupaten" class="block text-sm font-medium text-gray-700">Pilih Kabupaten/Kota</label>
+                <label for="kabupaten" class="block text-sm font-medium text-gray-700 mb-1">Pilih Kabupaten/Kota</label>
                 <select id="kabupaten" name="kabupaten" required
-                        class="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        class="w-full px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition duration-150">
                     <option value="" disabled selected>-- Pilih Kabupaten --</option>
                     <!-- Options diisi oleh JS -->
                 </select>
@@ -93,9 +99,9 @@
 
             <!-- 2. Pilih Nama Pimpinan -->
             <div>
-                <label for="nama-pimpinan" class="block text-sm font-medium text-gray-700">Nama Pimpinan</label>
+                <label for="nama-pimpinan" class="block text-sm font-medium text-gray-700 mb-1">Nama Pimpinan</label>
                 <select id="nama-pimpinan" name="nama-pimpinan" required
-                        class="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        class="w-full px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition duration-150"
                         disabled>
                     <option value="" disabled selected>-- Pilih Kabupaten Terlebih Dahulu --</option>
                 </select>
@@ -106,35 +112,53 @@
                 <label class="block text-sm font-medium text-gray-700">Jenis Presensi</label>
                 <div class="flex gap-4 mt-2">
                     <label class="flex items-center">
-                        <input type="radio" name="jenis-presensi" value="Masuk" class="text-blue-600 focus:ring-blue-500" required>
+                        <!-- PERUBAHAN: Radio button diubah ke oranye -->
+                        <input type="radio" name="jenis-presensi" value="Masuk" class="text-orange-600 focus:ring-orange-500" required>
                         <span class="ml-2 text-gray-700">Presensi Masuk</span>
                     </label>
                     <label class="flex items-center">
-                        <input type="radio" name="jenis-presensi" value="Pulang" class="text-blue-600 focus:ring-blue-500">
+                        <input type="radio" name="jenis-presensi" value="Pulang" class="text-orange-600 focus:ring-orange-500">
                         <span class="ml-2 text-gray-700">Presensi Pulang</span>
                     </label>
                 </div>
             </div>
 
-            <!-- 4. Upload Foto Selfie -->
+            <!-- 4. PERUBAHAN: Desain Ulang Tombol Upload File -->
             <div>
                 <label class="block text-sm font-medium text-gray-700">Foto Selfie (Wajib)</label>
-                <p class="text-xs text-gray-500">Aplikasi akan membuka kamera. Tidak bisa upload dari galeri.</p>
+                
+                <!-- Ini adalah "tombol" baru yang dilihat pengguna -->
+                <label for="foto-selfie" class="cursor-pointer mt-2 flex w-full items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-orange-600 transition-all hover:bg-orange-50 hover:border-orange-400 focus-within:ring-2 focus-within:ring-orange-500 focus-within:ring-offset-2">
+                    <!-- Ikon Kamera -->
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H4zm12 1a1 1 0 00-1-1H5a1 1 0 00-1 1v1h12V6zM4 14a1 1 0 00-1 1v1h14v-1a1 1 0 00-1-1H4z" clip-rule="evenodd" />
+                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                    </svg>
+                    <!-- Teks baru -->
+                    <span>Ambil Dokumentasi</span>
+                </label>
+                
+                <!-- Ini adalah input file asli, sekarang disembunyikan -->
                 <input type="file" id="foto-selfie" name="foto-selfie" accept="image/*" capture="user" required
-                       class="w-full px-3 py-2 mt-1 text-sm text-gray-700 border border-gray-300 rounded-md file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                <img id="photo-preview" src="https://placehold.co/400x200/f9fafb/d1d5db?text=Preview+Foto" alt="Preview Foto"/>
+                       class="hidden">
+                
+                <!-- Preview image -->
+                <img id="photo-preview" src="https://placehold.co/400x200/f9fafb/d1d5db?text=Preview+Foto" alt="Preview Foto" class="hidden"/>
             </div>
-
-            <!-- 5. Tombol Kirim -->
+            
+            <!-- 5. PERUBAHAN: Tombol Kirim diubah ke oranye dan diberi ikon -->
             <button type="submit" id="submit-button"
-                    class="w-full px-4 py-3 font-bold text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 flex items-center justify-center">
-                Kirim Absensi
+                    class="w-full px-4 py-3 font-bold text-white bg-orange-600 rounded-lg shadow-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition duration-150 flex items-center justify-center space-x-2">
+                <!-- Ikon Upload/Kirim -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clip-rule="evenodd" />
+                </svg>
+                <span>Kirim Absensi</span>
             </button>
         </form>
     </div>
 
-    <!-- Loading Overlay -->
-    <!-- PERUBAHAN DI SINI: Mengganti class="hidden" dengan style="display: none;" -->
+    <!-- Loading Overlay (Spinner sudah diubah ke oranye di <style>) -->
     <div id="loading-overlay" style="display: none;">
         <div id="loading-spinner"></div>
         <p id="loading-text" class="mt-4 text-lg">Memproses...</p>
@@ -196,12 +220,10 @@
         // --- FUNGSI TAMPILAN ---
         function showLoading(text) {
             loadingText.textContent = text;
-            // PERUBAHAN DI SINI: Hanya menggunakan style.display
             loadingOverlay.style.display = 'flex';
         }
 
         function hideLoading() {
-            // PERUBAHAN DI SINI: Hanya menggunakan style.display
             loadingOverlay.style.display = 'none';
         }
 
@@ -254,6 +276,7 @@
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     fotoPreview.src = e.target.result;
+                    fotoPreview.classList.remove('hidden'); // Tampilkan preview
                 }
                 reader.readAsDataURL(file);
             }
@@ -346,7 +369,9 @@
                     localStorage.setItem(storageKey, 'true'); // Tandai sudah absen
                     showNotification(result.message, "success");
                     form.reset(); // Kosongkan form
+                    // Kembalikan placeholder foto dan sembunyikan
                     fotoPreview.src = 'https://placehold.co/400x200/f9fafb/d1d5db?text=Preview+Foto';
+                    fotoPreview.classList.add('hidden');
                 } else {
                     // 8. Gagal (Error dari server, misal: sudah absen)
                     throw new Error(result.message || "Terjadi error di server.");
@@ -354,7 +379,21 @@
 
             } catch (error) {
                 console.error("Error submitting attendance:", error);
-                showNotification(error.message, "error");
+                
+                let userErrorMessage = error.message; // Pesan default
+
+                if (error.message.toLowerCase().includes("failed to fetch")) {
+                    userErrorMessage = "Gagal terhubung ke server. Periksa konsol (F12) untuk detail teknis.";
+                    console.error("--- DEBUG 'Failed to fetch' ---");
+                    console.error("Ini BUKAN error pada kode HTML, tapi pada koneksi ke backend. Periksa 3 hal ini:");
+                    console.error("1. Pastikan URL di `GAS_WEB_APP_URL` sudah 100% benar.");
+                    console.error("2. Pastikan Anda telah DEPLOY ULANG (re-deploy) Google Apps Script setelah menambahkan fungsi 'doPost'.");
+                    console.error("3. Pastikan deployment Apps Script Anda diatur ke 'Siapa yang memiliki akses: Siapa saja'. Ini adalah penyebab paling umum.");
+                    console.error("4. Pastikan Anda menjalankan ini dari web server (https://) bukan file lokal (file:///), karena ini adalah request 'POST'.");
+                }
+                
+                showNotification(userErrorMessage, "error");
+                
             } finally {
                 hideLoading();
                 submitButton.disabled = false;
@@ -363,7 +402,6 @@
 
         // --- FUNGSI HELPER ---
 
-        // Promise untuk mendapatkan koordinat GPS
         function getGpsCoords() {
             return new Promise((resolve, reject) => {
                 if (!navigator.geolocation) {
@@ -398,7 +436,6 @@
             });
         }
 
-        // Rumus Haversine untuk menghitung jarak
         function haversineDistance(coords1, coords2) {
             function toRad(x) {
                 return x * Math.PI / 180;
@@ -417,7 +454,6 @@
             return d * 1000; // Kembalikan dalam meter
         }
         
-        // Konversi file ke Base64
         function fileToBase64(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -429,6 +465,29 @@
         
         // Panggil inisialisasi
         populateKabupaten();
+
+        // Logika untuk menampilkan preview foto saat dipilih
+        document.getElementById('foto-selfie').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const preview = document.getElementById('photo-preview');
+                preview.src = URL.createObjectURL(file);
+                preview.classList.remove('hidden');
+                preview.onload = () => {
+                    URL.revokeObjectURL(preview.src); // Bebaskan memori
+                }
+            }
+        });
+        
+        // Logika untuk mereset form (termasuk menyembunyikan preview)
+        document.getElementById('absensi-form').addEventListener('reset', () => {
+             const preview = document.getElementById('photo-preview');
+             preview.src = 'https://placehold.co/400x200/f9fafb/d1d5db?text=Preview+Foto';
+             preview.classList.add('hidden');
+             // Reset juga dropdown nama
+             namaSelect.innerHTML = '<option value="" disabled selected>-- Pilih Kabupaten Terlebih Dahulu --</option>';
+             namaSelect.disabled = true;
+        });
 
     </script>
 </body>
