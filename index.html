@@ -3,53 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Absensi Bawaslu Riau</title>
-    <!-- Memuat Tailwind CSS untuk styling -->
+    <title>Aplikasi Absensi Bawaslu</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Style untuk loader */
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
+            border-left-color: #fff;
+            animation: spin 1s ease infinite;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        /* Sembunyikan input file asli */
+        #foto-input {
+            display: none;
+        }
+        #video-container {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        #video-feed {
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+            border-radius: 8px;
+        }
+        /* Modal untuk pesan */
+        #message-modal {
+            display: none; /* Sembunyikan default */
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.6);
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: #fff;
+            padding: 24px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
-<body class="bg-gray-100 font-sans antialiased">
+<body class="bg-gray-100">
 
-    <div class="container mx-auto max-w-lg p-4 min-h-screen flex flex-col justify-center">
-        <div class="bg-white shadow-lg rounded-xl p-6 space-y-5">
-            
-            <!-- Judul -->
-            <div class="text-center">
-                <!-- Logo Bawaslu Asli -->
-                <img src="https://riau.bawaslu.go.id/wp-content/uploads/2022/07/Logo-Bawaslu-Baru-2022-Warna.png" 
-                     alt="Logo Bawaslu" 
-                     class="mx-auto mb-3"
-                     style="width: 100px; height: auto;"
-                     onerror="this.src='https://placehold.co/100x100/E2E8F0/333?text=Logo+Bawaslu'">
-                
-                <h1 class="text-2xl font-bold text-gray-800">
-                    Selamat Datang di Aplikasi Absensi
-                </h1>
-                <p class="text-lg text-gray-600">Bawaslu Provinsi Riau</p>
-            </div>
+    <!-- Konten Aplikasi -->
+    <div class="container mx-auto max-w-lg p-6">
+        <div class="bg-white p-8 rounded-2xl shadow-lg">
+            <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">
+                Selamat Datang di Aplikasi Absensi<br>Bawaslu Provinsi Riau
+            </h1>
 
-            <!-- Form Absensi -->
-            <form id="absensiForm" class="space-y-4">
-                
-                <!-- Pilihan Kabupaten -->
+            <form id="absensi-form" class="space-y-6">
+                <!-- Kabupaten -->
                 <div>
-                    <label for="kabupaten" class="block text-sm font-medium text-gray-700 mb-1">Pilih Kabupaten/Kota</label>
-                    <select id="kabupaten" name="kabupaten" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">-- Pilih Kabupaten/Kota --</option>
+                    <label for="kabupaten" class="block text-sm font-medium text-gray-700 mb-1">Pilih Kabupaten</label>
+                    <select id="kabupaten" name="kabupaten" required
+                        class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">-- Pilih Kabupaten --</option>
                         <option value="Pekanbaru">Pekanbaru</option>
                         <option value="Dumai">Dumai</option>
                         <option value="Kuansing">Kuansing</option>
@@ -65,356 +103,386 @@
                     </select>
                 </div>
 
-                <!-- Pilihan Nama Pimpinan -->
+                <!-- Nama Pimpinan -->
                 <div>
-                    <label for="nama" class="block text-sm font-medium text-gray-700 mb-1">Nama Pimpinan</label>
-                    <select id="nama" name="nama" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500" disabled>
-                        <option value="">-- Pilih Nama --</option>
+                    <label for="namaPimpinan" class="block text-sm font-medium text-gray-700 mb-1">Nama Pimpinan</label>
+                    <select id="namaPimpinan" name="namaPimpinan" required
+                        class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        disabled>
+                        <option value="">-- Pilih Kabupaten Dulu --</option>
                     </select>
                 </div>
 
-                <!-- Pilihan Presensi -->
+                <!-- Jenis Presensi -->
                 <div>
-                    <label for="presensi" class="block text-sm font-medium text-gray-700 mb-1">Jenis Presensi</label>
-                    <select id="presensi" name="presensi" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">-- Pilih Jenis Presensi --</option>
-                        <option value="Presensi Masuk">Presensi Masuk</option>
-                        <option value="Presensi Pulang">Presensi Pulang</option>
-                    </select>
-                </div>
-
-                <!-- Ambil Foto Selfie -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Ambil Foto Selfie</label>
-                    <div id="cameraContainer" class="bg-gray-200 rounded-lg overflow-hidden">
-                        <video id="video" class="w-full h-auto" playsinline autoplay muted></video>
-                    </div>
-                    <canvas id="canvas" class="hidden"></canvas>
-                    <div id="previewContainer" class="hidden mt-2">
-                        <img id="selfiePreview" class="w-full h-auto rounded-lg" alt="Preview Selfie">
-                    </div>
-                    <div class="flex gap-2 mt-2">
-                         <button type="button" id="snap" class="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                             Ambil Foto
-                         </button>
-                         <button type="button" id="retake" class="w-full py-2 px-4 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 hidden">
-                             Ganti Foto
-                         </button>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Presensi</label>
+                    <div class="flex space-x-4">
+                        <label class="flex items-center p-4 border rounded-lg flex-1 cursor-pointer">
+                            <input type="radio" id="presensiMasuk" name="jenisPresensi" value="Masuk" required class="h-5 w-5 text-blue-600 focus:ring-blue-500">
+                            <span class="ml-3 text-md font-medium text-gray-800">Presensi Masuk</span>
+                        </label>
+                        <label class="flex items-center p-4 border rounded-lg flex-1 cursor-pointer">
+                            <input type="radio" id="presensiPulang" name="jenisPresensi" value="Pulang" required class="h-5 w-5 text-blue-600 focus:ring-blue-500">
+                            <span class="ml-3 text-md font-medium text-gray-800">Presensi Pulang</span>
+                        </label>
                     </div>
                 </div>
 
+                <!-- Upload Foto -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Foto Selfie</label>
+                    <button type="button" id="start-camera-btn"
+                        class="w-full flex items-center justify-center px-4 py-3 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        Ambil Foto Selfie
+                    </button>
+                    <img id="foto-preview" src="" class="hidden mt-4 w-full h-auto rounded-lg shadow-md">
+                    <input type="hidden" id="foto-base64" name="fotoBase64">
+                </div>
+                
                 <!-- Tombol Kirim -->
-                <button type="submit" id="kirim" class="w-full py-3 px-4 bg-green-600 text-white font-bold rounded-lg shadow-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 flex items-center justify-center gap-2" disabled>
-                    <span id="kirimText">Kirim Absensi</span>
-                    <div id="loader" class="loader hidden"></div>
+                <button type="submit" id="submit-btn"
+                    class="w-full flex items-center justify-center px-6 py-4 bg-blue-600 text-white text-lg font-bold rounded-lg shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400">
+                    <span id="submit-text">Kirim Absensi</span>
+                    <div id="submit-spinner" class="hidden loading-spinner"></div>
                 </button>
             </form>
+        </div>
+    </div>
 
-            <!-- Status Message -->
-            <div id="status" class="text-center text-sm font-medium p-3 rounded-lg hidden"></div>
+    <!-- Container untuk Video Feed -->
+    <div id="video-container" class="hidden">
+        <video id="video-feed" autoplay playsinline></video>
+        <canvas id="foto-canvas" class="hidden"></canvas>
+        <button id="take-photo-btn" class="mt-4 px-6 py-3 bg-red-600 text-white font-medium rounded-lg shadow-lg">
+            Ambil Gambar
+        </button>
+        <button id="cancel-camera-btn" type="button" class="mt-2 text-white">
+            Batal
+        </button>
+    </div>
+
+    <!-- Modal Pesan -->
+    <div id="message-modal">
+        <div class="modal-content">
+            <h3 id="modal-title" class="text-xl font-bold mb-4"></h3>
+            <p id="modal-body" class="text-gray-700 mb-6"></p>
+            <button id="modal-close-btn" class="px-6 py-2 bg-blue-600 text-white rounded-lg">
+                Tutup
+            </button>
         </div>
     </div>
 
     <script>
-        // ---------------------------------------------------------------------
-        // KONFIGURASI
-        // ---------------------------------------------------------------------
-        // !!! GANTI DENGAN URL WEB APP GOOGLE APPS SCRIPT ANDA SETELAH DEPLOY !!!
-        // URL INI DIDAPAT SETELAH ANDA MEN-DEPLOY FILE Code.gs
-        const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyhVzUnQaShScG-bbZxBzOyVGdG-jKvuqh2fC7mbISrEeJOeqDBKxCHDGoU0K_zLLnO/exec';
-        // ---------------------------------------------------------------------
-
-        // Data Pimpinan dan Lokasi
-        const pimpinanData = {
-            'Pekanbaru': ['Ferdy', 'Misbah Ibrahim', 'Reni Purba', 'Raja Inal Dalimunthe', 'Taufik Hidayat'],
-            'Dumai': ['Agustri', 'Yosi Renaldi', 'Yeni Kartini'],
-            'Kuansing': ['Ade Indra Sakti', 'Nur Afni', 'Mardius Adi Saputra'],
-            'Rokan Hulu': ['Fajrul Islami Damsir', 'Gummer Siregar', 'Yurnalis', 'Wikki Yuliandra', 'Safrizal Hasbi'],
-            'Rokan Hilir': ['Zubaidah', 'Jaka Abdillah', 'Nasrudin', 'Dedi Sibuae', 'Nurmaidani'],
-            'Indragiri Hulu': ['Dedi Risanto', 'Dwi Apriansyah Indra', 'M.Lukman Said', 'Said M Affandi', 'Salestia Deni'],
-            'Indragiri Hilir': ['Rustam', 'Rahmaddian', 'Abus Siraj', 'Indra', 'Musdalifa'],
-            'Kampar': ['Syawir Abdullah', 'Miki AB', 'Mustaqim Akbar', 'Fadriansyah', 'Mhd. Amin S'],
-            'Siak': ['Zulfadli Nugraha', 'Ahmad Dardiri', 'Harlen Manurung', 'M.Andi Susilawan', 'Ikhsan Parulian Harap'],
-            'Bengkalis': ['Usman', 'Budi Kurnialis', 'Andi Setiawan', 'Arsi Suprianto', 'Mendra'],
-            'Kep. Meranti': ['Syamsurizal', 'Rio Andika', 'M. Hafit'],
-            'Pelalawan': ['Andrizal', 'Bambang Sugi Hartono', 'Syakir Hamdani', 'Ari Nugroho Susanto', 'Ruda Nur Kisawan']
-        };
-
-        const lokasiKantor = {
-            'Pekanbaru': { lat: 0.5228952, lon: 101.4429202 },
-            'Dumai': { lat: 1.6630254508232711, lon: 101.45249334765391 },
-            'Kuansing': { lat: -0.534470, lon: 101.569874 },
-            'Rokan Hulu': { lat: 0.876158, lon: 100.286686 },
-            'Rokan Hilir': { lat: 2.158803, lon: 100.799874 },
-            'Indragiri Hulu': { lat: -0.334796, lon: 102.321204 }, 
-            'Indragiri Hilir': { lat: -0.3201440, lon: 103.1542940 },
-            'Kampar': { lat: 0.324784, lon: 101.026305 },
-            'Siak': { lat: 0.814464, lon: 102.018998 },
-            'Bengkalis': { lat: 1.473969, lon: 102.123841 },
-            'Kep. Meranti': { lat: 1.008499, lon: 102.712468 },
-            'Pelalawan': { lat: 0.353316, lon: 101.884210 }
-        };
-
-        // Referensi Elemen DOM
-        const form = document.getElementById('absensiForm');
-        const kabupatenSelect = document.getElementById('kabupaten');
-        const namaSelect = document.getElementById('nama');
-        const presensiSelect = document.getElementById('presensi');
-        const kirimButton = document.getElementById('kirim');
-        const kirimText = document.getElementById('kirimText');
-        const loader = document.getElementById('loader');
-        const statusDiv = document.getElementById('status');
+        // =================================================================
+        // PENGATURAN APLIKASI
+        // =================================================================
         
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        const snapButton = document.getElementById('snap');
-        const retakeButton = document.getElementById('retake');
-        const previewContainer = document.getElementById('previewContainer');
-        const selfiePreview = document.getElementById('selfiePreview');
-        const cameraContainer = document.getElementById('cameraContainer');
+        // !!! PENTING !!!
+        // Ganti URL ini dengan URL Aplikasi Web dari Google Apps Script Anda
+        // (Gunakan URL yang SAMA dengan aplikasi admin)
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxvzqHzhJnzW2ivceAlHvNkoq4eABo5En7-QB3WhrUgQdII5aYWfiJE3iPCmwqyJfMZ/exec";
+        
+        // =================================================================
+        // DATA MASTER
+        // =================================================================
+        const pimpinanMap = {
+            "Pekanbaru": ["Ferdy", "Misbah Ibrahim", "Reni Purba", "Raja Inal Dalimunthe", "Taufik Hidayat"],
+            "Dumai": ["Agustri", "Yosi Renaldi", "Yeni Kartini"],
+            "Kuansing": ["Ade Indra Sakti", "Nur Afni", "Mardius Adi Saputra"],
+            "Rokan Hulu": ["Fajrul Islami Damsir", "Gummer Siregar", "Yurnalis", "Wikki Yuliandra", "Safrizal Hasbi"],
+            "Rokan Hilir": ["Zubaidah", "Jaka Abdillah", "Nasrudin", "Dedi Sibuae", "Nurmaidani"],
+            "Indragiri Hulu": ["Dedi Risanto", "Dwi Apriansyah Indra", "M.Lukman Said", "Said M Affandi", "Salestia Deni"],
+            "Indragiri Hilir": ["Rustam", "Rahmaddian", "Abus Siraj", "Indra", "Musdalifa"],
+            "Kampar": ["Syawir Abdullah", "Miki AB", "Mustaqim Akbar", "Fadriansyah", "Mhd. Amin S"],
+            "Siak": ["Zulfadli Nugraha", "Ahmad Dardiri", "Harlen Manurung", "M.Andi Susilawan", "Ikhsan Parulian Harap"],
+            "Bengkalis": ["Usman", "Budi Kurnialis", "Andi Setiawan", "Arsi Suprianto", "Mendra"],
+            "Kep. Meranti": ["Syamsurizal", "Rio Andika", "M. Hafit"],
+            "Pelalawan": ["Andrizal", "Bambang Sugi Hartono", "Syakir Hamdani", "Ari Nugroho Susanto", "Ruda Nur Kisawan"]
+        };
 
-        let selfieData = null;
+        const gpsCoordinates = {
+            "Pekanbaru": { lat: 0.5228952, lon: 101.4429202 },
+            "Dumai": { lat: 1.6630254508232711, lon: 101.45249334765391 },
+            "Kuansing": { lat: -0.534470, lon: 101.569874 },
+            "Rokan Hulu": { lat: 0.876158, lon: 100.286686 },
+            "Rokan Hilir": { lat: 2.158803, lon: 100.799874 },
+            "Indragiri Hulu": { lat: 2.158803, lon: 100.799874 },
+            "Indragiri Hilir": { lat: -0.3201440, lon: 103.1542940 },
+            "Kampar": { lat: 0.324784, lon: 101.026305 },
+            "Siak": { lat: 0.814464, lon: 102.018998 },
+            "Bengkalis": { lat: 1.473969, lon: 102.123841 },
+            "Kep. Meranti": { lat: 1.008499, lon: 102.712468 },
+            "Pelalawan": { lat: 2.158803, lon: 100.799874 } // Data sama dengan Rokan Hilir & Indragiri Hulu, sesuai permintaan
+        };
+        const MAX_DISTANCE_METERS = 100;
 
-        // Inisialisasi Kamera
-        async function startCamera() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: 'user' }, // Paksa kamera depan
-                    audio: false 
-                });
-                video.srcObject = stream;
-                video.play();
-                snapButton.disabled = false;
-                checkFormCompleteness();
-            } catch (err) {
-                console.error("Error accessing camera: ", err);
-                showStatus('Gagal mengakses kamera. Pastikan Anda memberikan izin.', 'error');
-            }
-        }
+        // =================================================================
+        // ELEMEN DOM
+        // =================================================================
+        const form = document.getElementById('absensi-form');
+        const kabupatenSelect = document.getElementById('kabupaten');
+        const namaPimpinanSelect = document.getElementById('namaPimpinan');
+        const startCameraBtn = document.getElementById('start-camera-btn');
+        const videoContainer = document.getElementById('video-container');
+        const videoFeed = document.getElementById('video-feed');
+        const takePhotoBtn = document.getElementById('take-photo-btn');
+        const cancelCameraBtn = document.getElementById('cancel-camera-btn');
+        const fotoCanvas = document.getElementById('foto-canvas');
+        const fotoPreview = document.getElementById('foto-preview');
+        const fotoBase64Input = document.getElementById('foto-base64');
+        const submitBtn = document.getElementById('submit-btn');
+        const submitText = document.getElementById('submit-text');
+        const submitSpinner = document.getElementById('submit-spinner');
+        
+        // Modal elements
+        const messageModal = document.getElementById('message-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalBody = document.getElementById('modal-body');
+        const modalCloseBtn = document.getElementById('modal-close-btn');
 
-        // Ambil Foto
-        snapButton.addEventListener('click', () => {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const context = canvas.getContext('2d');
-            
-            // Balik gambar secara horizontal (mirror)
-            context.translate(canvas.width, 0);
-            context.scale(-1, 1);
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            selfieData = canvas.toDataURL('image/jpeg', 0.8); // Kompresi gambar
-            selfiePreview.src = selfieData;
+        let videoStream = null;
 
-            // Tampilkan preview, sembunyikan video
-            cameraContainer.classList.add('hidden');
-            previewContainer.classList.remove('hidden');
-            snapButton.classList.add('hidden');
-            retakeButton.classList.remove('hidden');
-            checkFormCompleteness();
-        });
-
-        // Ulangi Ambil Foto
-        retakeButton.addEventListener('click', () => {
-            selfieData = null;
-            selfiePreview.src = '';
-
-            // Tampilkan video, sembunyikan preview
-            cameraContainer.classList.remove('hidden');
-            previewContainer.classList.add('hidden');
-            snapButton.classList.remove('hidden');
-            retakeButton.classList.add('hidden');
-            checkFormCompleteness();
-        });
-
-        // Update Pilihan Nama Pimpinan berdasarkan Kabupaten
+        // =================================================================
+        // EVENT LISTENERS
+        // =================================================================
+        
+        // Update nama pimpinan saat kabupaten dipilih
         kabupatenSelect.addEventListener('change', () => {
             const selectedKabupaten = kabupatenSelect.value;
-            namaSelect.innerHTML = '<option value="">-- Pilih Nama --</option>'; // Reset
-
-            if (selectedKabupaten && pimpinanData[selectedKabupaten]) {
-                namaSelect.disabled = false;
-                pimpinanData[selectedKabupaten].forEach(nama => {
+            namaPimpinanSelect.innerHTML = '<option value="">-- Memuat... --</option>';
+            
+            if (selectedKabupaten && pimpinanMap[selectedKabupaten]) {
+                namaPimpinanSelect.disabled = false;
+                namaPimpinanSelect.innerHTML = '<option value="">-- Pilih Nama Pimpinan --</option>';
+                pimpinanMap[selectedKabupaten].forEach(nama => {
                     const option = document.createElement('option');
                     option.value = nama;
                     option.textContent = nama;
-                    namaSelect.appendChild(option);
+                    namaPimpinanSelect.appendChild(option);
                 });
             } else {
-                namaSelect.disabled = true;
+                namaPimpinanSelect.disabled = true;
+                namaPimpinanSelect.innerHTML = '<option value="">-- Pilih Kabupaten Dulu --</option>';
             }
-            checkFormCompleteness();
         });
 
-        // Cek Kelengkapan Form
-        function checkFormCompleteness() {
-            const isComplete = kabupatenSelect.value &&
-                               namaSelect.value &&
-                               presensiSelect.value &&
-                               selfieData;
-            kirimButton.disabled = !isComplete;
-        }
-
-        // Tambahkan listener ke form inputs
-        [kabupatenSelect, namaSelect, presensiSelect].forEach(el => {
-            el.addEventListener('change', checkFormCompleteness);
-        });
-
-        // Fungsi Haversine untuk menghitung jarak
-        function getDistance(lat1, lon1, lat2, lon2) {
-            function toRad(x) {
-                return x * Math.PI / 180;
-            }
-            const R = 6371; // Radius bumi dalam km
-            const dLat = toRad(lat2 - lat1);
-            const dLon = toRad(lon2 - lon1);
-            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-                      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            const d = R * c;
-            return d * 1000; // Jarak dalam meter
-        }
-
-        // Tampilkan Status
-        function showStatus(message, type = 'info') {
-            statusDiv.textContent = message;
-            statusDiv.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-green-100', 'text-green-700', 'bg-yellow-100', 'text-yellow-700');
-            
-            if (type === 'error') {
-                statusDiv.classList.add('bg-red-100', 'text-red-700');
-            } else if (type === 'success') {
-                statusDiv.classList.add('bg-green-100', 'text-green-700');
-            } else {
-                statusDiv.classList.add('bg-yellow-100', 'text-yellow-700');
-            }
-        }
-
-        // Set Loading State
-        function setLoading(isLoading) {
-            if (isLoading) {
-                kirimButton.disabled = true;
-                kirimText.classList.add('hidden');
-                loader.classList.remove('hidden');
-                statusDiv.classList.add('hidden');
-            } else {
-                kirimButton.disabled = false;
-                kirimText.classList.remove('hidden');
-                loader.classList.add('hidden');
-            }
-        }
-
-        // Handler Submit Form
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            if (GAS_WEB_APP_URL === 'URL_WEB_APP_ANDA_DISINI' || GAS_WEB_APP_URL === '') {
-                showStatus('Harap konfigurasi URL Web App di file index.html terlebih dahulu.', 'error');
-                return;
-            }
-
-            setLoading(true);
-            showStatus('Mendapatkan lokasi GPS Anda...', 'info');
-
-            // 1. Dapatkan Lokasi GPS
-            if (!navigator.geolocation) {
-                showStatus('Geolocation tidak didukung oleh browser Anda.', 'error');
-                setLoading(false);
-                return;
-            }
-
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const userLat = position.coords.latitude;
-                    const userLon = position.coords.longitude;
-                    
-                    const selectedKabupaten = kabupatenSelect.value;
-                    const kantorLok = lokasiKantor[selectedKabupaten];
-
-                    // 2. Cek Geofencing
-                    const distance = getDistance(userLat, userLon, kantorLok.lat, kantorLok.lon);
-
-                    if (distance > 100) { // Batas 100 meter
-                        showStatus(`Anda saat ini tidak dapat melakukan absensi karena berada ${distance.toFixed(0)} meter dari titik lokasi kantor.`, 'error');
-                        setLoading(false);
-                        return;
-                    }
-
-                    // 3. Lokasi Sesuai, Lanjutkan Pengiriman
-                    showStatus('Lokasi terverifikasi. Mengirim data absensi...', 'info');
-                    sendDataToGAS(userLat, userLon);
-                },
-                (error) => {
-                    let errorMsg = 'Gagal mendapatkan lokasi GPS. ';
-                    switch(error.code) {
-                        case error.PERMISSION_DENIED:
-                            errorMsg += "Anda menolak izin lokasi.";
-                            break;
-                        case error.POSITION_UNAVAILABLE:
-                            errorMsg += "Informasi lokasi tidak tersedia.";
-                            break;
-                        case error.TIMEOUT:
-                            errorMsg += "Waktu permintaan lokasi habis.";
-                            break;
-                        default:
-                            errorMsg += "Terjadi kesalahan tidak diketahui.";
-                            break;
-                    }
-                    showStatus(errorMsg, 'error');
-                    setLoading(false);
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-            );
-        });
-
-        // 4. Fungsi Kirim Data ke Google Apps Script
-        async function sendDataToGAS(latitude, longitude) {
-            const payload = {
-                kabupaten: kabupatenSelect.value,
-                nama: namaSelect.value,
-                presensi: presensiSelect.value,
-                timestamp: new Date().toISOString(), // Kirim ISO string, GAS akan format
-                gps: { lat: latitude, lon: longitude },
-                imageData: selfieData // Ini adalah base64 string
-            };
-
+        // Buka kamera
+        startCameraBtn.addEventListener('click', async () => {
             try {
-                const response = await fetch(GAS_WEB_APP_URL, {
+                videoStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'user' }, // Paksa kamera depan
+                    audio: false
+                });
+                videoFeed.srcObject = videoStream;
+                videoContainer.style.display = 'flex';
+            } catch (err) {
+                console.error("Error accessing camera:", err);
+                showMessageModal("Error Kamera", "Gagal mengakses kamera. Pastikan Anda memberikan izin dan tidak ada aplikasi lain yang menggunakannya.");
+            }
+        });
+
+        // Tutup kamera
+        cancelCameraBtn.addEventListener('click', () => {
+            stopCamera();
+        });
+
+        // Ambil foto
+        takePhotoBtn.addEventListener('click', () => {
+            fotoCanvas.width = videoFeed.videoWidth;
+            fotoCanvas.height = videoFeed.videoHeight;
+            const context = fotoCanvas.getContext('2d');
+            context.drawImage(videoFeed, 0, 0, fotoCanvas.width, fotoCanvas.height);
+            
+            // Kompres gambar sebagai JPEG
+            const dataUrl = fotoCanvas.toDataURL('image/jpeg', 0.8);
+            fotoBase64Input.value = dataUrl;
+            fotoPreview.src = dataUrl;
+            fotoPreview.classList.remove('hidden');
+            
+            startCameraBtn.textContent = 'Ambil Ulang Foto';
+            startCameraBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+            startCameraBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+            
+            stopCamera();
+        });
+
+        // Handle submit form
+        form.addEventListener('submit', handleSubmit);
+        
+        // Tutup modal
+        modalCloseBtn.addEventListener('click', () => {
+            messageModal.style.display = 'none';
+        });
+
+        // =================================================================
+        // FUNGSI UTAMA
+        // =================================================================
+
+        function stopCamera() {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+            }
+            videoContainer.style.display = 'none';
+        }
+
+        function showMessageModal(title, body, isSuccess = false) {
+            modalTitle.textContent = title;
+            modalBody.innerHTML = body; // Pakai innerHTML agar bisa render <br>
+            
+            modalCloseBtn.classList.remove(isSuccess ? 'bg-red-600' : 'bg-blue-600');
+            modalCloseBtn.classList.add(isSuccess ? 'bg-blue-600' : 'bg-red-600');
+            
+            messageModal.style.display = 'flex';
+        }
+
+        function setSubmitButtonState(isSubmitting, message = "Kirim Absensi") {
+            submitBtn.disabled = isSubmitting;
+            if (isSubmitting) {
+                submitText.classList.add('hidden');
+                submitSpinner.classList.remove('hidden');
+            } else {
+                submitText.classList.remove('hidden');
+                submitSpinner.classList.add('hidden');
+            }
+            submitText.textContent = message;
+        }
+
+        async function handleSubmit(e) {
+            e.preventDefault();
+            
+            if (APPS_SCRIPT_URL.includes("URL_APLIKASI_WEB_ANDA_DISINI")) {
+                showMessageModal("Error Konfigurasi", "URL Apps Script belum diatur. Harap hubungi administrator.");
+                return;
+            }
+            
+            const formData = new FormData(form);
+            const kabupaten = formData.get('kabupaten');
+            const namaPimpinan = formData.get('namaPimpinan');
+            const jenisPresensi = formData.get('jenisPresensi');
+            const fotoBase64 = formData.get('fotoBase64');
+            
+            // Validasi frontend sederhana
+            if (!kabupaten || !namaPimpinan || !jenisPresensi || !fotoBase64) {
+                showMessageModal("Data Tidak Lengkap", "Pastikan Anda telah mengisi semua kolom dan mengambil foto selfie.");
+                return;
+            }
+            
+            setSubmitButtonState(true, "Mengirim...");
+
+            // 1. Cek Anti-Kecurangan (LocalStorage)
+            const today = new Date().toISOString().split('T')[0];
+            const submissionKey = `absensi_${today}_${namaPimpinan}_${jenisPresensi}`;
+            
+            if (localStorage.getItem(submissionKey)) {
+                showMessageModal("Absensi Gagal", "Anda terdeteksi melakukan absensi berulang (<b>" + jenisPresensi + "</b>) pada perangkat yang sama hari ini.");
+                setSubmitButtonState(false);
+                return;
+            }
+
+            // 2. Verifikasi Lokasi GPS
+            setSubmitButtonState(true, "Mendapatkan Lokasi GPS...");
+            try {
+                const position = await getGpsLocation();
+                const userLat = position.coords.latitude;
+                const userLon = position.coords.longitude;
+                
+                const targetCoords = gpsCoordinates[kabupaten];
+                if (!targetCoords) {
+                    throw new Error("Data GPS untuk kabupaten tidak ditemukan.");
+                }
+
+                const distance = getDistance(userLat, userLon, targetCoords.lat, targetCoords.lon);
+                
+                // 3. Cek Geofencing
+                if (distance > MAX_DISTANCE_METERS) {
+                    const distanceStr = distance.toFixed(0);
+                    showMessageModal("Lokasi Tidak Sesuai", `Anda saat ini tidak dapat melakukan absensi.<br>Jarak Anda dari kantor: <b>${distanceStr} meter</b>.<br>(Batas maksimal ${MAX_DISTANCE_METERS} meter)`);
+                    setSubmitButtonState(false);
+                    return;
+                }
+
+                // 4. Lolos GPS, kirim data ke Apps Script
+                setSubmitButtonState(true, "Mengirim Data...");
+                
+                const payload = {
+                    kabupaten,
+                    namaPimpinan,
+                    jenisPresensi,
+                    fotoBase64
+                };
+
+                const response = await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'cors', // Penting untuk cross-origin request
-                    headers: {
-                        'Content-Type': 'text/plain;charset=utf-8', // Kirim sebagai text plain
-                    },
+                    mode: 'cors',
+                    cache: 'no-cache',
+                    redirect: 'follow',
                     body: JSON.stringify(payload)
                 });
 
                 const result = await response.json();
 
                 if (result.status === 'success') {
-                    showStatus(result.message, 'success');
+                    // Tandai di localStorage
+                    localStorage.setItem(submissionKey, 'true');
+                    
+                    const successMsg = `Absensi <b>${jenisPresensi}</b> atas nama <b>${namaPimpinan}</b> pada tanggal <b>${today}</b> telah berhasil dikirim.`;
+                    showMessageModal("Absensi Berhasil", successMsg, true);
+                    
                     // Reset form
                     form.reset();
-                    namaSelect.innerHTML = '<option value="">-- Pilih Nama --</option>';
-                    namaSelect.disabled = true;
-                    retakeButton.click(); // Reset kamera
-                    checkFormCompleteness();
+                    fotoPreview.classList.add('hidden');
+                    fotoPreview.src = '';
+                    fotoBase64Input.value = '';
+                    startCameraBtn.textContent = 'Ambil Foto Selfie';
+                    startCameraBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+                    startCameraBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+                    namaPimpinanSelect.disabled = true;
+                    namaPimpinanSelect.innerHTML = '<option value="">-- Pilih Kabupaten Dulu --</option>';
+
                 } else {
-                    // Tampilkan error dari server (misal: duplikat)
-                    showStatus(result.message, 'error');
+                    throw new Error(result.message);
                 }
 
-            } catch (error) {
-                console.error('Error sending data:', error);
-                // Pesan error spesifik yang diminta
-                showStatus('Gagal mengirim data. Cek koneksi internet Anda.', 'error');
+            } catch (err) {
+                console.error("Submission Error:", err);
+                showMessageModal("Terjadi Error", "Gagal mengirim absensi. Pastikan GPS Anda aktif dan koneksi internet stabil.<br><br><i>Error: " + err.message + "</i>");
             } finally {
-                setLoading(false);
+                setSubmitButtonState(false);
             }
         }
 
-        // Mulai kamera saat halaman dimuat
-        window.addEventListener('load', startCamera);
-        // Cek kelengkapan form saat awal
-        checkFormCompleteness();
+        function getGpsLocation() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    reject(new Error("Geolocation tidak didukung oleh browser ini."));
+                }
+                
+                // Minta akurasi tinggi, dengan timeout 10 detik
+                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0 // Jangan pakai cache lokasi
+                });
+            });
+        }
+        
+        // =iat
+        // Fungsi Haversine untuk menghitung jarak
+        function getDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // Radius bumi dalam meter
+            const phi1 = lat1 * Math.PI / 180;
+            const phi2 = lat2 * Math.PI / 180;
+            const deltaPhi = (lat2 - lat1) * Math.PI / 180;
+            const deltaLambda = (lon2 - lon1) * Math.PI / 180;
+
+            const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+                      Math.cos(phi1) * Math.cos(phi2) *
+                      Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+            return R * c; // Jarak dalam meter
+        }
 
     </script>
 </body>
