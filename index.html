@@ -134,7 +134,8 @@
     </div>
 
     <!-- Loading Overlay -->
-    <div id="loading-overlay" class="hidden">
+    <!-- PERUBAHAN DI SINI: Mengganti class="hidden" dengan style="display: none;" -->
+    <div id="loading-overlay" style="display: none;">
         <div id="loading-spinner"></div>
         <p id="loading-text" class="mt-4 text-lg">Memproses...</p>
     </div>
@@ -195,12 +196,12 @@
         // --- FUNGSI TAMPILAN ---
         function showLoading(text) {
             loadingText.textContent = text;
-            loadingOverlay.classList.remove('hidden');
+            // PERUBAHAN DI SINI: Hanya menggunakan style.display
             loadingOverlay.style.display = 'flex';
         }
 
         function hideLoading() {
-            loadingOverlay.classList.add('hidden');
+            // PERUBAHAN DI SINI: Hanya menggunakan style.display
             loadingOverlay.style.display = 'none';
         }
 
@@ -432,3 +433,4 @@
     </script>
 </body>
 </html>
+
