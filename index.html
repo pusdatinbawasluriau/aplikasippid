@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplikasi Absensi Bawaslu Riau2</title>
+    <title>Aplikasi Absensi Bawaslu Riau</title>
     <!-- Memuat Tailwind CSS dari CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Menggunakan font Inter -->
@@ -34,7 +34,7 @@
                 <h2 class="text-2xl font-semibold text-center text-gray-800 mb-4">
                     Selamat Datang di Aplikasi Absensi
                 </h2>
-                <p class="text-center text-gray-600 mb-6">Bawaslu Provinsi Riau22</p>
+                <p class="text-center text-gray-600 mb-6">Bawaslu Provinsi Riau</p>
 
                 <form id="absensiForm" class="space-y-6">
                     <!-- Pilih Kabupaten -->
@@ -117,7 +117,7 @@
         // KONFIGURASI PENTING
         // GANTI URL DI BAWAH INI DENGAN URL WEB APP GOOGLE APPS SCRIPT ANDA
         // ========================================================================
-        const GAS_APP_URL = 'https://script.google.com/macros/s/AKfycbx_76TEDGlWAWyYxqo4QaEhiaADAbaOa3GdtiIxu5BqznaZhv41M4nKUoK7q0x7B3hyiQ/exec'; // <-- ISI URL ANDA DI SINI
+        const GAS_APP_URL = 'https://script.google.com/macros/s/AKfycbx-OAlgldDS8oeWU4FXYJsX-UBgw23Bxqo8bq0A90ErqGpa1VZQYbc4jkC4Wr5yfqAGyQ/exec'; // <-- ISI URL ANDA DI SINI
         // Contoh: const GAS_APP_URL = 'https://script.google.com/macros/s/ABCDEFG.../exec';
         
         // ========================================================================
@@ -402,16 +402,17 @@
                         resolve(position.coords);
                     },
                     (error) => {
+                        // === PERUBAHAN DI SINI ===
                         let errorMsg = "Terjadi kesalahan saat mengambil lokasi.";
                         switch(error.code) {
                             case error.PERMISSION_DENIED:
-                                errorMsg = "Anda menolak izin lokasi. Absensi tidak dapat dilanjutkan.";
+                                errorMsg = "Anda menolak izin lokasi. Absensi tidak dapat dilanjutkan. Harap muat ulang halaman dan klik 'Izinkan' (Allow) saat browser meminta izin lokasi.";
                                 break;
                             case error.POSITION_UNAVAILABLE:
-                                errorMsg = "Informasi lokasi tidak tersedia.";
+                                errorMsg = "Informasi lokasi tidak tersedia. Pastikan layanan GPS di perangkat Anda aktif dan coba lagi.";
                                 break;
                             case error.TIMEOUT:
-                                errorMsg = "Waktu permintaan lokasi habis.";
+                                errorMsg = "Waktu permintaan lokasi habis. Sinyal GPS mungkin lemah, silakan coba lagi di area yang lebih terbuka.";
                                 break;
                         }
                         reject(new Error(errorMsg));
