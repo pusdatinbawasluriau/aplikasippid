@@ -146,7 +146,7 @@
     <script>
         // --- PENTING: KONFIGURASI ---
         // Ganti dengan URL Web App Google Apps Script Anda setelah di-deploy
-        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzsfjHr3rKbZeA-j8gxGH1uV330mKCA8JoTUSRYwFpmFcGag5MmgN43fCI7xyHJD-vk/exec"; 
+        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxQo_kl_9XWYkEXXAN-slH6vGajkhxAnApsXJ-uAKHBYJssOn-Kce_h3lofcsPt7tM6/exec"; 
         // ------------------------------
 
         // Data Pimpinan
@@ -167,7 +167,7 @@
 
         // Data Koordinat Kantor (Geo-fencing)
         const koordinatKantor = {
-            "Pekanbaru": { lat: 0.4625811697269917, lng: 101.42461679999998 },
+            "Pekanbaru": { lat: 0.5228952, lng: 101.4429202 },
             "Dumai": { lat: 1.6630254508232711, lng: 101.45249334765391 },
             "Kuansing": { lat: -0.534470, lng: 101.569874 },
             "Rokan Hulu": { lat: 0.876158, lng: 100.286686 },
@@ -300,23 +300,47 @@
                 const result = await response.json();
 
                 if (result.status === 'success') {
-                    // Tandai di localStorage jika sukses
-                    localStorage.setItem(storageKey, 'true');
-                    showPopup('Absensi Berhasil', `Absensi <strong>${data.jenisPresensi}</strong> atas nama <strong>${data.pimpinan}</strong> pada tanggal <strong>${today}</strong> telah dikirim.`);
+                    // ... existing code ... -->
                     form.reset(); // Reset form setelah sukses
                     previewFoto.classList.add('hidden');
                 } else {
-                    // Tampilkan error dari server (misal: "Anda belum absensi masuk")
+                    // ... existing code ... -->
                     showPopup('Terjadi Kesalahan', result.message || 'Gagal mengirim data.');
                 }
 
             } catch (error) {
-                // Tangani error (misal: user menolak izin lokasi)
-                let errorMessage = 'Terjadi kesalahan: ' + error.message;
-                if (error.code === 1) { // User denied geolocation
-                    errorMessage = 'Anda harus mengizinkan akses lokasi untuk melakukan absensi.';
+                // --- KODE LAMA (DIHAPUS) ---
+                // // Tangani error (misal: user menolak izin lokasi)
+                // let errorMessage = 'Terjadi kesalahan: ' + error.message;
+                // if (error.code === 1) { // User denied geolocation
+                //     errorMessage = 'Anda harus mengizinkan akses lokasi untuk melakukan absensi.';
+                // }
+                // showPopup('Error GPS', errorMessage);
+
+                // --- KODE BARU (DITAMBAHKAN) ---
+                // Tangani error dengan lebih spesifik
+                if (error.code && (error.code === 1 || error.code === 2 || error.code === 3)) {
+                    // Ini adalah error spesifik dari Geolocation API
+                    let gpsMessage = 'Terjadi kesalahan GPS: ';
+                    if (error.code === 1) { // User denied geolocation
+                        gpsMessage = 'Anda harus mengizinkan akses lokasi untuk melakukan absensi. Silakan cek izin lokasi di browser Anda (ikon 🔒 di URL).';
+                    } else if (error.code === 2) { // Position unavailable
+                        gpsMessage = 'Lokasi Anda tidak dapat ditemukan. Coba lagi di tempat lebih terbuka.';
+                    } else if (error.code === 3) { // Timeout
+                        gpsMessage = 'Gagal mendapatkan lokasi (timeout 10 detik). Sinyal GPS lemah atau butuh waktu lebih lama.';
+                    }
+                    showPopup('Error GPS', gpsMessage);
+                } else {
+                    // Ini kemungkinan besar adalah error JARINGAN (Network) atau error lainnya
+                    let networkMessage = 'Terjadi kesalahan: ' + error.message;
+                    if (error.message.toLowerCase().includes('failed to fetch')) {
+                        networkMessage = 'Koneksi ke server gagal (Failed to fetch). Pastikan URL Apps Script benar dan Anda memiliki koneksi internet yang stabil.';
+                    }
+                    // Tampilkan error di console untuk debugging
+                    console.error("Error non-GPS terdeteksi:", error);
+                    showPopup('Error Jaringan / Lainnya', networkMessage);
                 }
-                showPopup('Error GPS', errorMessage);
+                // --- AKHIR KODE BARU ---
             } finally {
                 setLoading(false);
             }
