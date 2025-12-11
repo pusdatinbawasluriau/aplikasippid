@@ -1,497 +1,2073 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplikasi Absensi Bawaslu Riau</title>
-    <!-- Memuat Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Memuat Font Inter -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Users, FileText, BarChart3, LogOut, Menu, Search, 
+  Download, Eye, MessageCircle, Save, CheckCircle, XCircle,
+  AlertTriangle, Upload, Printer, Home, FileCheck, Mail,
+  Edit, Trash2, Plus, Wifi, WifiOff, Loader2 
+} from 'lucide-react';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell 
+} from 'recharts';
+
+// --- KONFIGURASI API GOOGLE APPS SCRIPT ---
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwS2m_GXjkblD5hKj4eR8icAdN4W2eOUE1SQT8y8-3JdDF48H8tLuKJKhz0x-HNJ7qd/exec"; 
+
+// --- UTILITY: API HANDLERS ---
+const submitToGAS = async (payload) => {
+  if (SCRIPT_URL.includes("PLACEHOLDER")) return { result: "simulated" };
+  try {
+    await fetch(SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify(payload),
+      mode: "no-cors" 
+    });
+    return { result: "success" };
+  } catch (error) {
+    console.error("Error submitting to Google Sheet:", error);
+    return { result: "error", error };
+  }
+};
+
+const fetchFromGAS = async () => {
+    if (SCRIPT_URL.includes("PLACEHOLDER")) return null;
+    try {
+        const response = await fetch(SCRIPT_URL);
+        if (!response.ok) return null;
+        const data = await response.json();
+        return data; 
+    } catch (error) {
+        console.warn("Mode Offline/Gagal Fetch:", error);
+        return null;
+    }
+};
+
+const fileToBase64 = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      const base64String = reader.result.split(',')[1]; 
+      resolve(base64String);
+    };
+    reader.onerror = (error) => reject(error);
+  });
+};
+
+// --- DATA SIMULASI ---
+const INITIAL_REQUESTS = [
+  { id: 'REG-001', date: '2024-01-10', name: 'Budi Santoso', address: 'Jl. Sudirman No 1', job: 'Mahasiswa', jobDetail: '', phone: '08123456789', email: 'budi@mail.com', details: 'Data Anggaran 2023', purpose: 'Skripsi', method: 'Melihat', copyType: 'Softcopy', copyMethod: 'Email', officer: 'Admin', status: 'Diberikan', identityFile: '' },
+];
+
+const INITIAL_PUBLIC_INFO = [
+  { id: 'INF-001', division: 'Hukum', title: 'Peraturan Bawaslu No 1', desc: 'Tentang Pengawasan', year: '2023', file: 'perbawaslu_1.pdf' },
+  { id: 'INF-002', division: 'SDM', title: 'Struktur Organisasi', desc: 'Bagan Struktur 2024', year: '2024', file: 'struktur_org.pdf' },
+  { id: 'INF-003', division: 'Penanganan Pelanggaran', title: 'Data Penanganan 2023', desc: 'Rekapitulasi', year: '2023', file: 'rekap_2023.xlsx' },
+];
+
+const INITIAL_OBJECTIONS = [
+    { id: 'KEB-001', regNumber: 'REG-002', purpose: 'Pengawasan', name: 'Contoh Keberatan', address: 'Jl. Ahmad Yani', job: 'LSM', phone: '08129876543', reason: 'Permohonan Informasi ditolak', submissionMethod: 'Surat', date: '2024-02-20', status: 'Proses', officer: 'Rachmatul Azmi' }
+];
+
+// --- HTML GENERATORS ---
+const generateFormHTML = (data) => {
+  let imageElement = '<p style="text-align:center; padding: 20px; border: 1px dashed #ccc;">Identitas tidak dilampirkan.</p>';
+  if (data.identityPreview) {
+      imageElement = `<img src="${data.identityPreview}" class="identity-image" />`;
+  } else if (data.identityFile && (data.identityFile.startsWith('http') || data.identityFile.startsWith('data:'))) {
+      imageElement = `<img src="${data.identityFile}" class="identity-image" />`;
+  }
+
+  return `
+    <html>
+      <head>
+        <title>Formulir Permohonan ${data.id}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; color: #000; }
+          .header { text-align: center; border-bottom: 3px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
+          .logo-text { font-size: 18px; font-weight: bold; text-transform: uppercase; }
+          .sub-logo-text { font-size: 14px; font-weight: bold; }
+          .address { font-size: 11px; margin-top: 5px; }
+          .form-title { text-align: center; font-size: 16px; font-weight: bold; text-decoration: underline; margin: 20px 0; text-transform: uppercase; }
+          .reg-box { border: 1px solid #000; padding: 10px; margin-bottom: 20px; width: fit-content; background: #f9f9f9; }
+          .section { margin-bottom: 15px; }
+          .section-title { font-weight: bold; background-color: #eee; padding: 5px; border: 1px solid #ccc; margin-bottom: 10px; font-size: 14px; }
+          table { width: 100%; border-collapse: collapse; font-size: 13px; }
+          td { padding: 5px; vertical-align: top; }
+          .label { width: 25%; font-weight: bold; }
+          .colon { width: 20px; text-align: center; }
+          .signatures { margin-top: 50px; display: flex; justify-content: space-between; page-break-inside: avoid; }
+          .sign-box { text-align: center; width: 200px; }
+          .sign-line { margin-top: 70px; border-top: 1px solid #000; width: 100%; }
+          .identity-image-container { display: flex; justify-content: center; align-items: center; margin-top: 50px; padding: 20px; page-break-inside: avoid; }
+          .identity-image { width: 8.56cm; height: 5.4cm; object-fit: contain; border: 1px solid #000; background-color: #f0f0f0; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="logo-text">Badan Pengawas Pemilihan Umum</div>
+          <div class="logo-text">Provinsi Riau</div>
+          <div class="sub-logo-text">Pejabat Pengelola Informasi dan Dokumentasi (PPID)</div>
+          <div class="address">Jl. Sultan Syarif Kasim No. 1, Kota Pekanbaru, Riau</div>
+        </div>
+        <div class="form-title">Formulir Permohonan Informasi Publik</div>
+        <div class="reg-box"><strong>Nomor Pendaftaran:</strong> ${data.id}</div>
+        <div class="section"><div class="section-title">1. Identitas Pemohon</div><table><tr><td class="label">Nama</td><td class="colon">:</td><td>${data.name}</td></tr><tr><td class="label">Alamat</td><td class="colon">:</td><td>${data.address}</td></tr><tr><td class="label">Pekerjaan</td><td class="colon">:</td><td>${data.job} ${data.jobDetail ? `(${data.jobDetail})` : ''}</td></tr><tr><td class="label">Nomor Telepon</td><td class="colon">:</td><td>${data.phone}</td></tr><tr><td class="label">Email</td><td class="colon">:</td><td>${data.email}</td></tr></table></div>
+        <div class="section"><div class="section-title">2. Rincian Informasi</div><table><tr><td class="label">Rincian Informasi</td><td class="colon">:</td><td>${data.details}</td></tr><tr><td class="label">Tujuan Penggunaan</td><td class="colon">:</td><td>${data.purpose}</td></tr></table></div>
+        <div class="section"><div class="section-title">3. Cara Memperoleh & Salinan</div><table><tr><td class="label">Cara Memperoleh</td><td class="colon">:</td><td>${data.method}</td></tr><tr><td class="label">Bentuk Salinan</td><td class="colon">:</td><td>${data.copyType}</td></tr><tr><td class="label">Cara Mendapat Salinan</td><td class="colon">:</td><td>${data.copyMethod}</td></tr></table></div>
+        <div class="signatures"><div class="sign-box">Penerima Permohonan,<br>(Petugas PPID)<div class="sign-line"></div>${data.officer}</div><div class="sign-box">Pekanbaru, ${new Date(data.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}<br>Pemohon Informasi<div class="sign-line"></div>${data.name}</div></div>
+        
+        <div style="page-break-before: always;"></div>
+        
+        <div class="header"><div class="logo-text">Badan Pengawas Pemilihan Umum</div><div class="logo-text">Provinsi Riau</div><div class="sub-logo-text">Pejabat Pengelola Informasi dan Dokumentasi (PPID)</div></div>
+        <div class="form-title">Lampiran Identitas Pemohon</div>
+        <div class="reg-box"><strong>Nomor Pendaftaran:</strong> ${data.id}</div>
+        <div style="margin-bottom: 20px;"><strong>Nama Pemohon:</strong> ${data.name}</div>
+        
+        <div class="section">
+            <div class="section-title">Foto Identitas (KTP/SIM) - Ukuran Standar</div>
+            <div class="identity-image-container">
+                ${imageElement}
+            </div>
+            <p style="text-align: center; font-size: 10px; margin-top: 5px; color: #666;">*Ukuran disesuaikan dengan standar kartu identitas (8.56cm x 5.4cm)</p>
+        </div>
+        
+        <script>window.onload = function() { window.print(); }</script>
+      </body>
+    </html>
+  `;
+};
+
+const generateReceiptHTML = (data) => {
+  return `
+    <html>
+      <head>
+        <title>Tanda Terima ${data.id}</title>
+        <style>
+          body { font-family: 'Times New Roman', Times, serif; padding: 40px; max-width: 800px; margin: 0 auto; } 
+          .header { text-align: center; border-bottom: 3px double black; padding-bottom: 15px; margin-bottom: 30px; } 
+          .logo { font-size: 24px; font-weight: bold; color: #000; text-transform: uppercase; margin-bottom: 5px; } 
+          .sub-logo { font-size: 16px; font-weight: bold; } 
+          .address { font-size: 12px; margin-top: 5px; } 
+          .title { font-size: 18px; font-weight: bold; text-decoration: underline; margin-bottom: 30px; text-align: center; text-transform: uppercase; } 
+          .content { line-height: 1.6; font-size: 14px; } 
+          .row { display: flex; margin-bottom: 12px; } 
+          .label { width: 200px; font-weight: bold; } 
+          .sep { width: 20px; } 
+          .value { flex: 1; } 
+          
+          /* Signature Table Style */
+          .signature-table { width: 100%; margin-top: 60px; border: none; page-break-inside: avoid; }
+          .signature-table td { width: 50%; text-align: center; vertical-align: top; padding: 0 10px; }
+          .sign-name { 
+            font-weight: bold; 
+            text-decoration: underline; 
+            margin-top: 70px; 
+            display: block;
+            text-transform: uppercase;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header"><div class="logo">BAWASLU PROVINSI RIAU</div><div class="sub-logo">PEJABAT PENGELOLA INFORMASI DAN DOKUMENTASI (PPID)</div><div class="address">Jl. Sultan Syarif Kasim No. 1, Kota Pekanbaru, Riau</div></div>
+        <div class="title">TANDA BUKTI PERMOHONAN INFORMASI PUBLIK</div>
+        <div class="content">
+          <div class="row"><div class="label">Nomor Registrasi</div><div class="sep">:</div><div class="value"><strong>${data.id}</strong></div></div>
+          <div class="row"><div class="label">Tanggal Permohonan</div><div class="sep">:</div><div class="value">${data.date}</div></div>
+          <div class="row"><div class="label">Nama Pemohon</div><div class="sep">:</div><div class="value">${data.name}</div></div>
+          <div class="row"><div class="label">Alamat</div><div class="sep">:</div><div class="value">${data.address}</div></div>
+          <div class="row"><div class="label">Pekerjaan</div><div class="sep">:</div><div class="value">${data.job} ${data.jobDetail ? `(${data.jobDetail})` : ''}</div></div>
+          <div class="row"><div class="label">No. Telepon / Email</div><div class="sep">:</div><div class="value">${data.phone} / ${data.email}</div></div>
+          <br/><div class="row"><div class="label">Rincian Informasi</div><div class="sep">:</div><div class="value">${data.details}</div></div>
+          <div class="row"><div class="label">Tujuan Penggunaan</div><div class="sep">:</div><div class="value">${data.purpose}</div></div>
+          <div class="row"><div class="label">Cara Memperoleh</div><div class="sep">:</div><div class="value">${data.method}</div></div>
+          <div class="row"><div class="label">Bentuk Salinan</div><div class="sep">:</div><div class="value">${data.copyType} (${data.copyMethod})</div></div>
+        </div>
+        
+        <table class="signature-table">
+          <tr>
+            <td>
+              &nbsp;<br/>
+              Pemohon,<br/>
+              &nbsp;
+              <div class="sign-name">${data.name}</div>
+            </td>
+            <td>
+              Pekanbaru, ${new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}<br/>
+              Petugas Pelayanan,<br/>
+              &nbsp;
+              <div class="sign-name">${data.officer}</div>
+            </td>
+          </tr>
+        </table>
+        
+        <script>window.onload = function() { window.print(); }</script>
+      </body>
+    </html>
+  `;
+};
+
+const generateObjectionHTML = (data) => {
+    return `
+      <html>
+        <head>
+          <title>Formulir Keberatan ${data.id}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; color: #000; }
+            .header { text-align: center; border-bottom: 3px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
+            .logo-text { font-size: 18px; font-weight: bold; text-transform: uppercase; }
+            .sub-logo-text { font-size: 14px; font-weight: bold; }
+            .address { font-size: 11px; margin-top: 5px; }
+            .form-title { text-align: center; font-size: 16px; font-weight: bold; text-decoration: underline; margin: 20px 0; text-transform: uppercase; }
+            .reg-box { border: 1px solid #000; padding: 10px; margin-bottom: 20px; width: fit-content; background: #f9f9f9; }
+            .section { margin-bottom: 15px; }
+            .section-title { font-weight: bold; background-color: #eee; padding: 5px; border: 1px solid #ccc; margin-bottom: 10px; font-size: 14px; }
+            table { width: 100%; border-collapse: collapse; font-size: 13px; }
+            td { padding: 5px; vertical-align: top; }
+            .label { width: 35%; font-weight: bold; }
+            .colon { width: 20px; text-align: center; }
+            
+            /* Signature Table Style Fix */
+            .signature-table { width: 100%; margin-top: 50px; border: none; page-break-inside: avoid; }
+            .signature-table td { width: 50%; text-align: center; vertical-align: top; padding: 0 10px; }
+            .sign-name { 
+                font-weight: bold; 
+                text-decoration: underline; 
+                margin-top: 80px; 
+                display: block;
+                text-transform: uppercase;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="logo-text">Badan Pengawas Pemilihan Umum</div>
+            <div class="logo-text">Provinsi Riau</div>
+            <div class="sub-logo-text">Pejabat Pengelola Informasi dan Dokumentasi (PPID)</div>
+            <div class="address">Jl. Sultan Syarif Kasim No. 1, Kota Pekanbaru, Riau</div>
+          </div>
+  
+          <div class="form-title">PERNYATAAN KEBERATAN ATAS PERMOHONAN INFORMASI</div>
+  
+          <div class="reg-box">
+            <strong>Nomor Registrasi Keberatan:</strong> ${data.id}
+          </div>
+  
+          <div class="section">
+            <div class="section-title">A. Informasi Pengaju Keberatan</div>
+            <table>
+              <tr><td class="label">Nomor Register Permohonan</td><td class="colon">:</td><td>${data.regNumber}</td></tr>
+              <tr><td class="label">Tujuan Penggunaan Informasi</td><td class="colon">:</td><td>${data.purpose}</td></tr>
+              <tr><td colspan="3"><strong>Identitas Pemohon</strong></td></tr>
+              <tr><td class="label" style="padding-left:20px">- Nama</td><td class="colon">:</td><td>${data.name}</td></tr>
+              <tr><td class="label" style="padding-left:20px">- Alamat</td><td class="colon">:</td><td>${data.address}</td></tr>
+              <tr><td class="label" style="padding-left:20px">- Pekerjaan</td><td class="colon">:</td><td>${data.job}</td></tr>
+              <tr><td class="label" style="padding-left:20px">- Nomor Telepon</td><td class="colon">:</td><td>${data.phone}</td></tr>
+              <tr><td colspan="3"><strong>Identitas Kuasa Pemohon (Jika ada)</strong></td></tr>
+              <tr><td class="label" style="padding-left:20px">- Nama</td><td class="colon">:</td><td>${data.proxyName || '-'}</td></tr>
+              <tr><td class="label" style="padding-left:20px">- Alamat</td><td class="colon">:</td><td>${data.proxyAddress || '-'}</td></tr>
+              <tr><td class="label" style="padding-left:20px">- Nomor Telepon</td><td class="colon">:</td><td>${data.proxyPhone || '-'}</td></tr>
+            </table>
+          </div>
+  
+          <div class="section">
+            <div class="section-title">B. Alasan Pengajuan Keberatan</div>
+            <table>
+              <tr><td class="label">Alasan</td><td class="colon">:</td><td>${data.reason}</td></tr>
+            </table>
+          </div>
+
+          <div class="section">
+            <div class="section-title">C. Cara Pengajuan</div>
+            <table>
+              <tr><td class="label">Diajukan Melalui</td><td class="colon">:</td><td>${data.submissionMethod}</td></tr>
+            </table>
+          </div>
+  
+          <div class="signatures">
+            <!-- TABEL TANDA TANGAN -->
+            <table class="signature-table">
+              <tr>
+                <td>
+                  &nbsp;<br/>
+                  Penerima Keberatan,<br/>
+                  (Petugas PPID)
+                  <div class="sign-name">${data.officer || '(..........................)'}</div>
+                </td>
+                <td>
+                  Pekanbaru, ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}<br/>
+                  Pengaju Keberatan<br/>
+                  &nbsp;
+                  <div class="sign-name">${data.name}</div>
+                </td>
+              </tr>
+            </table>
+          </div>
+  
+          <script>
+            window.onload = function() { window.print(); }
+          </script>
+        </body>
+      </html>
+    `;
+};
+
+const generateOfficialLetterHTML = (type, data, additionalData) => {
+    const isObjection = type === 'keberatan';
+    const title = isObjection ? 'SURAT TANGGAPAN ATAS KEBERATAN' : 'SURAT PEMBERITAHUAN TERTULIS';
+    const regLabel = isObjection ? 'No. Reg. Keberatan' : 'No. Pendaftaran';
+    const regValue = isObjection ? data.id : data.id; // data.id is usually the reg number
     
-    <style>
-        /* Menggunakan font Inter sebagai default */
-        body {
-            font-family: 'Inter', sans-serif;
+    // Content builder
+    let content = '';
+    if (!isObjection) {
+        content = `
+            <p>Menanggapi permohonan informasi publik yang Saudara ajukan dengan nomor pendaftaran <strong>${data.id}</strong> pada tanggal ${data.date}, dengan ini kami memberitahukan hal-hal sebagai berikut:</p>
+            <table class="info-table">
+                <tr><td width="30%">1. Informasi yang diminta</td><td>: ${data.details}</td></tr>
+                <tr><td>2. Keputusan PPID</td><td>: <strong>${additionalData.decision}</strong></td></tr>
+                ${additionalData.reason ? `<tr><td>3. Alasan/Keterangan</td><td>: ${additionalData.reason}</td></tr>` : ''}
+                ${additionalData.cost ? `<tr><td>4. Biaya Penyalinan</td><td>: ${additionalData.cost}</td></tr>` : ''}
+                ${additionalData.time ? `<tr><td>5. Waktu Penyediaan</td><td>: ${additionalData.time}</td></tr>` : ''}
+            </table>
+            <p>Demikian pemberitahuan ini kami sampaikan. Atas perhatiannya diucapkan terima kasih.</p>
+        `;
+    } else {
+        content = `
+            <p>Menanggapi keberatan informasi publik yang Saudara ajukan dengan nomor registrasi keberatan <strong>${data.id}</strong>, setelah melakukan kajian, Atasan PPID memutuskan:</p>
+            <table class="info-table">
+                <tr><td width="30%">1. Materi Keberatan</td><td>: ${data.reason}</td></tr>
+                <tr><td>2. Keputusan Atasan PPID</td><td>: <strong>${additionalData.decision}</strong></td></tr>
+                <tr><td>3. Tanggapan/Alasan</td><td>: ${additionalData.reason}</td></tr>
+            </table>
+            <p>Keputusan ini bersifat final dan mengikat di tingkat Badan Publik. Jika Saudara tidak puas dengan keputusan ini, Saudara dapat mengajukan penyelesaian sengketa informasi ke Komisi Informasi.</p>
+        `;
+    }
+
+    return `
+      <html>
+        <head>
+          <title>${title}</title>
+          <style>
+            body { font-family: 'Times New Roman', Times, serif; padding: 50px; max-width: 800px; margin: 0 auto; line-height: 1.6; }
+            .header { text-align: center; border-bottom: 3px double black; padding-bottom: 15px; margin-bottom: 30px; }
+            .logo { font-size: 20px; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; }
+            .sub-logo { font-size: 14px; font-weight: bold; }
+            .address { font-size: 12px; }
+            .letter-meta { margin-bottom: 20px; }
+            .title { text-align: center; font-weight: bold; text-decoration: underline; margin: 30px 0; font-size: 16px; }
+            .info-table { width: 100%; margin: 20px 0; border-collapse: collapse; }
+            .info-table td { padding: 5px; vertical-align: top; }
+            .signature { float: right; margin-top: 50px; text-align: center; width: 250px; }
+            .signature-name { font-weight: bold; text-decoration: underline; margin-top: 80px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="logo">BAWASLU PROVINSI RIAU</div>
+            <div class="sub-logo">PEJABAT PENGELOLA INFORMASI DAN DOKUMENTASI (PPID)</div>
+            <div class="address">Jl. Sultan Syarif Kasim No. 1, Kota Pekanbaru, Riau</div>
+          </div>
+
+          <div class="letter-meta">
+            <table>
+                <tr><td>Nomor</td><td>: .../PPID/Riau/.../2025</td></tr>
+                <tr><td>Lampiran</td><td>: -</td></tr>
+                <tr><td>Perihal</td><td>: <strong>${isObjection ? 'Tanggapan Keberatan' : 'Pemberitahuan Tertulis'}</strong></td></tr>
+            </table>
+          </div>
+
+          <div style="margin-top: 30px;">
+            Kepada Yth.<br>
+            Sdr/i. <strong>${data.name}</strong><br>
+            di Tempat
+          </div>
+
+          ${content}
+
+          <div class="signature">
+            Pekanbaru, ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}<br>
+            ${isObjection ? 'Atasan PPID' : 'PPID Bawaslu Riau'},
+            <div class="signature-name">${isObjection ? 'KETUA BAWASLU RIAU' : 'AMIRUDDIN SIJAYA'}</div>
+          </div>
+          
+          <script>window.onload = function() { window.print(); }</script>
+        </body>
+      </html>
+    `;
+};
+
+// --- COMPONENTS ---
+
+const LoginPage = ({ onLogin }) => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (username === 'admin' && password === 'agustus2025') {
+      onLogin();
+    } else {
+      setError('Username atau Password salah!');
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 font-sans">
+      <div className="flex w-full max-w-5xl bg-white shadow-2xl rounded-2xl overflow-hidden h-[600px]">
+        <div className="w-1/2 bg-gradient-to-br from-orange-400 to-orange-600 relative flex flex-col justify-center items-center text-white p-10">
+          <div className="absolute top-0 left-0 w-full h-full opacity-20">
+             <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                <path fill="#FFFFFF" d="M44.7,-76.4C58.9,-69.2,71.8,-59.1,81.6,-46.6C91.4,-34.1,98.1,-19.2,95.8,-5.3C93.5,8.6,82.2,21.5,70.6,31.7C59,41.9,47.1,49.5,35.2,56.8C23.3,64.1,11.4,71.1,-1.2,73.2C-13.8,75.3,-28.9,72.5,-41.6,65.6C-54.3,58.7,-64.6,47.7,-72.6,35.2C-80.6,22.7,-86.3,8.7,-84.6,-4.5C-82.9,-17.7,-73.8,-30.1,-63.3,-39.8C-52.8,-49.5,-40.9,-56.5,-28.7,-64.9C-16.5,-73.3,-4,-83.1,10.2,-84.8C24.4,-86.5,48.8,-80.1,63.4,-73.8Z" transform="translate(100 100)" />
+              </svg>
+          </div>
+          <h1 className="text-4xl font-bold mb-4 z-10 text-center">PPID BAWASLU</h1>
+          <h2 className="text-2xl font-light z-10 mb-8">Provinsi Riau</h2>
+          <p className="text-center z-10 text-orange-100">Sistem Pelayanan Informasi Publik Terintegrasi</p>
+        </div>
+
+        <div className="w-1/2 p-12 flex flex-col justify-center relative">
+            <div className="absolute top-10 right-10 w-20 h-20 bg-orange-100 rounded-full opacity-50 blur-xl"></div>
+          <h2 className="text-3xl font-bold text-gray-800 mb-2">Login Admin</h2>
+          <p className="text-gray-500 mb-8">Silahkan masuk untuk mengelola data.</p>
+          
+          {error && (
+            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
+              <p className="font-bold">Error</p>
+              <p>{error}</p>
+            </div>
+          )}
+
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div>
+              <label className="block text-gray-700 text-sm font-bold mb-2">Username</label>
+              <input 
+                type="text" 
+                className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-300 focus:border-orange-500 focus:bg-white focus:outline-none transition duration-200"
+                placeholder="Masukkan username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-gray-700 text-sm font-bold mb-2">Password</label>
+              <input 
+                type="password" 
+                className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-300 focus:border-orange-500 focus:bg-white focus:outline-none transition duration-200"
+                placeholder="Masukkan password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+            <button 
+              type="submit" 
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:shadow-xl transition duration-200 transform hover:-translate-y-1"
+            >
+              Sign In
+            </button>
+          </form>
+          <div className="mt-8 text-center text-xs text-gray-400">
+            &copy; 2025 PPID Bawaslu Riau.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const MainLayout = ({ children, activePage, setActivePage, onLogout }) => {
+  const menuItems = [
+    { id: 'beranda', label: 'Beranda', icon: <Home size={20} /> },
+    { id: 'formulir', label: 'Formulir Permohonan', icon: <FileText size={20} /> },
+    { id: 'daftar', label: 'Daftar Permohonan', icon: <Users size={20} /> },
+    { id: 'info', label: 'Daftar Informasi Publik', icon: <FileCheck size={20} /> },
+    { id: 'form_keberatan', label: 'Formulir Keberatan', icon: <AlertTriangle size={20} /> },
+    { id: 'daftar_keberatan', label: 'Daftar Keberatan', icon: <LogOut size={20} /> },
+    { id: 'surat', label: 'Buat Surat Pemberitahuan', icon: <Mail size={20} /> },
+  ];
+  
+  const isConnected = !SCRIPT_URL.includes("PLACEHOLDER");
+
+  return (
+    <div className="flex min-h-screen bg-gray-50">
+      <aside className="w-64 bg-[#0a192f] text-white flex flex-col shadow-xl fixed h-full z-20">
+        <div className="p-6 border-b border-gray-700 flex items-center space-x-3">
+          <div className="w-8 h-8 bg-orange-500 rounded flex items-center justify-center font-bold">B</div>
+          <div>
+            <h1 className="font-bold text-lg">PPID Bawaslu</h1>
+            <p className="text-xs text-gray-400">Provinsi Riau</p>
+          </div>
+        </div>
+        
+        <nav className="flex-1 py-6 px-3 space-y-2 overflow-y-auto">
+          {menuItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActivePage(item.id)}
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                activePage === item.id 
+                  ? 'bg-orange-500 text-white shadow-lg' 
+                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+              }`}
+            >
+              {item.icon}
+              <span className="text-sm font-medium">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        <div className="p-4 border-t border-gray-700">
+          <button 
+            onClick={onLogout}
+            className="w-full flex items-center space-x-3 px-4 py-3 text-red-400 hover:bg-gray-800 rounded-lg transition-colors"
+          >
+            <LogOut size={20} />
+            <span className="text-sm font-medium">Signout</span>
+          </button>
+        </div>
+      </aside>
+
+      <div className="flex-1 ml-64 flex flex-col">
+        <header className="bg-white shadow-sm p-6 sticky top-0 z-10">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold text-gray-800">
+              Selamat Datang ADMIN di PPID Bawaslu Provinsi Riau
+            </h2>
+            <div className="flex items-center space-x-4">
+               {/* Connection Indicator */}
+               <div 
+                 className={`flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-bold ${isConnected ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700 animate-pulse'}`}
+                 title={isConnected ? "Terhubung ke Apps Script" : "API Belum Dikonfigurasi"}
+               >
+                 {isConnected ? <Wifi size={14} /> : <WifiOff size={14} />}
+                 <span>{isConnected ? "Connected" : "No API"}</span>
+               </div>
+               
+               <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600">
+                 <Users size={20} />
+               </div>
+               <div className="text-right hidden md:block">
+                 <p className="text-sm font-bold text-gray-800">Administrator</p>
+                 <p className="text-xs text-green-500">Online</p>
+               </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="p-8 flex-1 overflow-y-auto">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+};
+
+const Dashboard = ({ requests, publicInfo, objections }) => {
+  const totalRequests = requests.length;
+  const totalObjections = objections.length;
+  const totalInfo = publicInfo.length;
+
+  const statusData = [
+    { name: 'Diberikan', value: requests.filter(r => r.status === 'Diberikan').length, color: '#10B981' },
+    { name: 'Sebagian', value: requests.filter(r => r.status === 'Diberikan Sebagian').length, color: '#F59E0B' },
+    { name: 'Ditolak', value: requests.filter(r => r.status === 'Ditolak').length, color: '#EF4444' },
+    { name: 'Proses', value: requests.filter(r => !['Diberikan', 'Diberikan Sebagian', 'Ditolak'].includes(r.status)).length, color: '#3B82F6' },
+  ];
+
+  const countBy = (data, key) => {
+    const counts = data.reduce((acc, curr) => {
+      acc[curr[key]] = (acc[curr[key]] || 0) + 1;
+      return acc;
+    }, {});
+    return Object.keys(counts).map(k => ({ name: k, value: counts[k] }));
+  };
+
+  const jobData = countBy(requests, 'job');
+  const yearData = countBy(requests.map(r => ({ ...r, year: r.date.substring(0, 4) })), 'year');
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white p-6 rounded-xl shadow border-l-4 border-blue-500 flex items-center justify-between">
+          <div>
+            <p className="text-gray-500 text-sm">Jumlah Permohonan</p>
+            <h3 className="text-3xl font-bold text-blue-700">{totalRequests}</h3>
+          </div>
+          <div className="p-3 bg-blue-100 rounded-full text-blue-600"><FileText /></div>
+        </div>
+        <div className="bg-white p-6 rounded-xl shadow border-l-4 border-red-500 flex items-center justify-between">
+          <div>
+            <p className="text-gray-500 text-sm">Jumlah Keberatan</p>
+            <h3 className="text-3xl font-bold text-red-700">{totalObjections}</h3>
+          </div>
+          <div className="p-3 bg-red-100 rounded-full text-red-600"><AlertTriangle /></div>
+        </div>
+        <div className="bg-white p-6 rounded-xl shadow border-l-4 border-green-500 flex items-center justify-between">
+          <div>
+            <p className="text-gray-500 text-sm">Informasi Publik</p>
+            <h3 className="text-3xl font-bold text-green-700">{totalInfo}</h3>
+          </div>
+          <div className="p-3 bg-green-100 rounded-full text-green-600"><CheckCircle /></div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white p-6 rounded-xl shadow">
+          <h3 className="text-lg font-bold mb-4 text-gray-700">Status Permohonan</h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={statusData} cx="50%" cy="50%" outerRadius={80} dataKey="value" label>
+                  {statusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <RechartsTooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow">
+          <h3 className="text-lg font-bold mb-4 text-gray-700">Permohonan per Tahun</h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={yearData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <RechartsTooltip />
+                <Bar dataKey="value" fill="#8884d8" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+         <div className="bg-white p-6 rounded-xl shadow lg:col-span-2">
+          <h3 className="text-lg font-bold mb-4 text-gray-700">Statistik Berdasarkan Pekerjaan</h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={jobData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <RechartsTooltip />
+                <Bar dataKey="value" fill="#F97316" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const RequestForm = ({ onSubmit, initialData, onCancel }) => {
+  const [formData, setFormData] = useState({
+    name: '', address: '', job: 'Mahasiswa', jobDetail: '', phone: '', email: '',
+    details: '', purpose: '', method: 'Melihat', copyType: 'Hardcopy', copyMethod: 'Mengambil Langsung',
+    officer: 'Rachmatul Azmi', identityFile: ''
+  });
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showEditSuccess, setShowEditSuccess] = useState(false);
+  const [lastReg, setLastReg] = useState('');
+  const [lastData, setLastData] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData(initialData);
+      setShowSuccess(false);
+    } else {
+      setFormData({
+        name: '', address: '', job: 'Mahasiswa', jobDetail: '', phone: '', email: '',
+        details: '', purpose: '', method: 'Melihat', copyType: 'Hardcopy', copyMethod: 'Mengambil Langsung',
+        officer: 'Rachmatul Azmi', identityFile: ''
+      });
+    }
+  }, [initialData]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        setFormData(prev => ({ ...prev, identityFile: file.name, fileObj: file }));
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    // Prepare Data
+    const regNumber = initialData ? formData.id : `REG-${Math.floor(Math.random() * 10000)}`;
+    const newRequest = {
+        ...formData,
+        id: regNumber,
+        date: new Date().toISOString().split('T')[0],
+        status: initialData ? formData.status : 'Proses',
+        sheetType: 'Permohonan'
+    };
+
+    // Handle File Base64 if a new file is uploaded
+    if (formData.fileObj) {
+        try {
+            const base64 = await fileToBase64(formData.fileObj);
+            newRequest.fileData = base64;
+            newRequest.fileName = formData.identityFile;
+            newRequest.fileType = formData.fileObj.type;
+            
+            // Create a local preview URL
+            newRequest.identityPreview = `data:${formData.fileObj.type};base64,${base64}`;
+
+        } catch (err) {
+            console.error("File convert error", err);
+        }
+    }
+
+    // --- SEND TO GOOGLE SHEET ---
+    await submitToGAS(newRequest);
+    // -----------------------------
+
+    onSubmit(newRequest); // Update Local State
+
+    if (initialData) {
+      setShowEditSuccess(true);
+      setTimeout(() => {
+        setShowEditSuccess(false);
+        if (onCancel) onCancel();
+      }, 1500);
+    } else {
+      setLastReg(regNumber);
+      setLastData(newRequest);
+      setShowSuccess(true);
+      setFormData(prev => ({ ...prev, name: '', details: '', identityFile: '', fileObj: null }));
+    }
+    setIsSubmitting(false);
+  };
+
+  const handlePrint = () => {
+    if (!lastData) return;
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(generateReceiptHTML(lastData));
+      printWindow.document.close();
+    }
+  };
+
+  if (showEditSuccess) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded-xl shadow-2xl flex flex-col items-center animate-bounce-in">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+            <CheckCircle className="text-green-600" size={32} />
+          </div>
+          <h3 className="text-xl font-bold text-gray-800">Berhasil!</h3>
+          <p className="text-gray-600">Data permohonan berhasil diperbarui.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (showSuccess && !initialData) {
+    return (
+      <div className="bg-white p-8 rounded-xl shadow-lg text-center max-w-2xl mx-auto mt-10">
+        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <CheckCircle className="text-green-600" size={40} />
+        </div>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Registrasi Sukses!</h2>
+        <p className="text-gray-600 mb-6">
+          Permohonan Informasi an. <strong>{lastData?.name}</strong> berhasil diregistrasi dengan nomor <strong>{lastReg}</strong>.
+        </p>
+        <div className="flex justify-center space-x-4">
+          <button onClick={handlePrint} className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg">
+            <Printer size={18} />
+            <span>Cetak Tanda Terima (PDF)</span>
+          </button>
+          <button onClick={() => setShowSuccess(false)} className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-lg">
+            Input Baru
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white p-8 rounded-xl shadow-lg">
+      <div className="flex justify-between items-center mb-6 border-b pb-2">
+         <h2 className="text-2xl font-bold text-gray-800">
+           {initialData ? `Edit Permohonan: ${initialData.id}` : 'Formulir Permohonan Informasi'}
+         </h2>
+         {initialData && (
+           <button onClick={onCancel} className="text-red-500 hover:text-red-700 text-sm font-bold">
+             Batal Edit
+           </button>
+         )}
+      </div>
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nama Pemohon</label>
+            <input required name="name" value={formData.name} onChange={handleChange} className="w-full p-2 border rounded focus:ring-2 focus:ring-orange-500 focus:border-orange-500" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Alamat</label>
+            <textarea required name="address" value={formData.address} onChange={handleChange} className="w-full p-2 border rounded focus:ring-2 focus:ring-orange-500" rows="2"></textarea>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Pekerjaan</label>
+            <select name="job" value={formData.job} onChange={handleChange} className="w-full p-2 border rounded bg-white">
+              <option>Mahasiswa</option>
+              <option>LSM</option>
+              <option>Instansi pemerintah</option>
+              <option>Masyarakat</option>
+              <option>Lainnya</option>
+            </select>
+          </div>
+          {formData.job === 'Lainnya' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Sebutkan Pekerjaan</label>
+              <input name="jobDetail" value={formData.jobDetail} onChange={handleChange} className="w-full p-2 border rounded" />
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">No Telp (WhatsApp)</label>
+            <input required type="tel" name="phone" value={formData.phone} onChange={handleChange} className="w-full p-2 border rounded" placeholder="628..." />
+          </div>
+           <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input required type="email" name="email" value={formData.email} onChange={handleChange} className="w-full p-2 border rounded" />
+          </div>
+        </div>
+
+        <div className="space-y-4">
+           <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Rincian Informasi</label>
+            <textarea required name="details" value={formData.details} onChange={handleChange} className="w-full p-2 border rounded" rows="3"></textarea>
+          </div>
+           <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Tujuan Penggunaan</label>
+            <textarea required name="purpose" value={formData.purpose} onChange={handleChange} className="w-full p-2 border rounded" rows="2"></textarea>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Cara Memperoleh</label>
+                <select name="method" value={formData.method} onChange={handleChange} className="w-full p-2 border rounded bg-white">
+                  <option>Melihat</option>
+                  <option>Membaca</option>
+                  <option>Mencatat</option>
+                  <option>Mendengarkan</option>
+                </select>
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Bentuk Salinan</label>
+                <select name="copyType" value={formData.copyType} onChange={handleChange} className="w-full p-2 border rounded bg-white">
+                  <option>Hardcopy</option>
+                  <option>Softcopy</option>
+                </select>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Cara Mendapat Salinan</label>
+            <select name="copyMethod" value={formData.copyMethod} onChange={handleChange} className="w-full p-2 border rounded bg-white">
+                <option>Mengambil Langsung</option>
+                <option>Kurir</option>
+                <option>Pos</option>
+                <option>Email</option>
+                <option>Whatapp</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Upload Identitas</label>
+            <div 
+                className="border-2 border-dashed border-gray-300 rounded p-4 text-center cursor-pointer hover:bg-gray-50"
+                onClick={() => fileInputRef.current.click()}
+            >
+                {formData.identityFile ? (
+                    <div className="flex flex-col items-center text-green-600">
+                        <CheckCircle size={24} className="mb-2" />
+                        <span className="text-sm font-medium">{formData.identityFile}</span>
+                        <span className="text-xs text-gray-400 mt-1">Klik untuk ganti</span>
+                    </div>
+                ) : (
+                    <>
+                        <Upload className="mx-auto text-gray-400 mb-2" />
+                        <span className="text-xs text-gray-500">Klik untuk upload file (KTP/SIM)</span>
+                    </>
+                )}
+                <input 
+                    type="file" 
+                    className="hidden" 
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/*,.pdf"
+                />
+            </div>
+          </div>
+           <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nama Petugas</label>
+            <select name="officer" value={formData.officer} onChange={handleChange} className="w-full p-2 border rounded bg-white border-orange-200">
+                <option>Rachmatul Azmi</option>
+                <option>Nur Asiah</option>
+                <option>Dandi</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="md:col-span-2 mt-4">
+            <button type="submit" className={`w-full text-white font-bold py-3 rounded-lg shadow transition ${initialData ? 'bg-blue-600 hover:bg-blue-700' : 'bg-orange-500 hover:bg-orange-600'} flex justify-center items-center`}>
+                {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : (initialData ? 'Update Perubahan' : 'Simpan & Registrasi')}
+            </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+const RequestList = ({ requests, updateStatus, onDelete, onEdit }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [deleteId, setDeleteId] = useState(null); // Added for delete confirmation
+
+  const filteredRequests = requests.filter(r => 
+    r.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    r.id.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleWhatsApp = (phone, name) => {
+    let number = phone.replace(/\D/g, '');
+    if (number.startsWith('0')) number = '62' + number.slice(1);
+    window.open(`https://web.whatsapp.com/send?phone=${number}&text=Halo Bapak/Ibu ${name}, terkait permohonan informasi anda...`, '_blank');
+  };
+
+  const downloadPDF = (data) => {
+     const printWindow = window.open('', '_blank');
+     if (printWindow) {
+         printWindow.document.write(generateFormHTML(data));
+         printWindow.document.close();
+     }
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+      <div className="p-6 border-b border-gray-200 flex justify-between items-center bg-white">
+        <h2 className="text-xl font-bold text-gray-800">Daftar Permohonan Informasi</h2>
+        <div className="relative">
+            <Search className="absolute left-3 top-3 text-gray-400" size={18} />
+            <input 
+              type="text" 
+              placeholder="Cari No Reg / Nama..." 
+              className="pl-10 pr-4 py-2 border rounded-full focus:outline-none focus:border-orange-500 bg-gray-50"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-left border-collapse">
+          <thead className="bg-gray-50 text-gray-600 text-sm uppercase">
+            <tr>
+              <th className="p-4 border-b">No. Reg</th>
+              <th className="p-4 border-b">Tanggal</th>
+              <th className="p-4 border-b">Nama Pemohon</th>
+              <th className="p-4 border-b">Status</th>
+              <th className="p-4 border-b text-center">Aksi</th>
+            </tr>
+          </thead>
+          <tbody className="text-sm text-gray-700">
+            {filteredRequests.map((req, idx) => (
+              <tr key={idx} className="hover:bg-gray-50 border-b">
+                <td className="p-4 font-medium">{req.id}</td>
+                <td className="p-4">{req.date}</td>
+                <td className="p-4">{req.name}</td>
+                <td className="p-4">
+                  <span className={`px-2 py-1 rounded text-xs font-bold
+                    ${req.status === 'Diberikan' ? 'bg-green-100 text-green-700' : 
+                      req.status === 'Ditolak' ? 'bg-red-100 text-red-700' : 
+                      req.status === 'Diberikan Sebagian' ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-blue-100 text-blue-700'}`}>
+                    {req.status || 'Proses'}
+                  </span>
+                </td>
+                <td className="p-4 flex justify-center space-x-1">
+                  {deleteId === req.id ? (
+                      <div className="flex gap-2">
+                          <button onClick={() => { onDelete(req.id); setDeleteId(null); }} className="bg-red-600 text-white px-2 py-1 rounded text-xs">Ya, Hapus</button>
+                          <button onClick={() => setDeleteId(null)} className="bg-gray-300 text-gray-700 px-2 py-1 rounded text-xs">Batal</button>
+                      </div>
+                  ) : (
+                      <>
+                        <button onClick={() => setSelectedRequest(req)} className="p-2 text-blue-500 hover:bg-blue-50 rounded" title="Lihat Detail"><Eye size={18}/></button>
+                        <button onClick={() => downloadPDF(req)} className="p-2 text-gray-600 hover:bg-gray-100 rounded" title="Download Formulir"><Download size={18}/></button>
+                        <button onClick={() => onEdit(req)} className="p-2 text-yellow-600 hover:bg-yellow-50 rounded" title="Edit Data"><Edit size={18}/></button>
+                        <button onClick={() => setDeleteId(req.id)} className="p-2 text-red-500 hover:bg-red-50 rounded" title="Hapus Data"><Trash2 size={18}/></button>
+                        <button onClick={() => handleWhatsApp(req.phone, req.name)} className="p-2 text-green-500 hover:bg-green-50 rounded" title="WhatsApp"><MessageCircle size={18}/></button>
+                      </>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {selectedRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+             <div className="p-6 border-b flex justify-between">
+                <h3 className="text-xl font-bold">Detail Permohonan: {selectedRequest.id}</h3>
+                <button onClick={() => setSelectedRequest(null)}><XCircle className="text-gray-400 hover:text-red-500"/></button>
+             </div>
+             <div className="p-6 grid grid-cols-2 gap-4">
+                 <div><strong>Nama:</strong> {selectedRequest.name}</div>
+                 <div><strong>Pekerjaan:</strong> {selectedRequest.job}</div>
+                 <div><strong>Email:</strong> {selectedRequest.email}</div>
+                 <div><strong>No Telp:</strong> {selectedRequest.phone}</div>
+                 <div className="col-span-2 bg-gray-50 p-3 rounded">
+                    <strong>Rincian Informasi:</strong>
+                    <p>{selectedRequest.details}</p>
+                 </div>
+                 <div className="col-span-2 bg-gray-50 p-3 rounded">
+                    <strong>Tujuan:</strong>
+                    <p>{selectedRequest.purpose}</p>
+                 </div>
+                 <div><strong>Petugas:</strong> {selectedRequest.officer}</div>
+                 <div><strong>Cara Salinan:</strong> {selectedRequest.copyMethod}</div>
+             </div>
+             <div className="p-6 border-t bg-gray-50">
+                 <h4 className="font-bold mb-2">Update Status Permohonan:</h4>
+                 <div className="flex space-x-2">
+                    <button onClick={() => { updateStatus(selectedRequest.id, 'Diberikan'); setSelectedRequest(null); }} className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">Diberikan</button>
+                    <button onClick={() => { updateStatus(selectedRequest.id, 'Diberikan Sebagian'); setSelectedRequest(null); }} className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600">Sebagian</button>
+                    <button onClick={() => { updateStatus(selectedRequest.id, 'Ditolak'); setSelectedRequest(null); }} className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">Ditolak</button>
+                 </div>
+             </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ObjectionList = ({ objections, onDelete, onEdit, updateStatus }) => {
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedObjection, setSelectedObjection] = useState(null);
+    const [deleteId, setDeleteId] = useState(null); // Added for delete confirmation
+  
+    const filteredObjections = objections.filter(o => 
+      o.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      o.id.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  
+    const handleWhatsApp = (phone, name) => {
+        let number = phone.replace(/\D/g, '');
+        if (number.startsWith('0')) number = '62' + number.slice(1);
+        window.open(`https://web.whatsapp.com/send?phone=${number}&text=Halo Bapak/Ibu ${name}, terkait pengajuan keberatan anda...`, '_blank');
+    };
+    
+    const downloadPDF = (data) => {
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(generateObjectionHTML(data));
+            printWindow.document.close();
+        }
+    };
+  
+    return (
+      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+        <div className="p-6 border-b border-gray-200 flex justify-between items-center bg-white">
+          <h2 className="text-xl font-bold text-gray-800">Daftar Keberatan Informasi</h2>
+          <div className="relative">
+              <Search className="absolute left-3 top-3 text-gray-400" size={18} />
+              <input 
+                type="text" 
+                placeholder="Cari ID / Nama..." 
+                className="pl-10 pr-4 py-2 border rounded-full focus:outline-none focus:border-orange-500 bg-gray-50"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+          </div>
+        </div>
+  
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead className="bg-gray-50 text-gray-600 text-sm uppercase">
+              <tr>
+                <th className="p-4 border-b">ID Keberatan</th>
+                <th className="p-4 border-b">Terkait No Reg</th>
+                <th className="p-4 border-b">Nama Pemohon</th>
+                <th className="p-4 border-b">Alasan</th>
+                <th className="p-4 border-b">Status</th>
+                <th className="p-4 border-b text-center">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="text-sm text-gray-700">
+              {filteredObjections.map((obj, idx) => (
+                <tr key={idx} className="hover:bg-gray-50 border-b">
+                  <td className="p-4 font-medium">{obj.id}</td>
+                  <td className="p-4">{obj.regNumber}</td>
+                  <td className="p-4">{obj.name}</td>
+                  <td className="p-4 text-xs truncate max-w-[200px]">{obj.reason}</td>
+                  <td className="p-4">
+                    <span className={`px-2 py-1 rounded text-xs font-bold
+                        ${obj.status === 'Diterima' ? 'bg-green-100 text-green-700' : 
+                          obj.status === 'Ditolak' ? 'bg-red-100 text-red-700' : 
+                          'bg-blue-100 text-blue-700'}`}>
+                        {obj.status || 'Proses'}
+                    </span>
+                  </td>
+                  <td className="p-4 flex justify-center space-x-1">
+                    {deleteId === obj.id ? (
+                      <div className="flex gap-2">
+                          <button onClick={() => { onDelete(obj.id); setDeleteId(null); }} className="bg-red-600 text-white px-2 py-1 rounded text-xs">Ya, Hapus</button>
+                          <button onClick={() => setDeleteId(null)} className="bg-gray-300 text-gray-700 px-2 py-1 rounded text-xs">Batal</button>
+                      </div>
+                    ) : (
+                      <>
+                        <button onClick={() => setSelectedObjection(obj)} className="p-2 text-blue-500 hover:bg-blue-50 rounded" title="Lihat Detail"><Eye size={18}/></button>
+                        <button onClick={() => downloadPDF(obj)} className="p-2 text-gray-600 hover:bg-gray-100 rounded" title="Download Formulir"><Download size={18}/></button>
+                        <button onClick={() => onEdit(obj)} className="p-2 text-yellow-600 hover:bg-yellow-50 rounded" title="Edit Data"><Edit size={18}/></button>
+                        <button onClick={() => setDeleteId(obj.id)} className="p-2 text-red-500 hover:bg-red-50 rounded" title="Hapus Data"><Trash2 size={18}/></button>
+                        <button onClick={() => handleWhatsApp(obj.phone, obj.name)} className="p-2 text-green-500 hover:bg-green-50 rounded" title="WhatsApp"><MessageCircle size={18}/></button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* VIEW MODAL */}
+        {selectedObjection && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+             <div className="p-6 border-b flex justify-between">
+                <h3 className="text-xl font-bold">Detail Keberatan: {selectedObjection.id}</h3>
+                <button onClick={() => setSelectedObjection(null)}><XCircle className="text-gray-400 hover:text-red-500"/></button>
+             </div>
+             <div className="p-6 grid grid-cols-2 gap-4">
+                 <div><strong>Tanggal:</strong> {selectedObjection.date}</div>
+                 <div><strong>Terkait No Reg:</strong> {selectedObjection.regNumber}</div>
+                 <div><strong>Nama:</strong> {selectedObjection.name}</div>
+                 <div><strong>Pekerjaan:</strong> {selectedObjection.job}</div>
+                 <div><strong>No Telp:</strong> {selectedObjection.phone}</div>
+                 <div><strong>Metode Pengajuan:</strong> {selectedObjection.submissionMethod}</div>
+                 <div className="col-span-2 bg-gray-50 p-3 rounded">
+                    <strong>Alasan Keberatan:</strong>
+                    <p>{selectedObjection.reason}</p>
+                 </div>
+                 <div className="col-span-2 bg-gray-50 p-3 rounded">
+                    <strong>Tujuan Penggunaan Awal:</strong>
+                    <p>{selectedObjection.purpose}</p>
+                 </div>
+                 <div className="col-span-2 border-t pt-2 mt-2">
+                     <strong>Petugas Penerima:</strong> {selectedObjection.officer || '-'}
+                 </div>
+                 {selectedObjection.proxyName && (
+                     <div className="col-span-2 border-t pt-2 mt-2">
+                         <strong>Kuasa Pemohon:</strong> {selectedObjection.proxyName} ({selectedObjection.proxyPhone})
+                     </div>
+                 )}
+             </div>
+             <div className="p-6 border-t bg-gray-50">
+                 <h4 className="font-bold mb-2">Update Status Keberatan:</h4>
+                 <div className="flex space-x-2">
+                    <button onClick={() => { updateStatus(selectedObjection.id, 'Diterima'); setSelectedObjection(null); }} className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">Diterima</button>
+                    <button onClick={() => { updateStatus(selectedObjection.id, 'Ditolak'); setSelectedObjection(null); }} className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">Ditolak</button>
+                 </div>
+             </div>
+          </div>
+        </div>
+      )}
+      </div>
+    );
+};
+
+const ObjectionForm = ({ onSubmit, initialData, onCancel, requests }) => {
+  const [formData, setFormData] = useState({
+    regNumber: '', purpose: '',
+    name: '', address: '', job: '', phone: '',
+    proxyName: '', proxyAddress: '', proxyPhone: '',
+    reason: 'Permohonan Informasi ditolak',
+    submissionMethod: 'Datang Langsung',
+    officer: 'Rachmatul Azmi'
+  });
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showFoundModal, setShowFoundModal] = useState(false);
+  const [showEditSuccess, setShowEditSuccess] = useState(false);
+  const [lastId, setLastId] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // --- GOOGLE APPS SCRIPT URL ---
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwS2m_GXjkblD5hKj4eR8icAdN4W2eOUE1SQT8y8-3JdDF48H8tLuKJKhz0x-HNJ7qd/exec"; 
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData(initialData);
+      setShowSuccess(false);
+    } else {
+        setFormData({
+            regNumber: '', purpose: '',
+            name: '', address: '', job: '', phone: '',
+            proxyName: '', proxyAddress: '', proxyPhone: '',
+            reason: 'Permohonan Informasi ditolak',
+            submissionMethod: 'Datang Langsung',
+            officer: 'Rachmatul Azmi'
+        });
+    }
+  }, [initialData]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSearchReg = () => {
+    if (!formData.regNumber) {
+        alert("Silakan masukkan Nomor Register terlebih dahulu.");
+        return;
+    }
+    const found = requests.find(r => r.id.toLowerCase() === formData.regNumber.toLowerCase());
+    if (found) {
+        setFormData(prev => ({
+            ...prev,
+            purpose: found.purpose,
+            name: found.name,
+            address: found.address,
+            job: found.job,
+            phone: found.phone
+        }));
+        setShowFoundModal(true);
+        setTimeout(() => setShowFoundModal(false), 2000); 
+    } else {
+        alert("Data permohonan tidak ditemukan.");
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    const id = initialData ? formData.id : `KEB-${Date.now()}`;
+    const newObjection = { 
+        ...formData, 
+        id, 
+        date: new Date().toISOString().split('T')[0], 
+        status: initialData ? formData.status : 'Proses',
+        sheetType: 'Keberatan'
+    };
+
+    // --- SEND TO GOOGLE SHEET ---
+    try {
+        await fetch(SCRIPT_URL, {
+            method: "POST",
+            body: JSON.stringify(newObjection),
+            mode: "no-cors"
+        });
+    } catch (error) {
+        console.error("Error saving to sheet", error);
+    }
+    // -----------------------------
+
+    if (initialData) {
+        onSubmit(newObjection);
+        setShowEditSuccess(true);
+        setTimeout(() => {
+            setShowEditSuccess(false);
+            if (onCancel) onCancel();
+        }, 1500);
+    } else {
+        setLastId(id);
+        onSubmit(newObjection);
+        setShowSuccess(true);
+    }
+    setIsSubmitting(false);
+  };
+
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(generateObjectionHTML({ ...formData, id: lastId })); // Fixed to use Objection HTML
+      printWindow.document.close();
+    }
+  };
+
+  if (showEditSuccess) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded-xl shadow-2xl flex flex-col items-center animate-bounce-in">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+            <CheckCircle className="text-green-600" size={32} />
+          </div>
+          <h3 className="text-xl font-bold text-gray-800">Berhasil!</h3>
+          <p className="text-gray-600">Data keberatan berhasil diperbarui.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (showFoundModal) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded-xl shadow-2xl flex flex-col items-center animate-bounce-in">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+            <CheckCircle className="text-blue-600" size={32} />
+          </div>
+          <h3 className="text-xl font-bold text-gray-800">Data Ditemukan!</h3>
+          <p className="text-gray-600">Formulir otomatis terisi.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (showSuccess && !initialData) {
+    return (
+      <div className="bg-white p-8 rounded-xl shadow-lg text-center max-w-2xl mx-auto mt-10">
+        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <CheckCircle className="text-green-600" size={40} />
+        </div>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Pengajuan Sukses!</h2>
+        <p className="text-gray-600 mb-6">
+          Keberatan informasi dengan nomor registrasi <strong>{lastId}</strong> berhasil disimpan.
+        </p>
+        <div className="flex justify-center space-x-4">
+          <button onClick={handlePrint} className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg">
+            <Printer size={18} />
+            <span>Download Formulir Keberatan (PDF)</span>
+          </button>
+          <button onClick={() => { setShowSuccess(false); setFormData({
+            regNumber: '', purpose: '', name: '', address: '', job: '', phone: '',
+            proxyName: '', proxyAddress: '', proxyPhone: '', reason: 'Permohonan Informasi ditolak',
+            submissionMethod: 'Datang Langsung', officer: 'Rachmatul Azmi'
+          }); }} className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-lg">
+            Input Baru
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white p-8 rounded-xl shadow-lg">
+      <div className="flex justify-between items-center mb-6 border-b pb-2">
+        <h2 className="text-2xl font-bold text-gray-800">
+            {initialData ? `Edit Keberatan: ${initialData.id}` : 'Formulir Pengajuan Keberatan'}
+        </h2>
+        {initialData && (
+           <button onClick={onCancel} className="text-red-500 hover:text-red-700 text-sm font-bold">
+             Batal Edit
+           </button>
+         )}
+      </div>
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Kolom Kiri */}
+        <div className="space-y-4">
+          <h3 className="font-bold text-gray-700 border-b pb-1">A. Informasi Permohonan</h3>
+          <div>
+            <label className="block text-sm font-medium mb-1">Nomor Register Permohonan Informasi</label>
+            <div className="flex gap-2">
+                <input 
+                    required 
+                    name="regNumber" 
+                    value={formData.regNumber} 
+                    onChange={handleChange} 
+                    className="w-full p-2 border rounded" 
+                    placeholder="Contoh: REG-001" 
+                />
+                <button 
+                    type="button" 
+                    onClick={handleSearchReg} 
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded" 
+                    title="Cari Data Permohonan"
+                >
+                    <Search size={18} />
+                </button>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Tujuan Penggunaan Informasi</label>
+            <textarea required name="purpose" value={formData.purpose} onChange={handleChange} className="w-full p-2 border rounded" rows="2" />
+          </div>
+
+          <h3 className="font-bold text-gray-700 border-b pb-1 pt-4">B. Identitas Pemohon</h3>
+          <div>
+            <label className="block text-sm font-medium mb-1">Nama</label>
+            <input required name="name" value={formData.name} onChange={handleChange} className="w-full p-2 border rounded" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Alamat</label>
+            <textarea required name="address" value={formData.address} onChange={handleChange} className="w-full p-2 border rounded" rows="2" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Pekerjaan</label>
+            <input required name="job" value={formData.job} onChange={handleChange} className="w-full p-2 border rounded" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Nomor Telepon</label>
+            <input required type="tel" name="phone" value={formData.phone} onChange={handleChange} className="w-full p-2 border rounded" />
+          </div>
+        </div>
+
+        {/* Kolom Kanan */}
+        <div className="space-y-4">
+           <h3 className="font-bold text-gray-700 border-b pb-1">C. Identitas Kuasa Pemohon (Opsional)</h3>
+           <div>
+            <label className="block text-sm font-medium mb-1">Nama</label>
+            <input name="proxyName" value={formData.proxyName} onChange={handleChange} className="w-full p-2 border rounded" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Alamat</label>
+            <textarea name="proxyAddress" value={formData.proxyAddress} onChange={handleChange} className="w-full p-2 border rounded" rows="2" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Nomor Telepon</label>
+            <input type="tel" name="proxyPhone" value={formData.proxyPhone} onChange={handleChange} className="w-full p-2 border rounded" />
+          </div>
+
+          <h3 className="font-bold text-gray-700 border-b pb-1 pt-4">D. Alasan Keberatan & Metode</h3>
+          <div>
+            <label className="block text-sm font-medium mb-1">Alasan Pengajuan Keberatan</label>
+            <select name="reason" value={formData.reason} onChange={handleChange} className="w-full p-2 border rounded bg-white">
+              <option>Permohonan Informasi ditolak</option>
+              <option>Informasi berkala tidak disediakan</option>
+              <option>Permintaan Informasi tidak ditanggapi</option>
+              <option>Permintaan Informasi ditanggapi tidak sebagaimana yang diminta</option>
+              <option>Permintaan Informasi tidak dipenuhi</option>
+              <option>Biaya yang dikenakan tidak wajar</option>
+              <option>Informasi disampaikan melebihi jangka waktu yang ditentukan</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Keberatan diajukan melalui</label>
+            <div className="flex space-x-4 mt-2">
+               <label className="inline-flex items-center">
+                 <input type="radio" name="submissionMethod" value="Datang Langsung" checked={formData.submissionMethod === 'Datang Langsung'} onChange={handleChange} className="form-radio text-orange-500" />
+                 <span className="ml-2">Datang Langsung</span>
+               </label>
+               <label className="inline-flex items-center">
+                 <input type="radio" name="submissionMethod" value="Surat" checked={formData.submissionMethod === 'Surat'} onChange={handleChange} className="form-radio text-orange-500" />
+                 <span className="ml-2">Surat</span>
+               </label>
+               <label className="inline-flex items-center">
+                 <input type="radio" name="submissionMethod" value="Aplikasi PPID" checked={formData.submissionMethod === 'Aplikasi PPID'} onChange={handleChange} className="form-radio text-orange-500" />
+                 <span className="ml-2">Aplikasi PPID</span>
+               </label>
+            </div>
+          </div>
+          
+          <div>
+              <label className="block text-sm font-medium mb-1">Nama Petugas Penerima</label>
+              <select name="officer" value={formData.officer} onChange={handleChange} className="w-full p-2 border rounded bg-white border-orange-200">
+                <option>Rachmatul Azmi</option>
+                <option>Nur Asiah</option>
+                <option>Dandi</option>
+              </select>
+          </div>
+        </div>
+
+        <div className="md:col-span-2 mt-4 pt-4 border-t">
+            <button type="submit" className={`w-full text-white font-bold py-3 rounded-lg shadow transition ${initialData ? 'bg-blue-600 hover:bg-blue-700' : 'bg-red-600 hover:bg-red-700'} flex justify-center items-center`}>
+                {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : (initialData ? 'Update Perubahan' : 'Ajukan Keberatan')}
+            </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+const PublicInfoList = ({ infoData, onAdd, onDelete, onEdit }) => {
+  const [search, setSearch] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false); // State untuk sukses tambah
+  const [formData, setFormData] = useState({ division: '', title: '', desc: '', year: '', file: '' });
+  const [editingId, setEditingId] = useState(null);
+  const [deleteId, setDeleteId] = useState(null); // Custom Delete Confirmation
+  const fileInputRef = useRef(null);
+
+  const filtered = infoData.filter(i => i.title.toLowerCase().includes(search.toLowerCase()));
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        setFormData(prev => ({ ...prev, file: file.name, fileObj: file }));
+    }
+  };
+
+  const handleEditClick = (item) => {
+      setFormData({
+          division: item.division,
+          title: item.title,
+          desc: item.desc,
+          year: item.year,
+          file: item.file
+      });
+      setEditingId(item.id);
+      setIsModalOpen(true);
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Upload File (if any) and get Base64
+    let fileData = null;
+    let fileName = formData.file;
+    let fileType = "";
+
+    if (formData.fileObj) {
+        try {
+            fileData = await fileToBase64(formData.fileObj);
+            fileName = formData.file;
+            fileType = formData.fileObj.type;
+        } catch (err) {
+            console.error("File convert error", err);
+        }
+    }
+
+    const newInfo = {
+      id: editingId || `INF-${Date.now()}`,
+      division: formData.division,
+      title: formData.title,
+      desc: formData.desc,
+      year: formData.year,
+      file: fileName, // Nama file sementara
+      sheetType: 'InformasiPublik',
+      fileData: fileData, // Data Base64 untuk dikirim ke GAS
+      fileName: fileName,
+      fileType: fileType
+    };
+
+    onAdd(newInfo); // Update Local State (handled in parent App)
+    
+    setFormData({ division: '', title: '', desc: '', year: '', file: '' });
+    setEditingId(null);
+    setIsModalOpen(false);
+    
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 2000);
+  };
+
+  const handleDownload = (fileName) => {
+      // Jika fileName adalah URL (dari Google Drive), buka di tab baru
+      if (fileName && fileName.startsWith('http')) {
+          window.open(fileName, '_blank');
+      } else {
+          alert(`File lokal simulasi: ${fileName}`);
+      }
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-lg p-6">
+       <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-bold text-gray-800">Daftar Informasi Publik</h2>
+        <div className="flex gap-2">
+            <button 
+              onClick={() => { setIsModalOpen(true); setEditingId(null); setFormData({ division: '', title: '', desc: '', year: '', file: '' }); }}
+              className="flex items-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition"
+            >
+              <Plus size={18} /> Tambah Informasi
+            </button>
+            <div className="relative">
+                <Search className="absolute left-3 top-3 text-gray-400" size={18} />
+                <input 
+                  type="text" 
+                  placeholder="Cari Judul..." 
+                  className="pl-10 pr-4 py-2 border rounded-full focus:outline-none focus:border-orange-500 bg-gray-50"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+            </div>
+        </div>
+      </div>
+      <table className="w-full text-left">
+        <thead>
+            <tr className="border-b-2 border-orange-500">
+                <th className="py-3">No.</th>
+                <th className="py-3">Divisi</th>
+                <th className="py-3">Judul Informasi</th>
+                <th className="py-3">Deskripsi</th>
+                <th className="py-3">Tahun</th>
+                <th className="py-3 text-center">Aksi</th>
+            </tr>
+        </thead>
+        <tbody>
+            {filtered.map((item, idx) => (
+                <tr key={idx} className="border-b hover:bg-gray-50">
+                    <td className="py-3">{item.id}</td>
+                    <td className="py-3">{item.division}</td>
+                    <td className="py-3 font-medium text-blue-800">{item.title}</td>
+                    <td className="py-3 text-gray-500 text-sm">{item.desc}</td>
+                    <td className="py-3">{item.year}</td>
+                    <td className="py-3 flex justify-center gap-2">
+                        {deleteId === item.id ? (
+                            <div className="flex gap-2">
+                                <button onClick={() => { onDelete(item.id); setDeleteId(null); }} className="bg-red-600 text-white px-2 py-1 rounded text-xs">Ya</button>
+                                <button onClick={() => setDeleteId(null)} className="bg-gray-300 text-gray-700 px-2 py-1 rounded text-xs">Batal</button>
+                            </div>
+                        ) : (
+                            <>
+                                <button onClick={() => handleEditClick(item)} className="text-yellow-600 hover:text-yellow-800" title="Edit"><Edit size={18}/></button>
+                                <button 
+                                    onClick={() => handleDownload(item.file)}
+                                    className="text-green-600 hover:text-green-800"
+                                    title={item.file ? "Download File" : "Tidak ada file"}
+                                >
+                                    <Download size={18} />
+                                </button>
+                                <button onClick={() => setDeleteId(item.id)} className="text-red-600 hover:text-red-800" title="Hapus"><Trash2 size={18}/></button>
+                            </>
+                        )}
+                    </td>
+                </tr>
+            ))}
+        </tbody>
+      </table>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold">{editingId ? 'Edit Informasi Publik' : 'Tambah Informasi Publik'}</h3>
+              <button onClick={() => setIsModalOpen(false)}><XCircle className="text-gray-400 hover:text-red-500" /></button>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Divisi</label>
+                <select name="division" required onChange={handleChange} value={formData.division} className="w-full p-2 border rounded">
+                  <option value="">Pilih Divisi</option>
+                  <option value="Hukum">Hukum</option>
+                  <option value="SDM">SDM</option>
+                  <option value="Penanganan Pelanggaran">Penanganan Pelanggaran</option>
+                  <option value="Sengketa">Sengketa</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Judul Informasi</label>
+                <input type="text" name="title" required onChange={handleChange} value={formData.title} className="w-full p-2 border rounded" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Deskripsi</label>
+                <textarea name="desc" required onChange={handleChange} value={formData.desc} className="w-full p-2 border rounded" rows="3"></textarea>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Tahun</label>
+                <input type="number" name="year" required onChange={handleChange} value={formData.year} className="w-full p-2 border rounded" />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Upload File (PDF/Excel/Doc)</label>
+                <div 
+                    className="border-2 border-dashed border-gray-300 rounded p-4 text-center cursor-pointer hover:bg-gray-50"
+                    onClick={() => fileInputRef.current.click()}
+                >
+                    {formData.file ? (
+                        <div className="flex flex-col items-center text-green-600">
+                            <CheckCircle size={24} className="mb-2" />
+                            <span className="text-sm font-medium">{formData.file}</span>
+                            <span className="text-xs text-gray-400 mt-1">Klik untuk ganti</span>
+                        </div>
+                    ) : (
+                        <>
+                            <Upload className="mx-auto text-gray-400 mb-2" />
+                            <span className="text-xs text-gray-500">Klik untuk upload dokumen</span>
+                        </>
+                    )}
+                    <input 
+                        type="file" 
+                        className="hidden" 
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        accept=".pdf,.doc,.docx,.xls,.xlsx"
+                    />
+                </div>
+              </div>
+
+              <button type="submit" className="w-full bg-orange-500 text-white py-2 rounded hover:bg-orange-600">Simpan</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* SUCCESS MODAL FOR ADD PUBLIC INFO */}
+      {showSuccess && (
+         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-xl shadow-2xl flex flex-col items-center animate-bounce-in">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <CheckCircle className="text-green-600" size={32} />
+              </div>
+              <h3 className="text-xl font-bold text-gray-800">Berhasil!</h3>
+              <p className="text-gray-600">Data informasi publik berhasil disimpan.</p>
+            </div>
+         </div>
+      )}
+    </div>
+  );
+};
+
+const LetterGenerator = ({ requests, objections }) => {
+    const [letterType, setLetterType] = useState(''); // 'permohonan' or 'keberatan'
+    const [idInput, setIdInput] = useState('');
+    const [foundData, setFoundData] = useState(null);
+    const [additionalData, setAdditionalData] = useState({}); // decision, reason, cost, etc.
+
+    // Reset when switching type
+    useEffect(() => {
+        setFoundData(null);
+        setIdInput('');
+        setAdditionalData({});
+    }, [letterType]);
+
+    const handleSearch = () => {
+        if (!idInput) return alert('Masukkan ID terlebih dahulu');
+        
+        let found = null;
+        if (letterType === 'permohonan') {
+            found = requests.find(r => r.id.toLowerCase() === idInput.toLowerCase());
+        } else {
+            found = objections.find(o => o.id.toLowerCase() === idInput.toLowerCase());
         }
 
-        /* Menyembunyikan ikon kalender default pada input tanggal */
-        input[type="date"]::-webkit-calendar-picker-indicator {
-            display: none;
-            -webkit-appearance: none;
+        if (found) {
+            setFoundData(found);
+        } else {
+            alert('Data tidak ditemukan');
+            setFoundData(null);
         }
+    };
 
-        /* Style untuk tombol radio kustom */
-        .radio-custom {
-            display: none;
+    const handlePrint = () => {
+        if (!foundData) return;
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(generateOfficialLetterHTML(letterType, foundData, additionalData));
+            printWindow.document.close();
         }
-        .radio-custom + label {
-            cursor: pointer;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            border: 2px solid #e5e7eb; /* border-gray-200 */
-            transition: all 0.2s;
-            font-weight: 500;
-        }
-        .radio-custom:checked + label {
-            background-color: #fb923c; /* bg-orange-400 */
-            border-color: #f97316; /* border-orange-500 */
-            color: white;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
+    };
 
-        /* Style untuk input file kustom */
-        .file-input-label {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0.75rem 1rem;
-            background-color: #f3f4f6; /* bg-gray-100 */
-            border: 2px dashed #d1d5db; /* border-gray-300 */
-            border-radius: 0.5rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .file-input-label:hover {
-            background-color: #e5e7eb; /* bg-gray-200 */
-            border-color: #9ca3af; /* border-gray-400 */
-        }
-        .file-input-label svg {
-            margin-right: 0.5rem;
-        }
+    return (
+        <div className="bg-white p-8 rounded-xl shadow-lg">
+            <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2">
+                <Mail className="text-blue-500" /> Buat Surat Pemberitahuan
+            </h2>
 
-        /* Modal (Pop-up) styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 50;
-            inset: 0;
-            background-color: rgba(0, 0, 0, 0.6);
-            align-items: center;
-            justify-content: center;
-        }
-        .modal-content {
-            background-color: white;
-            border-radius: 0.75rem;
-            padding: 1.5rem;
-            width: 90%;
-            max-width: 400px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            transform: scale(0.95);
-            opacity: 0;
-            transition: all 0.2s ease-out;
-        }
-        .modal.flex { /* State 'flex' akan ditambahkan oleh JS untuk 'show' */
-            transform: scale(1);
-            opacity: 1;
-        }
-        .modal.flex .modal-content {
-            transform: scale(1);
-            opacity: 1;
-        }
-    </style>
-</head>
-<body class="bg-gray-100">
-
-    <div class="min-h-screen flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-lg rounded-2xl shadow-xl overflow-hidden">
-            <!-- Header Oranye -->
-            <div class="bg-orange-500 p-6">
-                <h1 class="text-2xl font-bold text-white text-center">
-                    Aplikasi Absensi
-                </h1>
-                <p class="text-center text-orange-100 text-sm mt-1">
-                    Bawaslu Provinsi Riau
-                </p>
+            {/* Step 1: Select Type */}
+            <div className="mb-8">
+                <label className="block text-gray-700 font-bold mb-3">Pilih Jenis Surat:</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button 
+                        onClick={() => setLetterType('permohonan')}
+                        className={`p-4 border-2 rounded-lg text-left transition ${letterType === 'permohonan' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}`}
+                    >
+                        <h4 className="font-bold text-lg mb-1">Surat Pemberitahuan Tertulis</h4>
+                        <p className="text-sm text-gray-500">Untuk merespon permohonan informasi (Diterima/Ditolak/Sebagian)</p>
+                    </button>
+                    <button 
+                        onClick={() => setLetterType('keberatan')}
+                        className={`p-4 border-2 rounded-lg text-left transition ${letterType === 'keberatan' ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-red-300'}`}
+                    >
+                        <h4 className="font-bold text-lg mb-1">Surat Tanggapan Keberatan</h4>
+                        <p className="text-sm text-gray-500">Untuk merespon pengajuan keberatan pemohon</p>
+                    </button>
+                </div>
             </div>
 
-            <!-- Konten Form -->
-            <form id="absensiForm" class="p-6 md:p-8 space-y-6">
-                
-                <div class="text-center">
-                    <h2 class="text-xl font-semibold text-gray-800">Selamat Datang</h2>
-                    <p class="text-gray-500 text-sm">Silakan isi data absensi Anda.</p>
-                </div>
-
-                <!-- Pilihan Kabupaten -->
-                <div>
-                    <label for="kabupaten" class="block text-sm font-medium text-gray-700 mb-1">Kabupaten</label>
-                    <select id="kabupaten" name="kabupaten" required
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent">
-                        <option value="" disabled selected>Pilih Kabupaten/Kota...</option>
-                        <option value="Pekanbaru">Pekanbaru</option>
-                        <option value="Dumai">Dumai</option>
-                        <option value="Kuansing">Kuansing</option>
-                        <option value="Rokan Hulu">Rokan Hulu</option>
-                        <option value="Rokan Hilir">Rokan Hilir</option>
-                        <option value="Indragiri Hulu">Indragiri Hulu</option>
-                        <option value="Indragiri Hilir">Indragiri Hilir</option>
-                        <option value="Kampar">Kampar</option>
-                        <option value="Siak">Siak</option>
-                        <option value="Bengkalis">Bengkalis</option>
-                        <option value="Kep. Meranti">Kep. Meranti</option>
-                        <option value="Pelalawan">Pelalawan</option>
-                    </select>
-                </div>
-
-                <!-- Pilihan Nama Pimpinan -->
-                <div>
-                    <label for="namaPimpinan" class="block text-sm font-medium text-gray-700 mb-1">Nama Pimpinan</label>
-                    <select id="namaPimpinan" name="namaPimpinan" required
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        disabled>
-                        <option value="">Pilih kabupaten terlebih dahulu...</option>
-                    </select>
-                </div>
-
-                <!-- Pilihan Jenis Presensi -->
-                <div>
-                    <span class="block text-sm font-medium text-gray-700 mb-2">Jenis Presensi</span>
-                    <div class="flex gap-4">
-                        <input type="radio" id="presensiMasuk" name="jenisPresensi" value="Masuk" class="radio-custom" required>
-                        <label for="presensiMasuk" class="flex-1 text-center">Masuk</label>
-
-                        <input type="radio" id="presensiPulang" name="jenisPresensi" value="Pulang" class="radio-custom">
-                        <label for="presensiPulang" class="flex-1 text-center">Pulang</label>
+            {/* Step 2: Search Data */}
+            {letterType && (
+                <div className="mb-8 animate-fade-in">
+                    <label className="block text-gray-700 font-bold mb-2">
+                        Masukkan Nomor {letterType === 'permohonan' ? 'Register Permohonan (REG-XXX)' : 'Registrasi Keberatan (KEB-XXX)'}
+                    </label>
+                    <div className="flex gap-2 max-w-md">
+                        <input 
+                            type="text" 
+                            className="flex-1 p-2 border rounded"
+                            placeholder={letterType === 'permohonan' ? 'Contoh: REG-001' : 'Contoh: KEB-001'}
+                            value={idInput}
+                            onChange={(e) => setIdInput(e.target.value)}
+                        />
+                        <button onClick={handleSearch} className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                            <Search size={20} />
+                        </button>
                     </div>
                 </div>
+            )}
 
-                <!-- Upload Foto Selfie -->
-                <div>
-                    <span class="block text-sm font-medium text-gray-700 mb-1">Foto Selfie</span>
-                    <!-- Atribut 'capture="user"' akan memprioritaskan kamera depan di HP -->
-                    <input type="file" id="fotoSelfie" name="fotoSelfie" accept="image/*" capture="user" class="hidden" required>
-                    <label for="fotoSelfie" class="file-input-label" id="fileLabel">
-                        <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                        <span id="fileLabelText">Ambil Foto Selfie</span>
-                    </label>
-                    <!-- Preview Gambar -->
-                    <img id="preview" class="hidden mt-4 rounded-lg shadow-md w-full h-auto object-cover" alt="Preview Foto Selfie">
+            {/* Step 3: Fill Details & Print */}
+            {foundData && (
+                <div className="border-t pt-6 animate-fade-in">
+                    <div className="bg-gray-50 p-4 rounded mb-6">
+                        <h4 className="font-bold text-gray-700 mb-2">Data Ditemukan:</h4>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div><strong>Nama:</strong> {foundData.name}</div>
+                            <div><strong>Tanggal:</strong> {foundData.date}</div>
+                            <div className="col-span-2">
+                                <strong>{letterType === 'permohonan' ? 'Rincian Info:' : 'Alasan Keberatan:'}</strong> 
+                                <p>{letterType === 'permohonan' ? foundData.details : foundData.reason}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div className="col-span-2">
+                            <label className="block text-sm font-bold mb-1">Keputusan {letterType === 'permohonan' ? 'PPID' : 'Atasan PPID'}</label>
+                            <select 
+                                className="w-full p-2 border rounded"
+                                onChange={(e) => setAdditionalData({...additionalData, decision: e.target.value})}
+                            >
+                                <option value="">- Pilih Keputusan -</option>
+                                {letterType === 'permohonan' ? (
+                                    <>
+                                        <option>Diberikan Seluruhnya</option>
+                                        <option>Diberikan Sebagian</option>
+                                        <option>Ditolak</option>
+                                        <option>Informasi Tidak Dikuasai</option>
+                                    </>
+                                ) : (
+                                    <>
+                                        <option>Keberatan Diterima</option>
+                                        <option>Keberatan Ditolak</option>
+                                    </>
+                                )}
+                            </select>
+                        </div>
+                        
+                        <div className="col-span-2">
+                            <label className="block text-sm font-bold mb-1">Alasan / Penjelasan Tambahan</label>
+                            <textarea 
+                                className="w-full p-2 border rounded" 
+                                rows="3"
+                                onChange={(e) => setAdditionalData({...additionalData, reason: e.target.value})}
+                            ></textarea>
+                        </div>
+
+                        {letterType === 'permohonan' && (
+                            <>
+                                <div>
+                                    <label className="block text-sm font-bold mb-1">Biaya Penyalinan (Jika ada)</label>
+                                    <input 
+                                        type="text" 
+                                        className="w-full p-2 border rounded" 
+                                        placeholder="Rp 0,-"
+                                        onChange={(e) => setAdditionalData({...additionalData, cost: e.target.value})}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold mb-1">Waktu Penyediaan</label>
+                                    <input 
+                                        type="text" 
+                                        className="w-full p-2 border rounded" 
+                                        placeholder="Contoh: 3 Hari Kerja"
+                                        onChange={(e) => setAdditionalData({...additionalData, time: e.target.value})}
+                                    />
+                                </div>
+                            </>
+                        )}
+                    </div>
+
+                    <button 
+                        onClick={handlePrint}
+                        className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-green-700 shadow-lg"
+                    >
+                        <Printer size={20} /> Cetak Surat Resmi
+                    </button>
                 </div>
-
-                <!-- Tombol Kirim -->
-                <button type="submit" id="submitButton"
-                    class="w-full bg-orange-500 text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:bg-orange-600 transition duration-300 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-opacity-50 disabled:opacity-50">
-                    <span id="buttonText">Kirim Absensi</span>
-                    <span id="buttonSpinner" class="hidden">
-                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Memproses...
-                    </span>
-                </button>
-            </form>
+            )}
         </div>
-    </div>
+    );
+};
 
-    <!-- Modal (Pop-up) -->
-    <div id="modal" class="modal">
-        <div class="modal-content text-center">
-            <div id="modalIcon">
-                <!-- Ikon akan disisipkan oleh JS -->
-            </div>
-            <h3 id="modalTitle" class="text-lg font-medium leading-6 text-gray-900 mt-2"></h3>
-            <div class="mt-2">
-                <p id="modalMessage" class="text-sm text-gray-600"></p>
-            </div>
-            <div class="mt-5">
-                <button type="button" id="modalCloseButton"
-                    class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-orange-500 text-base font-medium text-white hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 sm:text-sm">
-                    Tutup
-                </button>
-            </div>
-        </div>
-    </div>
+const App = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [activePage, setActivePage] = useState('beranda');
+  const [editingRequest, setEditingRequest] = useState(null); // State baru untuk data yang diedit
+  const [editingObjection, setEditingObjection] = useState(null); // State baru untuk edit keberatan
+  
+  const [requests, setRequests] = useState(INITIAL_REQUESTS);
+  const [publicInfo, setPublicInfo] = useState(INITIAL_PUBLIC_INFO);
+  const [objections, setObjections] = useState(INITIAL_OBJECTIONS);
 
-    <script>
-        // --- KONFIGURASI APLIKASI ---
-        // !!! PENTING: Ganti URL ini dengan URL Web App Google Apps Script Anda
-        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwMNQlYQ153HCjX7PShMLNm_jh1hHVaaVyK2Thswf73Z0iNYqU5MKwpVg7h5_fWdmM0/exec";
-
-        // --- Data Pimpinan dan Koordinat ---
-        const pimpinanData = {
-            "Pekanbaru": ["Ferdy", "Misbah Ibrahim", "Reni Purba", "Raja Inal Dalimunthe", "Taufik Hidayat"],
-            "Dumai": ["Agustri", "Yosi Renaldi", "Yeni Kartini"],
-            "Kuansing": ["Ade Indra Sakti", "Nur Afni", "Mardius Adi Saputra"],
-            "Rokan Hulu": ["Fajrul Islami Damsir", "Gummer Siregar", "Yurnalis", "Wikki Yuliandra", "Safrizal Hasbi"],
-            "Rokan Hilir": ["Zubaidah", "Jaka Abdillah", "Nasrudin", "Dedi Sibuae", "Nurmaidani"],
-            "Indragiri Hulu": ["Dedi Risanto", "Dwi Apriansyah Indra", "M.Lukman Said", "Said M Affandi", "Salestia Deni"],
-            "Indragiri Hilir": ["Rustam", "Rahmaddian", "Abus Siraj", "Indra", "Musdalifa"],
-            "Kampar": ["Syawir Abdullah", "Miki AB", "Mustaqim Akbar", "Fadriansyah", "Mhd. Amin S"],
-            "Siak": ["Zulfadli Nugraha", "Ahmad Dardiri", "Harlen Manurung", "M.Andi Susilawan", "Ikhsan Parulian Harap"],
-            "Bengkalis": ["Usman", "Budi Kurnialis", "Andi Setiawan", "Arsi Suprianto", "Mendra"],
-            "Kep. Meranti": ["Syamsurizal", "Rio Andika", "M. Hafit"],
-            "Pelalawan": ["Andrizal", "Bambang Sugi Hartono", "Syakir Hamdani", "Ari Nugroho Susanto", "Ruda Nur Kisawan"]
-        };
-
-        const koordinatKantor = {
-            "Pekanbaru": { lat: 0.4626240836716061, lon: 101.42461679999998 },
-            "Dumai": { lat: 1.6630254508232711, lon: 101.45249334765391 },
-            "Kuansing": { lat: -0.534470, lon: 101.569874 },
-            "Rokan Hulu": { lat: 0.876158, lon: 100.286686 },
-            "Rokan Hilir": { lat: 2.158803, lon: 100.799874 },
-            "Indragiri Hulu": { lat: 2.158803, lon: 100.799874 }, // Data sama dengan Rohil?
-            "Indragiri Hilir": { lat: -0.3201440, lon: 103.1542940 },
-            "Kampar": { lat: 0.324784, lon: 101.026305 },
-            "Siak": { lat: 0.814464, lon: 102.018998 },
-            "Bengkalis": { lat: 1.473969, lon: 102.123841 },
-            "Kep. Meranti": { lat: 1.008499, lon: 102.712468 },
-            "Pelalawan": { lat: 2.158803, lon: 100.799874 } // Data sama dengan Rohil?
-        };
-
-        // --- Elemen DOM ---
-        const form = document.getElementById('absensiForm');
-        const kabupatenSelect = document.getElementById('kabupaten');
-        const pimpinanSelect = document.getElementById('namaPimpinan');
-        const fotoInput = document.getElementById('fotoSelfie');
-        const preview = document.getElementById('preview');
-        const fileLabelText = document.getElementById('fileLabelText');
-        const submitButton = document.getElementById('submitButton');
-        const buttonText = document.getElementById('buttonText');
-        const buttonSpinner = document.getElementById('buttonSpinner');
-        const modal = document.getElementById('modal');
-        const modalTitle = document.getElementById('modalTitle');
-        const modalMessage = document.getElementById('modalMessage');
-        const modalIcon = document.getElementById('modalIcon');
-        const modalCloseButton = document.getElementById('modalCloseButton');
-
-        // --- Logika Modal (Pop-up) ---
-        const iconSuccess = `<svg class="h-12 w-12 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-        const iconError = `<svg class="h-12 w-12 text-red-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-        const iconInfo = `<svg class="h-12 w-12 text-blue-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-
-        function showModal(title, message, type = 'info') {
-            modalTitle.textContent = title;
-            modalMessage.innerHTML = message; // innerHTML agar bisa render jarak
-            
-            if (type === 'success') modalIcon.innerHTML = iconSuccess;
-            else if (type === 'error') modalIcon.innerHTML = iconError;
-            else modalIcon.innerHTML = iconInfo;
-
-            modal.style.display = 'flex';
-            setTimeout(() => modal.classList.add('flex'), 10); // Untuk transisi
+  useEffect(() => {
+    const savedReq = localStorage.getItem('ppid_requests');
+    if (savedReq) setRequests(JSON.parse(savedReq));
+    
+    // Fetch data from GAS on initial load
+    const loadDataFromGAS = async () => {
+        const gasData = await fetchFromGAS();
+        if (gasData) {
+            if (gasData.requests && gasData.requests.length > 0) setRequests(gasData.requests);
+            if (gasData.objections && gasData.objections.length > 0) setObjections(gasData.objections);
+            if (gasData.publicInfo && gasData.publicInfo.length > 0) setPublicInfo(gasData.publicInfo); // Load Public Info
         }
+    };
+    loadDataFromGAS();
+  }, []);
 
-        modalCloseButton.addEventListener('click', () => {
-            modal.classList.remove('flex');
-            setTimeout(() => modal.style.display = 'none', 200);
-        });
+  useEffect(() => {
+    localStorage.setItem('ppid_requests', JSON.stringify(requests));
+  }, [requests]);
 
-        // --- Logika Form ---
+  const handleLogin = () => setIsLoggedIn(true);
+  const handleLogout = () => setIsLoggedIn(false);
 
-        // 1. Update Pilihan Pimpinan berdasarkan Kabupaten
-        kabupatenSelect.addEventListener('change', () => {
-            const selectedKabupaten = kabupatenSelect.value;
-            const pimpinanList = pimpinanData[selectedKabupaten] || [];
+  // Logic untuk menghapus data
+  const handleDeleteRequest = (id) => {
+    setRequests(prev => prev.filter(req => req.id !== id));
+    submitToGAS({ id: id, sheetType: 'Permohonan', action: 'delete' });
+  };
 
-            pimpinanSelect.innerHTML = ''; // Kosongkan pilihan
-            
-            if (pimpinanList.length > 0) {
-                pimpinanSelect.disabled = false;
-                pimpinanSelect.add(new Option('Pilih Nama Pimpinan...', ''));
-                pimpinanList.forEach(nama => {
-                    pimpinanSelect.add(new Option(nama, nama));
-                });
-            } else {
-                pimpinanSelect.disabled = true;
-                pimpinanSelect.add(new Option('Pilih kabupaten terlebih dahulu...', ''));
-            }
-        });
+  // Logic untuk memulai edit
+  const handleEditRequest = (data) => {
+    setEditingRequest(data);
+    setActivePage('formulir'); // Pindah ke halaman form
+  };
 
-        // 2. Tampilkan Preview Foto
-        fotoInput.addEventListener('change', () => {
-            const file = fotoInput.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    preview.src = e.target.result;
-                    preview.classList.remove('hidden');
-                    fileLabelText.textContent = file.name; // Tampilkan nama file
-                }
-                reader.readAsDataURL(file);
-            }
-        });
+  // Logic simpan data (Create or Update)
+  const handleSaveRequest = (data) => {
+    if (editingRequest) {
+      // Jika mode edit, update data yang ada
+      setRequests(prev => prev.map(r => r.id === data.id ? data : r));
+      setEditingRequest(null);
+    } else {
+      // Jika baru, tambahkan
+      setRequests(prev => [data, ...prev]);
+    }
+  };
 
-        // 3. Handle Submit Form
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (GAS_WEB_APP_URL === "URL_GAS_ANDA_DI_SINI") {
-                showModal('Kesalahan Konfigurasi', 'Harap masukkan URL Google Apps Script yang valid di file index.html.', 'error');
-                return;
-            }
+  const handleSavePublicInfo = (data) => {
+    // 1. Update State Lokal (Optimistic UI)
+    if (publicInfo.find(p => p.id === data.id)) {
+        setPublicInfo(prev => prev.map(p => p.id === data.id ? data : p));
+    } else {
+        setPublicInfo(prev => [data, ...prev]);
+    }
 
-            setLoading(true);
+    // 2. Kirim ke GAS
+    submitToGAS({...data, sheetType: 'InformasiPublik'});
+  };
 
-            // --- Ambil Data Form ---
-            const formData = new FormData(form);
-            const kabupaten = formData.get('kabupaten');
-            const nama = formData.get('namaPimpinan');
-            const jenisPresensi = formData.get('jenisPresensi');
-            const file = formData.get('fotoSelfie');
+  const handleDeletePublicInfo = (id) => {
+      setPublicInfo(prev => prev.filter(p => p.id !== id));
+      // Call delete API
+      submitToGAS({ id: id, sheetType: 'InformasiPublik', action: 'delete' });
+  };
+  
+  // Logic simpan keberatan (Create or Update)
+  const handleSaveObjection = (data) => {
+    if (editingObjection) {
+        setObjections(prev => prev.map(o => o.id === data.id ? data : o));
+        setEditingObjection(null);
+    } else {
+        setObjections(prev => [data, ...prev]);
+    }
+  };
 
-            // --- Validasi Sederhana ---
-            if (!kabupaten || !nama || !jenisPresensi || !file) {
-                showModal('Data Tidak Lengkap', 'Mohon lengkapi semua isian form.', 'error');
-                setLoading(false);
-                return;
-            }
-            
-            // --- Cek Anti-Fraud (localStorage) ---
-            const today = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
-            const storageKey = `absensi_${today}_${nama}_${jenisPresensi}`;
-            
-            if (localStorage.getItem(storageKey)) {
-                showModal('Absensi Berulang', 'Anda terdeteksi melakukan absensi berulang (<b>' + jenisPresensi + '</b>) pada hari ini. Silakan coba lagi besok.', 'error');
-                setLoading(false);
-                return;
-            }
+  const handleDeleteObjection = (id) => {
+      setObjections(prev => prev.filter(o => o.id !== id));
+      submitToGAS({ id, sheetType: 'Keberatan', action: 'delete' });
+  }
 
-            try {
-                // --- Cek Lokasi GPS ---
-                showModal('Mendapatkan Lokasi', 'Mohon tunggu, sedang mengambil titik koordinat GPS Anda...', 'info');
-                const coords = await getCoordinates();
-                const targetCoords = koordinatKantor[kabupaten];
-                
-                if (!targetCoords) {
-                     showModal('Kesalahan Data', `Koordinat untuk ${kabupaten} tidak ditemukan.`, 'error');
-                     setLoading(false);
-                     return;
-                }
+  const handleEditObjection = (data) => {
+      setEditingObjection(data);
+      setActivePage('form_keberatan');
+  }
 
-                const distance = calculateDistance(coords.latitude, coords.longitude, targetCoords.lat, targetCoords.lon);
-                
-                // --- Cek Jarak (100 meter) ---
-                if (distance > 100) {
-                    showModal('Lokasi Terlalu Jauh', `Anda saat ini tidak dapat melakukan absensi karena berada <b>${distance.toFixed(0)} meter</b> dari titik lokasi kantor.`, 'error');
-                    setLoading(false);
-                    return;
-                }
+  // Logic update status
+  const handleStatusUpdate = (id, newStatus) => {
+    setRequests(prev => prev.map(r => r.id === id ? { ...r, status: newStatus } : r));
+    
+    // Kirim update ke Google Sheet
+    const itemToUpdate = requests.find(r => r.id === id);
+    if (itemToUpdate) {
+        submitToGAS({ ...itemToUpdate, status: newStatus, sheetType: 'Permohonan' });
+    }
+  };
 
-                // --- Lolos Pengecekan, Kirim Data ---
-                showModal('Mengirim Data', 'Lokasi terverifikasi. Mengirim data absensi Anda...', 'info');
+  // Logic update status keberatan
+  const handleObjectionStatusUpdate = (id, newStatus) => {
+    setObjections(prev => prev.map(o => o.id === id ? { ...o, status: newStatus } : o));
 
-                const base64Image = await toBase64(file);
+    // Kirim update ke Google Sheet
+    const itemToUpdate = objections.find(o => o.id === id);
+    if (itemToUpdate) {
+        submitToGAS({ ...itemToUpdate, status: newStatus, sheetType: 'Keberatan' });
+    }
+  };
 
-                const payload = {
-                    kabupaten: kabupaten,
-                    nama: nama,
-                    jenisPresensi: jenisPresensi,
-                    mimeType: file.type,
-                    // Kirim hanya data base64-nya, tanpa prefix "data:image/jpeg;base64,"
-                    base64Image: base64Image.split(',')[1]
-                };
+  // Handler jika user klik menu manual
+  const handleMenuClick = (pageId) => {
+    if (pageId === 'formulir') {
+      setEditingRequest(null); // Reset edit jika klik menu form manual
+    }
+    if (pageId === 'form_keberatan') {
+        setEditingObjection(null);
+    }
+    setActivePage(pageId);
+  }
 
-                const response = await fetch(GAS_WEB_APP_URL, {
-                    method: 'POST',
-                    mode: 'cors', // Diperlukan untuk request cross-origin
-                    redirect: 'follow',
-                    body: JSON.stringify(payload),
-                    headers: {
-                        'Content-Type': 'text/plain;charset=utf-8', // GAS seringkali lebih suka text/plain
-                    }
-                });
-                
-                const result = await response.json();
+  if (!isLoggedIn) {
+    return <LoginPage onLogin={handleLogin} />;
+  }
 
-                if (result.status === 'success') {
-                    // Tandai di localStorage
-                    localStorage.setItem(storageKey, 'true');
-                    const tglSukses = new Date().toLocaleDateString('id-ID', { dateStyle: 'full' });
-                    showModal('Absensi Berhasil', `Absensi <b>${jenisPresensi}</b> atas nama <b>${nama}</b> pada <b>${tglSukses}</b> telah dikirim.`, 'success');
-                    form.reset();
-                    preview.classList.add('hidden');
-                    fileLabelText.textContent = 'Ambil Foto Selfie';
-                    pimpinanSelect.innerHTML = '<option value="">Pilih kabupaten terlebih dahulu...</option>';
-                    pimpinanSelect.disabled = true;
-                } else {
-                    throw new Error(result.message || 'Terjadi kesalahan di server.');
-                }
+  return (
+    <MainLayout activePage={activePage} setActivePage={handleMenuClick} onLogout={handleLogout}>
+      {activePage === 'beranda' && (
+        <Dashboard requests={requests} publicInfo={publicInfo} objections={objections} />
+      )}
+      {activePage === 'formulir' && (
+        <RequestForm 
+          onSubmit={handleSaveRequest} 
+          initialData={editingRequest} 
+          onCancel={() => { setEditingRequest(null); setActivePage('daftar'); }} 
+        />
+      )}
+      {activePage === 'daftar' && (
+        <RequestList 
+          requests={requests} 
+          updateStatus={handleStatusUpdate} 
+          onDelete={handleDeleteRequest}
+          onEdit={handleEditRequest}
+        />
+      )}
+      {activePage === 'info' && (
+        <PublicInfoList 
+            infoData={publicInfo} 
+            onAdd={handleSavePublicInfo} // Menggunakan handleSavePublicInfo yang baru
+            onDelete={handleDeletePublicInfo}
+            onEdit={handleSavePublicInfo} // Passing the same save handler for edits
+        />
+      )}
+      {activePage === 'form_keberatan' && (
+        <ObjectionForm 
+            onSubmit={handleSaveObjection} 
+            initialData={editingObjection}
+            onCancel={() => { setEditingObjection(null); setActivePage('daftar_keberatan'); }}
+            requests={requests} // Pass requests prop here
+        />
+      )}
+      {activePage === 'daftar_keberatan' && (
+         <ObjectionList 
+            objections={objections} 
+            onDelete={handleDeleteObjection}
+            onEdit={handleEditObjection}
+            updateStatus={handleObjectionStatusUpdate}
+         />
+      )}
+       {activePage === 'surat' && (
+        <LetterGenerator requests={requests} objections={objections} />
+      )}
+    </MainLayout>
+  );
+};
 
-            } catch (error) {
-                showModal('Terjadi Kesalahan', error.message, 'error');
-            } finally {
-                setLoading(false);
-            }
-        });
-
-
-        // --- Fungsi Helper ---
-
-        // Mengubah status loading tombol
-        function setLoading(isLoading) {
-            submitButton.disabled = isLoading;
-            if (isLoading) {
-                buttonText.classList.add('hidden');
-                buttonSpinner.classList.remove('hidden');
-            } else {
-                buttonText.classList.remove('hidden');
-                buttonSpinner.classList.add('hidden');
-            }
-        }
-
-        // Mendapatkan koordinat GPS (Promise)
-        function getCoordinates() {
-            return new Promise((resolve, reject) => {
-                if (!navigator.geolocation) {
-                    reject(new Error('Geolocation tidak didukung oleh browser Anda.'));
-                }
-                
-                // enableHighAccuracy: true -> meminta GPS terbaik
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        resolve(position.coords);
-                    },
-                    (error) => {
-                        let errorMsg = 'Gagal mendapatkan lokasi: ';
-                        switch(error.code) {
-                            case error.PERMISSION_DENIED:
-                                errorMsg += "Anda menolak izin lokasi.";
-                                break;
-                            case error.POSITION_UNAVAILABLE:
-                                errorMsg += "Informasi lokasi tidak tersedia.";
-                                break;
-                            case error.TIMEOUT:
-                                errorMsg += "Waktu permintaan lokasi habis.";
-                                break;
-                            default:
-                                errorMsg += "Terjadi kesalahan tidak diketahui.";
-                        }
-                        reject(new Error(errorMsg));
-                    },
-                    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-                );
-            });
-        }
-
-        // Menghitung jarak (Haversine Formula) -> hasil dalam meter
-        function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371e3; // Radius bumi dalam meter
-            const φ1 = lat1 * Math.PI / 180;
-            const φ2 = lat2 * Math.PI / 180;
-            const Δφ = (lat2 - lat1) * Math.PI / 180;
-            const Δλ = (lon2 - lon1) * Math.PI / 180;
-
-            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-                      Math.cos(φ1) * Math.cos(φ2) *
-                      Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-            return R * c; // Jarak dalam meter
-        }
-
-        // Konversi File ke Base64 (Promise)
-        function toBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = error => reject(error);
-            });
-        }
-
-    </script>
-</body>
-</html>
+export default App;
