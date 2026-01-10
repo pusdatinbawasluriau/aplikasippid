@@ -106,7 +106,7 @@ Menindaklanjuti permohonan informasi Anda dengan nomor registrasi ${d.id}, kami 
         <div style="font-family: 'Times New Roman', Times, serif; font-size: 12pt; max-width: 21cm; margin: auto;">
             <!-- KOP SURAT / LETTERHEAD -->
              <div style="display: flex; align-items: flex-start; padding-bottom: 10px; border-bottom: 3px solid black; margin-bottom: 20px;">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/Logo_Bawaslu_2018.svg/1200px-Logo_Bawaslu_2018.svg.png" alt="Logo Bawaslu" style="width: 100px; height: auto; margin-right: 20px;">
+                <img src="https://riau.bawaslu.go.id/sites/prov_riau/files/2026-01/logo_0.png" alt="Logo Bawaslu" style="width: 100px; height: auto; margin-right: 20px;">
                 <div style="flex-grow: 1;">
                     <div style="font-weight: bold; font-size: 28pt; line-height: 1.1;">BAWASLU</div>
                     <div style="font-size: 11pt; letter-spacing: 0.5px;">BADAN PENGAWAS PEMILIHAN UMUM</div>
