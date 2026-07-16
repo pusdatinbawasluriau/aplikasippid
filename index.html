@@ -3,14 +3,54 @@
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      // Early synchronous patch for window.fetch in sandboxed/iframe environments.
+      // Replaces read-only getter properties with custom getter/setter accessors.
+      (function() {
+        try {
+          if (typeof window !== 'undefined') {
+            var originalFetch = window.fetch;
+            if (originalFetch) {
+              var currentFetch = originalFetch;
+              // Helper to define property safely
+              var defineFetch = function(obj) {
+                Object.defineProperty(obj, 'fetch', {
+                  get: function() { return currentFetch; },
+                  set: function(val) { currentFetch = val; },
+                  configurable: true,
+                  enumerable: true
+                });
+              };
+
+              try {
+                // Try to delete existing property if configurable
+                delete window.fetch;
+              } catch (e) {}
+
+              try {
+                defineFetch(window);
+              } catch (windowErr) {
+                try {
+                  defineFetch(Window.prototype);
+                } catch (protoErr) {
+                  console.warn("Could not redefine fetch on Window.prototype:", protoErr);
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Early fetch patch failed:", e);
+        }
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PPID Bawaslu Riau</title>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@400;500;700&display=swap" rel="stylesheet">
-    <script type="module" crossorigin src="/aplikasippid/assets/index-C_wqmM6R.js"></script>
-    <link rel="stylesheet" crossorigin href="/aplikasippid/assets/index-BuOtsETg.css">
+    <script type="module" crossorigin src="/assets/index-BUbGLIII.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BWe3jFft.css">
   </head>
   <body class="bg-slate-900 text-white min-h-screen relative overflow-x-hidden">
     <!-- Efek Latar Belakang Animasi -->
